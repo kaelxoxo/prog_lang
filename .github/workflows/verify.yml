@@ -1,0 +1,41 @@
+name: Verify Alaga
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SERVER_HOST: 127.0.0.1
+      SERVER_PORT: 4000
+      CORS_ORIGIN: '*'
+      POSTGRES_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+      DATABASE_NAME: alaga_ci
+      DATABASE_ROLE: alaga_api
+      DATABASE_ROLE_PASSWORD: alaga-ci-password
+      DATABASE_URL: postgresql://alaga_api:alaga-ci-password@127.0.0.1:5432/alaga_ci
+      EXPO_PUBLIC_API_URL: auto
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:setup
+      - run: npm run verify
+      - run: npm run export:android

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-26T09:40:34.2830219+08:00",
+  "title": "Design System: Alaga",
+  "extensions": {
+    "colorMeta": {
+      "table-paper": { "role": "neutral", "displayName": "Table Paper", "canonical": "#F6F1E7", "tonalRamp": ["#2E2B26", "#4A463E", "#6B655A", "#928A7C", "#B8B0A2", "#D7D0C4", "#EAE4DA", "#F6F1E7"] },
+      "family-evergreen": { "role": "primary", "displayName": "Family Evergreen", "canonical": "#233A35", "tonalRamp": ["#172723", "#233A35", "#304B44", "#47665D", "#66857A", "#91A99F", "#C2D1CB", "#E8EFEC"] },
+      "clay-action": { "role": "primary", "displayName": "Clay Action", "canonical": "#9C4F35", "tonalRamp": ["#4D2418", "#753724", "#9C4F35", "#BC6C4F", "#D49378", "#E5B7A2", "#F4D9CC", "#FBEDE7"] },
+      "confirmed-sage": { "role": "secondary", "displayName": "Confirmed Sage", "canonical": "#477064", "tonalRamp": ["#203B34", "#2F554A", "#477064", "#638C7E", "#88A99E", "#B2CAC2", "#D6E5DF", "#EFF5F2"] },
+      "window-sun": { "role": "tertiary", "displayName": "Window Sun", "canonical": "#E8B85D", "tonalRamp": ["#49350D", "#715416", "#9B7527", "#C3953E", "#E8B85D", "#F2CF8A", "#F8E3B8", "#FCF3DD"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "First-run and empty-state questions." },
+      "headline": { "displayName": "Headline", "purpose": "Patient and screen identity." },
+      "title": { "displayName": "Title", "purpose": "Medicine and review sections." },
+      "body": { "displayName": "Body", "purpose": "Instructions and care information." },
+      "label": { "displayName": "Label", "purpose": "Fields and state text in sentence case." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "state-change", "value": "200ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Native state feedback and progressive disclosure only." }
+    ],
+    "breakpoints": [
+      { "name": "stack-fields", "value": "620px or font scale above 1.15" },
+      { "name": "care-column", "value": "760px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The final action in a care task.",
+      "html": "<button class=\"ds-primary\">Confirm for Lina Santos</button>",
+      "css": ".ds-primary { min-height:54px; border:0; border-radius:14px; padding:8px 16px; background:#233A35; color:#FFFCF6; font:800 16px system-ui; } .ds-primary:hover { background:#753724; } .ds-primary:focus-visible { outline:3px solid #E8B85D; outline-offset:2px; }"
+    },
+    {
+      "name": "Care Action",
+      "kind": "button",
+      "refersTo": "button-care-action",
+      "description": "Compact creation action used sparingly.",
+      "html": "<button class=\"ds-care-action\">Add medicine</button>",
+      "css": ".ds-care-action { min-height:48px; border:0; border-radius:24px; padding:8px 16px; background:#9C4F35; color:#FFFCF6; font:800 14px system-ui; } .ds-care-action:hover { background:#753724; } .ds-care-action:focus-visible { outline:3px solid #E8B85D; outline-offset:2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Large-text-safe care information entry.",
+      "html": "<label class=\"ds-field\">Medicine name<input value=\"Amlodipine\"></label>",
+      "css": ".ds-field { display:grid; gap:8px; color:#233A35; font:700 14px system-ui; } .ds-field input { min-height:54px; border:1px solid #DED8CC; border-radius:14px; padding:0 16px; background:#FFFCF6; color:#233A35; font:400 17px system-ui; } .ds-field input:focus { border-color:#9C4F35; outline:2px solid #F4E4DA; }"
+    },
+    {
+      "name": "Patient Context",
+      "kind": "custom",
+      "refersTo": "patient-context",
+      "description": "The compact safety anchor for patient-scoped care.",
+      "html": "<button class=\"ds-patient\"><span class=\"ds-patient-dot\"></span><span><small>Caring for</small><strong>Lina Santos</strong></span><b>Change</b></button>",
+      "css": ".ds-patient { display:flex; min-height:72px; align-items:center; gap:12px; width:100%; border:1px solid #DED8CC; border-radius:14px; padding:10px 14px; background:#FFFCF6; color:#233A35; font-family:system-ui; text-align:left; } .ds-patient-dot { width:44px; height:44px; border-radius:50%; background:#E8B85D; } .ds-patient span:nth-child(2) { flex:1; } .ds-patient small,.ds-patient strong { display:block; } .ds-patient small { color:#626E69; font-size:12px; } .ds-patient strong { margin-top:1px; font-size:18px; } .ds-patient b { color:#753724; font-size:13px; }"
+    },
+    {
+      "name": "Confirmed Notice",
+      "kind": "custom",
+      "refersTo": "confirmed-notice",
+      "description": "Person-specific completion feedback with optional recovery action.",
+      "html": "<div class=\"ds-notice\"><span></span><p>Confirmed Amlodipine for Lina Santos.</p><button>Undo</button></div>",
+      "css": ".ds-notice { display:flex; align-items:center; gap:8px; border-radius:14px; padding:16px; background:#E4EFEA; color:#2F554A; font:600 14px system-ui; } .ds-notice span { width:10px; height:10px; border-radius:50%; background:#477064; } .ds-notice p { flex:1; margin:0; } .ds-notice button { border:0; background:transparent; color:#2F554A; font-weight:900; } .ds-notice button:focus-visible { outline:2px solid #2F554A; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Kitchen-Table Care Log",
+    "overview": "Alaga feels like a trusted family notebook made clearer and safer by software. Warm paper supports a compact, always-first patient selector, plain-language medicine workflows, and calm confirmation states.",
+    "keyCharacteristics": ["Warm low-glare surfaces", "One unmistakable but compact patient context", "Plain-language safety states", "Progressive disclosure", "Large-text resilience"],
+    "rules": [
+      { "name": "The Scarce Clay Rule", "body": "Clay identifies action or current choice, never inactive decoration.", "section": "colors" },
+      { "name": "The Read-It-Once Rule", "body": "Medicine names, doses, schedules, and warnings never use tiny type or decorative uppercase styling.", "section": "typography" },
+      { "name": "The One Anchor Rule", "body": "A care screen may have one dominant task surface. Patient identity stays first and unmistakable in a compact selector.", "section": "elevation" }
+    ],
+    "dos": ["Name the person before care information", "Use progressive disclosure", "Support large text", "End actions with confirmation and recovery"],
+    "donts": ["Do not resemble hospital administration software", "Do not use colored side stripes", "Do not build repeated card grids", "Do not use pure white or tiny uppercase metadata", "Do not hide the active person during confirmation"]
+  }
+}
