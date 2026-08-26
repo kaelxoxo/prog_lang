@@ -17,6 +17,7 @@ export type MedicationSchedule = {
 
 export type Medication = {
   id: string;
+  archivedAt: string | null;
   versionId: string;
   versionNumber: number;
   displayName: string;

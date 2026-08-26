@@ -145,3 +145,16 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 - [ ] A caregiver with medicine-manager permission can perform the confirmed medicine workflow.
 - [ ] Owner-only care-circle data and actions are unavailable to caregivers and unrelated accounts.
 - [ ] An accepted caregiver sees the same overdue-without-final-record attention on Home; no remote escalation is implied.
+
+## Slice 8: seven-day history and archive browsing
+
+- [ ] Today exposes Today and Past 7 days as accessible tabs without adding another bottom-navigation destination.
+- [ ] Past 7 days names the active person and presents the newest available care day first.
+- [ ] History remains read-only and shows scheduled time, medicine, dose, status, actor, recorded time and correction reason when available.
+- [ ] Opening History does not invent occurrences for old days that Alaga never materialized.
+- [ ] Recording or correcting a Today entry refreshes History without waiting for the normal query stale time.
+- [ ] An archived medicine disappears from active medicines and creates no new care entries.
+- [ ] Archived medicines remain behind a collapsed control with an announced expanded state.
+- [ ] An authorized medicine manager can restore an archived medicine; an ordinary caregiver cannot.
+- [ ] Recorded care history remains visible after its medicine is archived.
+- [ ] An unrelated account cannot query either the seven-day history or archived-medicine list.

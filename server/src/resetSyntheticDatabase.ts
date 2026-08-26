@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { type AddressInfo } from 'node:net';
 
 import pg from 'pg';
@@ -52,6 +53,12 @@ function manilaDate() {
     parts.find((part) => part.type === type)?.value || '';
 
   return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
+function addDays(value: string, days: number) {
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
 }
 
 async function clearAppData() {
@@ -129,7 +136,8 @@ async function main() {
       token: owner.token,
       body: { displayName: 'Lola Rosa (Synthetic)' },
     });
-    const startOn = manilaDate();
+    const today = manilaDate();
+    const startOn = addDays(today, -6);
     const patientId = patient.patient.id;
     const commonMedication = {
       brandName: '',
@@ -207,6 +215,34 @@ async function main() {
       method: 'POST',
       token: caregiver.token,
     });
+
+    for (const [daysAgo, recordSecondDose] of [[3, true], [2, false], [1, true]] as const) {
+      const careDate = addDays(today, -daysAgo);
+      const day = await api<{ timeline: Array<{ id: string }> }>(
+        `/patients/${patientId}/today?date=${careDate}`,
+        { token: owner.token },
+      );
+      const firstDose = day.timeline[0];
+      if (firstDose) {
+        await api(`/patients/${patientId}/doses/${firstDose.id}/events`, {
+          method: 'POST',
+          token: caregiver.token,
+          body: { kind: 'taken', clientActionId: randomUUID() },
+        });
+      }
+      const secondDose = day.timeline[1];
+      if (recordSecondDose && secondDose) {
+        await api(`/patients/${patientId}/doses/${secondDose.id}/events`, {
+          method: 'POST',
+          token: owner.token,
+          body: {
+            kind: daysAgo === 1 ? 'skipped' : 'taken',
+            reason: daysAgo === 1 ? 'Synthetic history example.' : undefined,
+            clientActionId: randomUUID(),
+          },
+        });
+      }
+    }
 
     process.stdout.write([
       'Synthetic Alaga data is ready.',

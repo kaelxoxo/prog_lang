@@ -5,7 +5,7 @@ import type { Pool, PoolClient } from 'pg';
 
 import { serverConfig } from './config';
 import { databasePool } from './database';
-import { timelineForDate, timelineForRange, validatedLocalDate } from './doses';
+import { historyForRange, timelineForDate, timelineForRange, validatedLocalDate } from './doses';
 
 const SESSION_LENGTH_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_BODY_BYTES = 16 * 1024;
@@ -28,6 +28,7 @@ type PatientRow = {
 
 type MedicationRow = {
   id: string;
+  archived_at: Date | null;
   version_id: string;
   version_number: number;
   display_name: string;
@@ -530,10 +531,11 @@ function scheduleJson(schedule: ScheduleRow) {
   };
 }
 
-async function medicationsFor(client: PoolClient, patientId: string) {
+async function medicationsFor(client: PoolClient, patientId: string, archived = false) {
   const medicationResult = await client.query<MedicationRow>(
     `SELECT
        medication.id,
+       medication.archived_at,
        version.id AS version_id,
        version.version_number,
        version.display_name,
@@ -559,10 +561,10 @@ async function medicationsFor(client: PoolClient, patientId: string) {
        ORDER BY version_number DESC
        LIMIT 1
      ) AS version ON true
-     WHERE medication.patient_id = $1
-       AND medication.archived_at IS NULL
-     ORDER BY lower(version.display_name), medication.id`,
-    [patientId],
+      WHERE medication.patient_id = $1
+        AND ($2::boolean = (medication.archived_at IS NOT NULL))
+      ORDER BY lower(version.display_name), medication.id`,
+    [patientId, archived],
   );
 
   const versionIds = medicationResult.rows.map((medication) => medication.version_id);
@@ -591,6 +593,7 @@ async function medicationsFor(client: PoolClient, patientId: string) {
 
   return medicationResult.rows.map((medication) => ({
     id: medication.id,
+    archivedAt: medication.archived_at,
     versionId: medication.version_id,
     versionNumber: medication.version_number,
     displayName: medication.display_name,
@@ -864,6 +867,26 @@ export function createAppServer(pool: Pool = databasePool) {
 
       const todayPath = url.pathname.match(/^\/patients\/([0-9a-f-]{36})\/today$/i);
 
+      const historyPath = url.pathname.match(/^\/patients\/([0-9a-f-]{36})\/history$/i);
+
+      if (request.method === 'GET' && historyPath) {
+        let through: string;
+        try {
+          through = validatedLocalDate(url.searchParams.get('through'), 'Last date');
+        } catch (error) {
+          throw new HttpError(400, error instanceof Error ? error.message : 'Last date is invalid.');
+        }
+        const days = Number(url.searchParams.get('days') || 7);
+        if (!Number.isInteger(days) || days < 1 || days > 7) {
+          throw new HttpError(400, 'History range must contain 1 to 7 days.');
+        }
+        const history = await inAuthenticatedTransaction(pool, request, (client) =>
+          historyForRange(client, historyPath[1], through, days),
+        );
+        sendJson(response, 200, { through, days, history });
+        return;
+      }
+
       if (request.method === 'GET' && todayPath) {
         let localDate: string;
         try {
@@ -953,8 +976,12 @@ export function createAppServer(pool: Pool = databasePool) {
 
       if (request.method === 'GET' && medicationsPath) {
         const patientId = medicationsPath[1];
+        const status = url.searchParams.get('status') || 'active';
+        if (status !== 'active' && status !== 'archived') {
+          throw new HttpError(400, 'Medicine status must be active or archived.');
+        }
         const medications = await inAuthenticatedTransaction(pool, request, (client) =>
-          medicationsFor(client, patientId),
+          medicationsFor(client, patientId, status === 'archived'),
         );
         sendJson(response, 200, { medications });
         return;

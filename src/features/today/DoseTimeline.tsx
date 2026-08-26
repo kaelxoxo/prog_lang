@@ -95,6 +95,7 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
       setCorrecting(null);
       setCorrectionReason('');
       void queryClient.invalidateQueries({ queryKey });
+      void queryClient.invalidateQueries({ queryKey: ['history', patient.id] });
       void queryClient.invalidateQueries({ queryKey: ['reminders', patient.id] });
     },
   });

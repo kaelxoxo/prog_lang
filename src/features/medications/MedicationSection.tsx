@@ -42,11 +42,13 @@ export function MedicationSection({ patient }: Props) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     setNotice(null);
     setHighlightedId(null);
     setSearch('');
+    setShowArchived(false);
   }, [patient.id]);
 
   useEffect(() => {
@@ -58,6 +60,10 @@ export function MedicationSection({ patient }: Props) {
   const medicationQuery = useQuery({
     queryKey,
     queryFn: () => apiRequest<ListResponse>(`/patients/${patient.id}/medications`, { token }),
+  });
+  const archivedQuery = useQuery({
+    queryKey: ['medications', patient.id, 'archived'],
+    queryFn: () => apiRequest<ListResponse>(`/patients/${patient.id}/medications?status=archived`, { token }),
   });
   const saveMutation = useMutation({
     mutationFn: ({ input, medication }: { input: MedicationInput; medication: Medication | null }) =>
@@ -79,6 +85,7 @@ export function MedicationSection({ patient }: Props) {
     onSuccess: (medication) => {
       setNotice({ message: `${medication.displayName} was archived.`, medicationId: medication.id, canUndo: true });
       void queryClient.invalidateQueries({ queryKey: ['today', patient.id] });
+      void queryClient.invalidateQueries({ queryKey: ['history', patient.id] });
       void queryClient.invalidateQueries({ queryKey: ['reminders', patient.id] });
       return queryClient.invalidateQueries({ queryKey });
     },
@@ -89,6 +96,7 @@ export function MedicationSection({ patient }: Props) {
     onSuccess: () => {
       setNotice({ message: `Medicine restored for ${patient.displayName}.` });
       void queryClient.invalidateQueries({ queryKey: ['today', patient.id] });
+      void queryClient.invalidateQueries({ queryKey: ['history', patient.id] });
       void queryClient.invalidateQueries({ queryKey: ['reminders', patient.id] });
       return queryClient.invalidateQueries({ queryKey });
     },
@@ -118,6 +126,7 @@ export function MedicationSection({ patient }: Props) {
   };
 
   const medications = medicationQuery.data?.medications ?? [];
+  const archivedMedications = archivedQuery.data?.medications ?? [];
   const visibleMedications = medications.filter((medication) =>
     medication.displayName.toLowerCase().includes(search.trim().toLowerCase()),
   );
@@ -170,8 +179,10 @@ export function MedicationSection({ patient }: Props) {
         <View style={styles.emptyState}>
           <View style={styles.emptyDot} />
           <View style={styles.emptyCopy}>
-            <Text style={styles.emptyTitle}>No confirmed medicines yet</Text>
-            <Text style={styles.emptyBody}>{patient.canManageMedications ? 'Add the first medicine, set its schedule, and check it before confirming.' : 'A care manager can add a confirmed medicine schedule.'}</Text>
+            <Text style={styles.emptyTitle}>{archivedMedications.length ? 'No active medicines' : 'No confirmed medicines yet'}</Text>
+            <Text style={styles.emptyBody}>{archivedMedications.length
+              ? 'Archived medicines remain available below and create no new care entries.'
+              : patient.canManageMedications ? 'Add the first medicine, set its schedule, and check it before confirming.' : 'A care manager can add a confirmed medicine schedule.'}</Text>
           </View>
         </View>
       ) : (
@@ -206,6 +217,50 @@ export function MedicationSection({ patient }: Props) {
         </View>
         </>
       )}
+
+      {archivedMedications.length ? (
+        <View style={styles.archivedSection}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showArchived }}
+            onPress={() => setShowArchived((current) => !current)}
+            style={({ pressed }) => [styles.archivedToggle, pressed && styles.pressed]}
+          >
+            <View style={styles.archivedHeading}>
+              <Text style={styles.archivedTitle}>Archived medicines</Text>
+              <Text style={styles.archivedCount}>{archivedMedications.length} retained</Text>
+            </View>
+            <Text style={styles.archivedToggleLabel}>{showArchived ? 'Hide' : 'Show'}</Text>
+          </Pressable>
+          {showArchived ? (
+            <View style={styles.archivedList}>
+              {archivedMedications.map((medication) => (
+                <View key={medication.id} style={styles.archivedRow}>
+                  <View style={styles.archivedCopy}>
+                    <Text style={styles.archivedName}>{medication.displayName}</Text>
+                    <Text style={styles.archivedDose}>{medication.doseQuantity} {medication.doseUnit}</Text>
+                    <Text style={styles.archivedNote}>History is retained. This medicine creates no new care entries.</Text>
+                  </View>
+                  {patient.canManageMedications ? (
+                    <Pressable accessibilityRole="button" disabled={restoreMutation.isPending} onPress={() => restoreMutation.mutate(medication.id)} style={({ pressed }) => [styles.restoreButton, pressed && styles.pressed]}>
+                      <Text style={styles.restoreLabel}>{restoreMutation.isPending && restoreMutation.variables === medication.id ? 'Restoring...' : 'Restore'}</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {archivedQuery.error ? (
+        <View style={styles.errorBox}>
+          <Text accessibilityLiveRegion="assertive" style={styles.errorText}>Archived medicines could not load. {errorMessage(archivedQuery.error)}</Text>
+          <Pressable accessibilityRole="button" onPress={() => void archivedQuery.refetch()} style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}>
+            <Text style={styles.retryLabel}>Try again</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {(archiveMutation.error || restoreMutation.error) ? <Text accessibilityLiveRegion="assertive" style={styles.inlineError}>{errorMessage(archiveMutation.error || restoreMutation.error)}</Text> : null}
 
@@ -267,5 +322,19 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   archiveLabel: { color: colors.error, fontSize: 14, fontWeight: '700' },
   inlineError: { color: colors.error, fontSize: 13, lineHeight: 19 },
   noResults: { color: colors.muted, fontSize: 15, lineHeight: 22, paddingVertical: spacing.xl, textAlign: 'center' },
+  archivedSection: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line },
+  archivedToggle: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.sm },
+  archivedHeading: { flex: 1, gap: 2 },
+  archivedTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
+  archivedCount: { color: colors.muted, fontSize: 13 },
+  archivedToggleLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  archivedList: { borderTopWidth: 1, borderTopColor: colors.line },
+  archivedRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: spacing.md },
+  archivedCopy: { minWidth: 220, flex: 1, gap: 2 },
+  archivedName: { color: colors.ink, fontSize: 17, fontWeight: '800' },
+  archivedDose: { color: colors.muted, fontSize: 14 },
+  archivedNote: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  restoreButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.ink, borderRadius: radii.sm, paddingHorizontal: spacing.md },
+  restoreLabel: { color: colors.ink, fontSize: 14, fontWeight: '800' },
   pressed: { opacity: 0.72 },
 });

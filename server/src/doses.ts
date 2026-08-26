@@ -166,3 +166,26 @@ export async function timelineForRange(
   }
   return timeline;
 }
+
+export async function historyForRange(
+  client: PoolClient,
+  patientId: string,
+  lastDate: string,
+  days: number,
+) {
+  const history: Array<{ date: string; timeline: TimelineJson[] }> = [];
+
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const localDate = addDays(lastDate, -offset);
+    const result = await client.query<TimelineRow>(
+      'SELECT * FROM app_api.patient_dose_timeline($1, $2)',
+      [patientId, localDate],
+    );
+    history.push({
+      date: localDate,
+      timeline: result.rows.map((row) => timelineJson(row, localDate)),
+    });
+  }
+
+  return history;
+}

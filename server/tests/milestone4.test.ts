@@ -23,6 +23,8 @@ type Dose = {
   recordedByName: string | null;
 };
 
+type HistoryDay = { date: string; timeline: Dose[] };
+
 function adminDatabaseUrl() {
   const url = new URL(setupConfig.adminUrl);
   url.pathname = `/${setupConfig.databaseName}`;
@@ -178,6 +180,45 @@ test('Milestone 4 materializes a version-pinned care log with attributable idemp
 
     const denied = await api<{ error: string }>(`/patients/${patientId}/today?date=${careDate}`, { token: outsider.body.token });
     assert.equal(denied.status, 403);
+
+    const archived = await api<{ ok: boolean }>(
+      `/patients/${patientId}/medications/${created.body.medicationId}/archive`,
+      { method: 'POST', token: owner.body.token },
+    );
+    assert.equal(archived.status, 200);
+    const activeMedicines = await api<{ medications: Array<{ id: string }> }>(
+      `/patients/${patientId}/medications`,
+      { token: owner.body.token },
+    );
+    assert.deepEqual(activeMedicines.body.medications, []);
+    const archivedMedicines = await api<{ medications: Array<{ id: string; archivedAt: string | null }> }>(
+      `/patients/${patientId}/medications?status=archived`,
+      { token: owner.body.token },
+    );
+    assert.equal(archivedMedicines.body.medications[0]?.id, created.body.medicationId);
+    assert.ok(archivedMedicines.body.medications[0]?.archivedAt);
+
+    const history = await api<{ history: HistoryDay[] }>(
+      `/patients/${patientId}/history?through=${careDate}&days=7`,
+      { token: owner.body.token },
+    );
+    assert.equal(history.status, 200);
+    assert.equal(history.body.history.length, 7);
+    const recordedDay = history.body.history.find((day) => day.date === careDate);
+    assert.equal(recordedDay?.timeline[0]?.status, 'skipped');
+    assert.equal(recordedDay?.timeline[0]?.recordedByName, 'Dose Owner');
+
+    const deniedHistory = await api<{ error: string }>(
+      `/patients/${patientId}/history?through=${careDate}&days=7`,
+      { token: outsider.body.token },
+    );
+    assert.equal(deniedHistory.status, 403);
+
+    const restored = await api<{ ok: boolean }>(
+      `/patients/${patientId}/medications/${created.body.medicationId}/restore`,
+      { method: 'POST', token: owner.body.token },
+    );
+    assert.equal(restored.status, 200);
     await assert.rejects(
       databasePool.query(
         `INSERT INTO public.dose_events (occurrence_id, patient_id, event_kind, recorded_by, client_action_id)

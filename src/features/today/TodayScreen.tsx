@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { radii, spacing, type AppColors } from '../../theme/tokens';
@@ -6,6 +6,7 @@ import { useThemedStyles } from '../../theme/useTheme';
 import { useCurrentTime } from '../../lib/useCurrentTime';
 import { SyncNotice } from '../../components/SyncNotice';
 import { useAuth } from '../auth/AuthProvider';
+import { HistoryPanel } from '../history/HistoryPanel';
 import { InvitationInbox } from '../invitations/InvitationInbox';
 import { CareHeader } from '../patients/CareHeader';
 import { CreatePatientModal } from '../patients/CreatePatientModal';
@@ -18,6 +19,7 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines }: { focusedO
   const { styles } = useThemedStyles(createStyles);
   const [isSwitcherVisible, setSwitcherVisible] = useState(false);
   const [isCreatorVisible, setCreatorVisible] = useState(false);
+  const [view, setView] = useState<'today' | 'history'>('today');
   const { session, signOut } = useAuth();
   const { activePatient, createPatient, dataUpdatedAt, error, isCreating, isLoading, patients, retry, selectPatient } = usePatient();
   const now = useCurrentTime();
@@ -29,6 +31,10 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines }: { focusedO
     }).format(now),
     [now],
   );
+
+  useEffect(() => {
+    setView('today');
+  }, [activePatient?.id, focusedOccurrenceId]);
 
   if (isLoading) {
     return <View accessibilityLiveRegion="polite" style={styles.stateScreen}><Text style={styles.stateTitle}>Opening your care spaces...</Text></View>;
@@ -77,19 +83,39 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines }: { focusedO
           <CareHeader accountName={session?.displayName} onAddPerson={() => setCreatorVisible(true)} onChangePerson={() => setSwitcherVisible(true)} onSignOut={() => void signOut()} patient={activePatient} />
           <SyncNotice error={error} onRetry={retry} updatedAt={dataUpdatedAt} />
 
-          <View style={styles.todayIntro}>
-            <Text accessibilityRole="header" style={styles.sectionTitle}>Today</Text>
-            <Text style={styles.date}>{formattedDate}</Text>
+          <View accessibilityRole="tablist" style={styles.viewSwitch}>
+            {(['today', 'history'] as const).map((option) => (
+              <Pressable
+                accessibilityRole="tab"
+                accessibilityState={{ selected: view === option }}
+                key={option}
+                onPress={() => setView(option)}
+                style={({ pressed }) => [styles.viewOption, view === option && styles.viewOptionSelected, pressed && styles.pressed]}
+              >
+                <Text style={[styles.viewOptionLabel, view === option && styles.viewOptionLabelSelected]}>
+                  {option === 'today' ? 'Today' : 'Past 7 days'}
+                </Text>
+              </Pressable>
+            ))}
           </View>
-          <ReminderControl patient={activePatient} />
-          <View onLayout={(event) => { timelineOffset.current = event.nativeEvent.layout.y; }}>
-            <DoseTimeline
-              focusedOccurrenceId={focusedOccurrenceId}
-              onFocusLayout={(offset) => scrollRef.current?.scrollTo({ animated: true, y: Math.max(0, timelineOffset.current + offset - spacing.md) })}
-              onOpenMedicines={onOpenMedicines}
-              patient={activePatient}
-            />
-          </View>
+
+          {view === 'today' ? (
+            <>
+              <View style={styles.todayIntro}>
+                <Text accessibilityRole="header" style={styles.sectionTitle}>Today</Text>
+                <Text style={styles.date}>{formattedDate}</Text>
+              </View>
+              <ReminderControl patient={activePatient} />
+              <View onLayout={(event) => { timelineOffset.current = event.nativeEvent.layout.y; }}>
+                <DoseTimeline
+                  focusedOccurrenceId={focusedOccurrenceId}
+                  onFocusLayout={(offset) => scrollRef.current?.scrollTo({ animated: true, y: Math.max(0, timelineOffset.current + offset - spacing.md) })}
+                  onOpenMedicines={onOpenMedicines}
+                  patient={activePatient}
+                />
+              </View>
+            </>
+          ) : <HistoryPanel patient={activePatient} />}
         </View>
       </ScrollView>
 
@@ -124,6 +150,12 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   todayIntro: { gap: spacing.xs },
   sectionTitle: { color: colors.ink, fontSize: 28, fontWeight: '900', letterSpacing: -0.6 },
   date: { color: colors.muted, fontSize: 14 },
+  viewSwitch: { flexDirection: 'row', gap: spacing.xs, borderRadius: radii.md, backgroundColor: colors.mist, padding: spacing.xs },
+  viewOption: { minHeight: 48, flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radii.sm, paddingHorizontal: spacing.sm },
+  viewOptionSelected: { backgroundColor: colors.white },
+  viewOptionLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+  viewOptionLabelSelected: { color: colors.ink, fontWeight: '900' },
+  pressed: { opacity: 0.72 },
   stateScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl, backgroundColor: colors.canvas },
   stateTitle: { maxWidth: 420, color: colors.ink, fontSize: 24, fontWeight: '800', textAlign: 'center' },
   stateBody: { maxWidth: 420, color: colors.muted, fontSize: 15, lineHeight: 22, textAlign: 'center' },

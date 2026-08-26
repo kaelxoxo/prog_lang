@@ -69,7 +69,7 @@ Reminders are opt-in and scheduled locally for up to seven days. The device stor
 - **Milestone 5.5:** Family-care Home and interface hardening. **Implemented.**
 - **Slice 6:** Caregiver invitation and shared “not recorded” attention. **Implemented.**
 - **Slice 7:** Printed timetable image upload, validated AI draft and mandatory review. **Deferred until after history; synthetic images only.**
-- **Slice 8:** Seven-day history and archive flows. **Next product slice after foundation and device validation.**
+- **Slice 8:** Seven-day history and archive flows. **Implemented in code; physical-device validation remains open.**
 
 ### Planning handoff — 2026-08-26
 
@@ -89,6 +89,12 @@ The product owner cancelled the proposed private pilot and confirmed that no rea
 6. Prepare portfolio documentation, screenshots, demo data and an Android demonstration build.
 
 Paid hosting, real participant onboarding, verified email, remote push, offline writes and public release operations remain explicitly out of scope.
+
+### Slice 8 implementation notes
+
+Today now contains an accessible Today/Past 7 days switch rather than adding a fourth primary destination. History is read-only and queries only dose occurrences Alaga actually materialized; it never reconstructs an old care day from a newer medication version. Recorded corrections and actor attribution remain visible.
+
+Medicines now includes a collapsed archived section. Archived medicines create no new occurrences, but their latest confirmed details remain browsable and authorized medicine managers may restore them. The history and archived-list API paths retain the same membership-backed authorization boundary as Today and active medicines.
 
 Each large dependent slice starts only after the previous slice’s validation is in place.
 
