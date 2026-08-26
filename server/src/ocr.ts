@@ -1,4 +1,7 @@
-import { createWorker, PSM } from 'tesseract.js';
+import { mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+import { createWorker, OEM, PSM } from 'tesseract.js';
 
 export type PhotoSourceKind = 'label_photo' | 'timetable_photo';
 
@@ -86,7 +89,9 @@ export async function recognizeMedicationImage(
   image: Buffer,
   sourceKind: PhotoSourceKind,
 ) {
-  const worker = await createWorker('eng');
+  const cachePath = resolve(process.cwd(), '.cache', 'tesseract');
+  await mkdir(cachePath, { recursive: true });
+  const worker = await createWorker('eng', OEM.LSTM_ONLY, { cachePath });
 
   try {
     await worker.setParameters({
