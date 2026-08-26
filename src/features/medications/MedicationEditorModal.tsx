@@ -21,9 +21,10 @@ import { errorMessage } from '../../lib/api';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import type { Patient } from '../patients/types';
-import type { Medication, MedicationInput, ScheduleKind } from './types';
+import type { Medication, MedicationInput, MedicationOcrDraft, ScheduleKind } from './types';
 
 type Props = {
+  draft?: MedicationOcrDraft | null;
   medication: Medication | null;
   onClose: () => void;
   onSave: (input: MedicationInput) => Promise<unknown>;
@@ -191,7 +192,7 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function MedicationEditorModal({ medication, onClose, onSave, patient, visible }: Props) {
+export function MedicationEditorModal({ draft, medication, onClose, onSave, patient, visible }: Props) {
   const { styles } = useThemedStyles(createStyles);
   const { width, fontScale } = useWindowDimensions();
   const stackFields = width < 620 || fontScale > 1.15;
@@ -241,20 +242,20 @@ export function MedicationEditorModal({ medication, onClose, onSave, patient, vi
   useEffect(() => {
     if (!visible) return;
     setStep('details');
-    setDisplayName(medication?.displayName ?? '');
+    setDisplayName(medication?.displayName ?? draft?.displayName ?? '');
     setGenericName(medication?.genericName ?? '');
     setBrandName(medication?.brandName ?? '');
-    setStrengthValue(medication?.strengthValue?.toString() ?? '');
-    setStrengthUnit(medication?.strengthUnit ?? 'mg');
-    setDoseQuantity(medication?.doseQuantity.toString() ?? '1');
-    setDoseUnit(medication?.doseUnit ?? 'tablet');
-    setMedicineForm(medication?.medicineForm ?? '');
-    setRoute(medication?.route ?? '');
+    setStrengthValue(medication?.strengthValue?.toString() ?? draft?.strengthValue?.toString() ?? '');
+    setStrengthUnit(medication?.strengthUnit ?? draft?.strengthUnit ?? 'mg');
+    setDoseQuantity(medication?.doseQuantity.toString() ?? draft?.doseQuantity?.toString() ?? (draft ? '' : '1'));
+    setDoseUnit(medication?.doseUnit ?? draft?.doseUnit ?? 'tablet');
+    setMedicineForm(medication?.medicineForm ?? draft?.medicineForm ?? '');
+    setRoute(medication?.route ?? draft?.route ?? '');
     setPrescriber(medication?.prescriber ?? '');
     setReason(medication?.reason ?? '');
-    setOriginalInstructions(medication?.originalInstructions ?? '');
+    setOriginalInstructions(medication?.originalInstructions ?? draft?.originalInstructions ?? '');
     setNotes(medication?.notes ?? '');
-    setShowOptional(Boolean(medication && (medication.genericName || medication.brandName || medication.medicineForm || medication.route || medication.prescriber || medication.reason || medication.notes)));
+    setShowOptional(Boolean((medication && (medication.genericName || medication.brandName || medication.medicineForm || medication.route || medication.prescriber || medication.reason || medication.notes)) || draft));
     setDetailErrors({});
     setScheduleError(null);
     setServerError(null);
@@ -262,7 +263,7 @@ export function MedicationEditorModal({ medication, onClose, onSave, patient, vi
     const first = medication?.schedules[0];
     if (!first) {
       setScheduleKind('exact');
-      setExactTimes(['08:00', '20:00']);
+      setExactTimes(draft ? draft.exactTimes : ['08:00', '20:00']);
       setIntervalHours('8');
       setIntervalStart('06:00');
       setMealRelation('after');
@@ -273,7 +274,7 @@ export function MedicationEditorModal({ medication, onClose, onSave, patient, vi
       setStartOn(todayInManila());
       setEndEnabled(false);
       setEndOn(todayInManila());
-      setDirty(false);
+      setDirty(Boolean(draft));
       return;
     }
 
@@ -392,7 +393,7 @@ export function MedicationEditorModal({ medication, onClose, onSave, patient, vi
       doseQuantity: Number(doseQuantity), doseUnit: doseUnit.trim(), medicineForm: medicineForm.trim(),
       route: route.trim(), prescriber: prescriber.trim(), reason: reason.trim(),
       originalInstructions: originalInstructions.trim(), notes: notes.trim(),
-      sourceKind: medication?.sourceKind ?? 'manual', schedules,
+      sourceKind: medication?.sourceKind ?? draft?.sourceKind ?? 'manual', schedules,
     };
   };
 

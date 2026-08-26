@@ -95,6 +95,14 @@ Milestone 6 invitation delivery is intentionally local: Alaga stores a pending i
 
 Alaga's current reminders are local notifications. They can be exercised in Expo Go and do not require a cloud AI provider or push-notification server. Remote push notifications require a development build on Android, but Alaga does not use that remote feature in Milestone 5. The app requests notification permission only after the user turns reminders on.
 
+### Synthetic photo/OCR experiment
+
+Medicine managers may choose a synthetic JPEG or PNG from the device library. The mobile app sends a cropped JPEG to the local API, which holds it in memory, runs Tesseract.js and returns a draft. The API does not retain the image. The first OCR request may download and cache Tesseract's English language model, so that first request needs internet access and takes longer; later local requests reuse the cache.
+
+OCR accuracy is not assumed. Check the raw extracted wording and every suggested field, especially medicine name, strength, quantity and clock times. Vague wording intentionally produces no clock-time suggestion. The experiment must never be used with a real label, timetable, person or prescription.
+
+To check the real OCR worker and its cached language model without using a medicine image, run `npm.cmd run test:ocr:smoke`. It processes Alaga's app icon and verifies only that worker initialization, recognition and cleanup complete; parser correctness remains covered by the normal server test suite.
+
 ### Expo Go notification startup error
 
 With Expo SDK 57, importing the top-level `expo-notifications` module also evaluates its remote push-token auto-registration path. Android Expo Go rejects that remote path and can stop startup with `[runtime not ready]`, even when the application only needs supported local notifications.

@@ -68,7 +68,7 @@ Reminders are opt-in and scheduled locally for up to seven days. The device stor
 - **Slice 5:** Local patient reminders with duplicate-prevention behavior. **Implemented.**
 - **Milestone 5.5:** Family-care Home and interface hardening. **Implemented.**
 - **Slice 6:** Caregiver invitation and shared “not recorded” attention. **Implemented.**
-- **Slice 7:** Printed timetable image upload, validated AI draft and mandatory review. **Deferred until after history; synthetic images only.**
+- **Slice 7:** Synthetic label/timetable image selection, local OCR draft and mandatory review. **Implemented in code; physical-device and representative-image validation remain open.**
 - **Slice 8:** Seven-day history and archive flows. **Implemented in code; physical-device validation remains open.**
 
 ### Planning handoff — 2026-08-26
@@ -95,6 +95,12 @@ Paid hosting, real participant onboarding, verified email, remote push, offline 
 Today now contains an accessible Today/Past 7 days switch rather than adding a fourth primary destination. History is read-only and queries only dose occurrences Alaga actually materialized; it never reconstructs an old care day from a newer medication version. Recorded corrections and actor attribution remain visible.
 
 Medicines now includes a collapsed archived section. Archived medicines create no new occurrences, but their latest confirmed details remain browsable and authorized medicine managers may restore them. The history and archived-list API paths retain the same membership-backed authorization boundary as Today and active medicines.
+
+### Slice 7 implementation notes
+
+Authorized medicine managers may progressively reveal a synthetic-photo import experiment in Medicines. Expo ImagePicker supplies a cropped JPEG from the device library; the local API validates the membership, declared file type, magic bytes and 4 MB decoded-size limit before running Tesseract.js in memory. Images are not written to the database or filesystem.
+
+The draft parser preserves raw OCR text, extracts basic strength and dose fields, and suggests schedules only when explicit clock times exist. Vague frequency or meal wording never becomes an exact reminder automatically. The user must inspect the raw wording, open the normal Details/Schedule/Review flow and explicitly confirm before any medicine becomes active.
 
 Each large dependent slice starts only after the previous slice’s validation is in place.
 

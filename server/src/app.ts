@@ -6,9 +6,12 @@ import type { Pool, PoolClient } from 'pg';
 import { serverConfig } from './config';
 import { databasePool } from './database';
 import { historyForRange, timelineForDate, timelineForRange, validatedLocalDate } from './doses';
+import { recognizeMedicationImage, type PhotoSourceKind } from './ocr';
 
 const SESSION_LENGTH_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_BODY_BYTES = 16 * 1024;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const MAX_IMAGE_BODY_BYTES = 6 * 1024 * 1024;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -136,7 +139,7 @@ function sendJson(response: ServerResponse, status: number, value: unknown) {
   response.end(JSON.stringify(value));
 }
 
-async function readJson(request: IncomingMessage) {
+async function readJson(request: IncomingMessage, maximumBytes = MAX_BODY_BYTES) {
   const chunks: Buffer[] = [];
   let size = 0;
 
@@ -144,7 +147,7 @@ async function readJson(request: IncomingMessage) {
     const buffer = Buffer.from(chunk);
     size += buffer.length;
 
-    if (size > MAX_BODY_BYTES) {
+    if (size > maximumBytes) {
       throw new HttpError(413, 'The request body is too large.');
     }
 
@@ -652,7 +655,11 @@ function databaseError(error: unknown) {
   return null;
 }
 
-export function createAppServer(pool: Pool = databasePool) {
+export function createAppServer(
+  pool: Pool = databasePool,
+  dependencies: { recognizeImage?: typeof recognizeMedicationImage } = {},
+) {
+  const recognizeImage = dependencies.recognizeImage || recognizeMedicationImage;
   return createServer(async (request, response) => {
     if (request.method === 'OPTIONS') {
       response.writeHead(204, responseHeaders());
@@ -973,6 +980,46 @@ export function createAppServer(pool: Pool = databasePool) {
       }
 
       const medicationsPath = url.pathname.match(/^\/patients\/([0-9a-f-]{36})\/medications$/i);
+
+      const ocrPath = url.pathname.match(/^\/patients\/([0-9a-f-]{36})\/imports\/ocr$/i);
+
+      if (request.method === 'POST' && ocrPath) {
+        await inAuthenticatedTransaction(pool, request, async (client) => {
+          const permission = await client.query<{ allowed: boolean }>(
+            'SELECT alaga_private.can_manage_patient_medications($1) AS allowed',
+            [ocrPath[1]],
+          );
+          if (!permission.rows[0]?.allowed) {
+            throw new HttpError(403, 'Medicine-manager permission is required for photo import.');
+          }
+        });
+
+        const body = await readJson(request, MAX_IMAGE_BODY_BYTES);
+        const input = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+        const sourceKind = input.sourceKind;
+        if (sourceKind !== 'label_photo' && sourceKind !== 'timetable_photo') {
+          throw new HttpError(400, 'Photo source must be a medicine label or printed timetable.');
+        }
+        if (input.mimeType !== 'image/jpeg' && input.mimeType !== 'image/png') {
+          throw new HttpError(400, 'Choose a JPEG or PNG image.');
+        }
+        if (typeof input.imageBase64 !== 'string' || !input.imageBase64.length) {
+          throw new HttpError(400, 'The selected image is empty.');
+        }
+        const image = Buffer.from(input.imageBase64, 'base64');
+        if (!image.length || image.length > MAX_IMAGE_BYTES) {
+          throw new HttpError(413, 'Choose an image smaller than 4 MB.');
+        }
+        const isJpeg = image[0] === 0xff && image[1] === 0xd8 && image[2] === 0xff;
+        const isPng = image.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+        if ((input.mimeType === 'image/jpeg' && !isJpeg) || (input.mimeType === 'image/png' && !isPng)) {
+          throw new HttpError(400, 'The image contents do not match its file type.');
+        }
+
+        const draft = await recognizeImage(image, sourceKind as PhotoSourceKind);
+        sendJson(response, 200, { draft });
+        return;
+      }
 
       if (request.method === 'GET' && medicationsPath) {
         const patientId = medicationsPath[1];

@@ -68,3 +68,19 @@ export type MedicationInput = {
     timeZone: 'Asia/Manila';
   }>;
 };
+
+export type MedicationOcrDraft = {
+  confidence: number;
+  displayName: string;
+  doseQuantity: number | null;
+  doseUnit: string;
+  exactTimes: string[];
+  medicineForm: string;
+  originalInstructions: string;
+  rawText: string;
+  route: string;
+  sourceKind: 'label_photo' | 'timetable_photo';
+  strengthUnit: string;
+  strengthValue: number | null;
+  warnings: string[];
+};

@@ -14,6 +14,8 @@ On 2026-08-26, the product owner confirmed that Alaga remains a student side pro
 
 The next work order is repository and local-development reliability, physical-device UX validation, seven-day history and archive browsing, synthetic photo/OCR experimentation, English/Filipino settings, then portfolio documentation and an Android demonstration build.
 
+Photo/OCR experimentation runs on the local Node API with Tesseract.js. Selected images are capped at 4 MB, held in memory and not persisted. Tesseract may download and cache its open-source English language model on first use; the selected image is not sent to that model host. OCR output remains a draft, retains the extracted wording, suggests only explicit clock times and must pass through the existing review-and-confirm workflow.
+
 ## First-release audience
 
 Alaga is ultimately intended for three groups:

@@ -9,7 +9,8 @@ import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
 import { MedicationEditorModal } from './MedicationEditorModal';
-import type { Medication, MedicationInput, MedicationSchedule } from './types';
+import { MedicationPhotoImport } from './MedicationPhotoImport';
+import type { Medication, MedicationInput, MedicationOcrDraft, MedicationSchedule } from './types';
 
 type Props = { patient: Patient };
 type ListResponse = { medications: Medication[] };
@@ -39,6 +40,7 @@ export function MedicationSection({ patient }: Props) {
   const queryKey = ['medications', patient.id] as const;
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
+  const [importDraft, setImportDraft] = useState<MedicationOcrDraft | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -49,6 +51,7 @@ export function MedicationSection({ patient }: Props) {
     setHighlightedId(null);
     setSearch('');
     setShowArchived(false);
+    setImportDraft(null);
   }, [patient.id]);
 
   useEffect(() => {
@@ -105,12 +108,21 @@ export function MedicationSection({ patient }: Props) {
   const openCreate = () => {
     setNotice(null);
     setEditingMedication(null);
+    setImportDraft(null);
     setEditorVisible(true);
   };
 
   const openEdit = (medication: Medication) => {
     setNotice(null);
     setEditingMedication(medication);
+    setImportDraft(null);
+    setEditorVisible(true);
+  };
+
+  const reviewImport = (draft: MedicationOcrDraft) => {
+    setNotice(null);
+    setEditingMedication(null);
+    setImportDraft(draft);
     setEditorVisible(true);
   };
 
@@ -144,6 +156,8 @@ export function MedicationSection({ patient }: Props) {
           </Pressable>
         ) : null}
       </View>
+
+      {patient.canManageMedications ? <MedicationPhotoImport onReview={reviewImport} patient={patient} /> : null}
 
       {notice ? (
         <View accessibilityLiveRegion="polite" style={styles.notice}>
@@ -265,8 +279,9 @@ export function MedicationSection({ patient }: Props) {
       {(archiveMutation.error || restoreMutation.error) ? <Text accessibilityLiveRegion="assertive" style={styles.inlineError}>{errorMessage(archiveMutation.error || restoreMutation.error)}</Text> : null}
 
       <MedicationEditorModal
+        draft={importDraft}
         medication={editingMedication}
-        onClose={() => setEditorVisible(false)}
+        onClose={() => { setEditorVisible(false); setImportDraft(null); }}
         onSave={(input) => saveMutation.mutateAsync({ input, medication: editingMedication })}
         patient={patient}
         visible={editorVisible}

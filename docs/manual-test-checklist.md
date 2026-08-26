@@ -158,3 +158,17 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 - [ ] An authorized medicine manager can restore an archived medicine; an ordinary caregiver cannot.
 - [ ] Recorded care history remains visible after its medicine is archived.
 - [ ] An unrelated account cannot query either the seven-day history or archived-medicine list.
+
+## Slice 7: synthetic photo/OCR draft
+
+- [ ] Photo import remains collapsed until a medicine manager chooses Try.
+- [ ] The interface repeatedly limits the experiment to synthetic label and timetable images.
+- [ ] An ordinary caregiver and unrelated account cannot invoke the OCR endpoint.
+- [ ] JPEG/PNG contents and the 4 MB decoded-size limit are enforced before OCR begins.
+- [ ] The selected image is processed in memory and no image file or base64 payload is retained.
+- [ ] First-use language-model download failure produces a useful retryable error.
+- [ ] Raw extracted wording and OCR confidence remain visible before opening the medicine editor.
+- [ ] Explicit clock times may populate the schedule draft; vague frequency or meal wording does not.
+- [ ] Missing or uncertain name, strength, dose and time values remain visibly incomplete rather than guessed.
+- [ ] Review every field opens the normal Details, Schedule, and Review and confirm flow.
+- [ ] Closing the editor before confirmation creates no active medicine or reminder.
