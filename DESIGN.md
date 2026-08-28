@@ -187,11 +187,17 @@ Alaga is flat by default and uses tonal layering instead of shadows. Dividers or
 
 ### Navigation
 
-Navigation is shallow and explicit. Patient switching names the destination, multi-step care tasks show progress, and Back, Close, and discard recovery remain visible.
+Navigation is shallow and explicit. The three primary destinations pair a Lucide icon with a visible label; the selected destination uses the scarce clay tint as a compact state field. Patient switching names the destination, multi-step care tasks show progress, and Back, Close, and discard recovery remain visible. Settings is a nested screen rather than a fourth destination, and account sign-out lives there instead of competing with care actions on every screen.
+
+### Iconography
+
+Use the MIT-licensed Lucide set through `@react-native-vector-icons/lucide` with Expo's dynamic font loading so Expo Go remains supported. Icons are normally `17px` to `24px`, use the same semantic color as their label, and remain decorative to assistive technology when a complete text label or accessibility label is present. Consequential actions retain visible wording; an icon never replaces Taken, Skip, Snooze, patient identity, or medicine information.
 
 ### Patient Context
 
-Warm Surface contains a sunlight identity marker, the person's name, relationship, and an explicit Change action. Add-person remains adjacent but visually secondary. A compact form of this context remains present during every medicine step.
+Warm Surface contains a sunlight identity marker, the person's name, relationship, and an explicit full-width Change action. Add another person belongs inside the Change-person picker so the safety header presents one clear decision instead of competing actions. A compact form of this context remains present during every medicine step.
+
+When the active person has no confirmed doses today, Home states that fact without completion language, names the person, and presents one medicine action. It never treats `0 of 0` as progress or says the caregiver is caught up.
 
 ## Do's and Don'ts
 

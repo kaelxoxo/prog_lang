@@ -27,6 +27,10 @@ export type TimelineResponse = {
   timeline: DoseOccurrence[];
 };
 
+export function actionableAt(dose: Pick<DoseOccurrence, 'dueAt' | 'snoozedUntil' | 'status'>) {
+  return dose.status === 'snoozed' && dose.snoozedUntil ? dose.snoozedUntil : dose.dueAt;
+}
+
 export function manilaDate(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',

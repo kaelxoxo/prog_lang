@@ -10,13 +10,16 @@ import {
   View,
 } from 'react-native';
 
+import { AppIcon } from '../../components/AppIcon';
 import { errorMessage } from '../../lib/api';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
+import { useLocale } from '../settings/LocaleProvider';
 import { useAuth } from './AuthProvider';
 
 export function AuthScreen() {
   const { colors, styles } = useThemedStyles(createStyles);
+  const { t } = useLocale();
   const [mode, setMode] = useState<'sign-in' | 'register'>('register');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -32,9 +35,9 @@ export function AuthScreen() {
 
   const validate = () => {
     const problems: typeof fieldErrors = {};
-    if (mode === 'register' && !displayName.trim()) problems.displayName = 'Enter your name.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) problems.email = 'Enter a valid email address, such as name@example.com.';
-    if (password.length < 12) problems.password = 'Use at least 12 characters.';
+    if (mode === 'register' && !displayName.trim()) problems.displayName = t('auth.nameError');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) problems.email = t('auth.emailError');
+    if (password.length < 12) problems.password = t('auth.passwordError');
     setFieldErrors(problems);
     const first = problems.displayName ? displayNameRef : problems.email ? emailRef : problems.password ? passwordRef : null;
     first?.current?.focus();
@@ -75,39 +78,38 @@ export function AuthScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.brandBlock}>
-          <Text accessibilityRole="header" style={styles.brand}>Alaga</Text>
-          <Text style={styles.kicker}>CARE, KEPT TOGETHER</Text>
+          <View style={styles.brandLockup}>
+            <View style={styles.brandMark}><AppIcon color={colors.ink} name="notebook-tabs" size={24} /></View>
+            <Text accessibilityRole="header" style={styles.brand}>Alaga</Text>
+          </View>
+          <Text style={styles.kicker}>{t('auth.kicker')}</Text>
           <Text style={styles.title}>
-            {mode === 'register' ? 'Start a private care space.' : 'Welcome back to your care space.'}
+            {t(mode === 'register' ? 'auth.registerTitle' : 'auth.signInTitle')}
           </Text>
-          <Text style={styles.body}>
-            Keep each person's medicines and schedules together in one private care space.
-          </Text>
+          <Text style={styles.body}>{t('auth.body')}</Text>
         </View>
 
         <View style={styles.formCard}>
           <View style={styles.formHeading}>
             <Text accessibilityRole="header" style={styles.formTitle}>
-              {mode === 'register' ? 'Create your account' : 'Sign in'}
+              {t(mode === 'register' ? 'auth.createAccount' : 'auth.signIn')}
             </Text>
             <Text style={styles.formHint}>
-              {mode === 'register'
-                ? 'You can add the people you care for after creating your account.'
-                : 'Continue where you left off.'}
+              {t(mode === 'register' ? 'auth.registerHint' : 'auth.signInHint')}
             </Text>
           </View>
 
           {mode === 'register' ? (
             <View style={styles.field}>
-              <Text style={styles.label}>Your name</Text>
+              <Text style={styles.label}>{t('auth.name')}</Text>
               <TextInput
-                accessibilityLabel="Your name"
+                accessibilityLabel={t('auth.name')}
                 accessibilityHint={fieldErrors.displayName}
                 autoCapitalize="words"
                 autoComplete="name"
                 maxLength={80}
                 onChangeText={setDisplayName}
-                onBlur={() => setFieldErrors((current) => ({ ...current, displayName: displayName.trim() ? undefined : 'Enter your name.' }))}
+                onBlur={() => setFieldErrors((current) => ({ ...current, displayName: displayName.trim() ? undefined : t('auth.nameError') }))}
                 placeholder="Maya"
                 placeholderTextColor={colors.muted}
                 ref={displayNameRef}
@@ -119,16 +121,16 @@ export function AuthScreen() {
           ) : null}
 
           <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{t('auth.email')}</Text>
             <TextInput
-              accessibilityLabel="Email"
+              accessibilityLabel={t('auth.email')}
               accessibilityHint={fieldErrors.email}
               autoCapitalize="none"
               autoComplete="email"
               inputMode="email"
               maxLength={320}
               onChangeText={setEmail}
-              onBlur={() => setFieldErrors((current) => ({ ...current, email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? undefined : 'Enter a valid email address, such as name@example.com.' }))}
+              onBlur={() => setFieldErrors((current) => ({ ...current, email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? undefined : t('auth.emailError') }))}
               placeholder="maya@example.com"
               placeholderTextColor={colors.muted}
               ref={emailRef}
@@ -139,28 +141,29 @@ export function AuthScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{t('auth.password')}</Text>
             <View style={[styles.passwordRow, fieldErrors.password && styles.inputError]}>
               <TextInput
-                accessibilityLabel="Password"
-                accessibilityHint={fieldErrors.password || 'Use at least 12 characters.'}
+                accessibilityLabel={t('auth.password')}
+                accessibilityHint={fieldErrors.password || t('auth.passwordError')}
                 autoCapitalize="none"
                 autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 maxLength={128}
                 onChangeText={setPassword}
-                onBlur={() => setFieldErrors((current) => ({ ...current, password: password.length >= 12 ? undefined : 'Use at least 12 characters.' }))}
-                placeholder="At least 12 characters"
+                onBlur={() => setFieldErrors((current) => ({ ...current, password: password.length >= 12 ? undefined : t('auth.passwordError') }))}
+                placeholder={t('auth.passwordPlaceholder')}
                 placeholderTextColor={colors.muted}
                 ref={passwordRef}
                 secureTextEntry={!showPassword}
                 style={styles.passwordInput}
                 value={password}
               />
-              <Pressable accessibilityLabel={showPassword ? 'Hide password' : 'Show password'} accessibilityRole="button" onPress={() => setShowPassword((current) => !current)} style={({ pressed }) => [styles.passwordToggle, pressed && styles.modeButtonPressed]}>
-                <Text style={styles.passwordToggleLabel}>{showPassword ? 'Hide' : 'Show'}</Text>
+              <Pressable accessibilityLabel={t(showPassword ? 'auth.hidePassword' : 'auth.showPassword')} accessibilityRole="button" onPress={() => setShowPassword((current) => !current)} style={({ pressed }) => [styles.passwordToggle, pressed && styles.modeButtonPressed]}>
+                <AppIcon color={colors.primaryDark} name={showPassword ? 'eye-off' : 'eye'} size={19} />
+                <Text style={styles.passwordToggleLabel}>{t(showPassword ? 'auth.hide' : 'auth.show')}</Text>
               </Pressable>
             </View>
-            {fieldErrors.password ? <Text accessibilityLiveRegion="assertive" style={styles.fieldError}>{fieldErrors.password}</Text> : <Text style={styles.passwordHelp}>At least 12 characters. Password managers and paste are supported.</Text>}
+            {fieldErrors.password ? <Text accessibilityLiveRegion="assertive" style={styles.fieldError}>{fieldErrors.password}</Text> : <Text style={styles.passwordHelp}>{t('auth.passwordHelp')}</Text>}
           </View>
 
           {error ? (
@@ -170,6 +173,7 @@ export function AuthScreen() {
           ) : null}
 
           <Pressable
+            accessibilityLabel={t(isSubmitting ? 'auth.working' : mode === 'register' ? 'auth.createAccount' : 'auth.signIn')}
             accessibilityRole="button"
             disabled={isSubmitting}
             onPress={() => void submit()}
@@ -179,14 +183,15 @@ export function AuthScreen() {
               isSubmitting && styles.buttonDisabled,
             ]}
           >
+            <AppIcon color={colors.white} name={mode === 'register' ? 'user-round-plus' : 'log-in'} size={20} />
             <Text style={styles.primaryButtonLabel}>
-              {isSubmitting ? 'Working…' : mode === 'register' ? 'Create account' : 'Sign in'}
+              {t(isSubmitting ? 'auth.working' : mode === 'register' ? 'auth.createAccount' : 'auth.signIn')}
             </Text>
           </Pressable>
 
           <Pressable accessibilityRole="button" onPress={switchMode} style={({ pressed }) => [styles.modeButton, pressed && styles.modeButtonPressed]}>
             <Text style={styles.modeButtonLabel}>
-              {mode === 'register' ? 'Already have an account? Sign in' : 'New to Alaga? Create an account'}
+              {t(mode === 'register' ? 'auth.modeSignIn' : 'auth.modeRegister')}
             </Text>
           </Pressable>
         </View>
@@ -201,12 +206,15 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     gap: spacing.xl,
-    padding: spacing.xl,
+    paddingHorizontal: 20,
+    paddingVertical: spacing.xl,
     backgroundColor: colors.canvas,
   },
   brandBlock: { gap: spacing.sm, alignSelf: 'center', width: '100%', maxWidth: 520 },
+  brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  brandMark: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.sun },
   brand: { color: colors.ink, fontSize: 42, fontWeight: '800', letterSpacing: -1.8 },
-  kicker: { color: colors.primary, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
+  kicker: { color: colors.primaryDark, fontSize: 14, fontWeight: '700' },
   title: { marginTop: spacing.md, color: colors.ink, fontSize: 31, fontWeight: '700', lineHeight: 38 },
   body: { color: colors.muted, fontSize: 16, lineHeight: 24 },
   formCard: {
@@ -216,7 +224,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     gap: spacing.md,
     borderWidth: 1,
     borderColor: colors.controlBorder,
-    borderRadius: radii.xl,
+    borderRadius: radii.lg,
     backgroundColor: colors.white,
     padding: spacing.lg,
   },
@@ -224,7 +232,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   fieldError: { color: colors.error, fontSize: 14, lineHeight: 20 },
   passwordRow: { minHeight: 52, flexDirection: 'row', alignItems: 'stretch', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.canvas, overflow: 'hidden' },
   passwordInput: { minHeight: 52, flex: 1, color: colors.ink, fontSize: 16, paddingHorizontal: spacing.md },
-  passwordToggle: { minHeight: 52, minWidth: 64, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm },
+  passwordToggle: { minHeight: 52, minWidth: 76, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: spacing.sm },
   passwordToggleLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
   passwordHelp: { color: colors.muted, fontSize: 14, lineHeight: 20 },
   formHeading: { gap: spacing.xs, marginBottom: spacing.sm },
@@ -246,8 +254,10 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   errorText: { color: colors.error, fontSize: 14, lineHeight: 20 },
   primaryButton: {
     minHeight: 56,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.sm,
     borderRadius: radii.md,
     backgroundColor: colors.ink,
     paddingHorizontal: spacing.lg,

@@ -10,6 +10,7 @@ import { SyntheticDataNotice } from './src/components/SyntheticDataNotice';
 import { MainTabs } from './src/features/navigation/MainTabs';
 import { PatientProvider } from './src/features/patients/PatientProvider';
 import { configureNotifications } from './src/features/reminders/notifications';
+import { LocaleProvider, useLocale } from './src/features/settings/LocaleProvider';
 import { spacing, type AppColors } from './src/theme/tokens';
 import { useThemedStyles } from './src/theme/useTheme';
 
@@ -28,12 +29,13 @@ configureNotifications();
 function AppContent() {
   const { styles } = useThemedStyles(createStyles);
   const { restoreError, retryRestore, session, signOut, status } = useAuth();
+  const { t } = useLocale();
 
   if (status === 'loading') {
     return (
       <View accessibilityLiveRegion="polite" style={styles.loadingScreen}>
         <Text style={styles.loadingBrand}>Alaga</Text>
-        <Text style={styles.loadingText}>Restoring your session…</Text>
+        <Text style={styles.loadingText}>{t('app.restoring')}</Text>
       </View>
     );
   }
@@ -41,13 +43,13 @@ function AppContent() {
   if (status === 'error') {
     return (
       <View style={styles.restoreScreen}>
-        <Text accessibilityRole="header" style={styles.restoreTitle}>Alaga cannot connect right now.</Text>
+        <Text accessibilityRole="header" style={styles.restoreTitle}>{t('app.connectionTitle')}</Text>
         <Text accessibilityLiveRegion="assertive" style={styles.restoreBody}>{restoreError}</Text>
         <Pressable accessibilityRole="button" onPress={() => void retryRestore()} style={styles.restorePrimary}>
-          <Text style={styles.restorePrimaryLabel}>Try again</Text>
+          <Text style={styles.restorePrimaryLabel}>{t('app.retry')}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => void signOut()} style={styles.restoreSecondary}>
-          <Text style={styles.restoreSecondaryLabel}>Clear session and sign out</Text>
+          <Text style={styles.restoreSecondaryLabel}>{t('app.clearSession')}</Text>
         </Pressable>
       </View>
     );
@@ -78,12 +80,14 @@ export default function App() {
       <SafeAreaView style={styles.app}>
         <StatusBar style={colors.canvas === '#17211F' ? 'light' : 'dark'} />
         <QueryClientProvider client={queryClient}>
-          <SyntheticDataNotice />
-          <View style={styles.content}>
-            <AuthProvider>
-              <AppContent />
-            </AuthProvider>
-          </View>
+          <LocaleProvider>
+            <SyntheticDataNotice />
+            <View style={styles.content}>
+              <AuthProvider>
+                <AppContent />
+              </AuthProvider>
+            </View>
+          </LocaleProvider>
         </QueryClientProvider>
       </SafeAreaView>
     </SafeAreaProvider>

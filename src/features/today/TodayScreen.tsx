@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AppIcon } from '../../components/AppIcon';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useCurrentTime } from '../../lib/useCurrentTime';
@@ -13,10 +14,14 @@ import { CreatePatientModal } from '../patients/CreatePatientModal';
 import { PatientSwitcher } from '../patients/PatientSwitcher';
 import { usePatient } from '../patients/PatientProvider';
 import { ReminderControl } from '../reminders/ReminderControl';
+import { useLocale } from '../settings/LocaleProvider';
 import { DoseTimeline } from './DoseTimeline';
 
-export function TodayScreen({ focusedOccurrenceId, onOpenMedicines }: { focusedOccurrenceId?: string | null; onOpenMedicines: () => void }) {
-  const { styles } = useThemedStyles(createStyles);
+type Props = { focusedOccurrenceId?: string | null; onOpenMedicines: () => void; onOpenSettings: () => void };
+
+export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettings }: Props) {
+  const { colors, styles } = useThemedStyles(createStyles);
+  const { localeTag, t } = useLocale();
   const [isSwitcherVisible, setSwitcherVisible] = useState(false);
   const [isCreatorVisible, setCreatorVisible] = useState(false);
   const [view, setView] = useState<'today' | 'history'>('today');
@@ -26,10 +31,10 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines }: { focusedO
   const scrollRef = useRef<ScrollView>(null);
   const timelineOffset = useRef(0);
   const formattedDate = useMemo(
-    () => new Intl.DateTimeFormat('en-PH', {
+    () => new Intl.DateTimeFormat(localeTag, {
       timeZone: 'Asia/Manila', weekday: 'long', month: 'long', day: 'numeric',
     }).format(now),
-    [now],
+    [localeTag, now],
   );
 
   useEffect(() => {
@@ -37,16 +42,16 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines }: { focusedO
   }, [activePatient?.id, focusedOccurrenceId]);
 
   if (isLoading) {
-    return <View accessibilityLiveRegion="polite" style={styles.stateScreen}><Text style={styles.stateTitle}>Opening your care spaces...</Text></View>;
+    return <View accessibilityLiveRegion="polite" style={styles.stateScreen}><Text style={styles.stateTitle}>{t('today.opening')}</Text></View>;
   }
 
   if (error && !activePatient) {
     return (
       <View style={styles.stateScreen}>
-        <Text accessibilityRole="header" style={styles.stateTitle}>Your care spaces could not load.</Text>
+        <Text accessibilityRole="header" style={styles.stateTitle}>{t('today.loadError')}</Text>
         <Text accessibilityLiveRegion="assertive" style={styles.stateBody}>{error}</Text>
-        <Pressable accessibilityRole="button" onPress={retry} style={styles.statePrimaryButton}><Text style={styles.statePrimaryLabel}>Try again</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => void signOut()} style={styles.stateSecondaryButton}><Text style={styles.stateSecondaryLabel}>Sign out</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={retry} style={styles.statePrimaryButton}><Text style={styles.statePrimaryLabel}>{t('app.retry')}</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => void signOut()} style={styles.stateSecondaryButton}><Text style={styles.stateSecondaryLabel}>{t('care.signOut')}</Text></Pressable>
       </View>
     );
   }
@@ -57,16 +62,17 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines }: { focusedO
         <ScrollView contentContainerStyle={styles.emptyScreen}>
           <View style={styles.emptyColumn}>
             <View style={styles.topBar}>
-              <View><Text style={styles.brand}>Alaga</Text><Text style={styles.greeting}>Hello, {session?.displayName}</Text></View>
-              <Pressable accessibilityRole="button" onPress={() => void signOut()} style={styles.exitButton}><Text style={styles.exitLabel}>Sign out</Text></Pressable>
+              <View><Text style={styles.brand}>Alaga</Text><Text style={styles.greeting}>{t('today.hello', { name: session?.displayName ?? '' })}</Text></View>
+              <Pressable accessibilityRole="button" onPress={() => void signOut()} style={styles.exitButton}><Text style={styles.exitLabel}>{t('care.signOut')}</Text></Pressable>
             </View>
             <InvitationInbox />
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyEyebrow}>Your first care space</Text>
-              <Text accessibilityRole="header" style={styles.emptyTitle}>Who are you caring for?</Text>
-              <Text style={styles.emptyBody}>Add a person before entering medicines or schedules. You will be their first care manager.</Text>
+              <View style={styles.emptyIcon}><AppIcon color={colors.ink} name="user-round-plus" size={25} /></View>
+              <Text style={styles.emptyEyebrow}>{t('today.firstSpace')}</Text>
+              <Text accessibilityRole="header" style={styles.emptyTitle}>{t('today.who')}</Text>
+              <Text style={styles.emptyBody}>{t('today.emptyBody')}</Text>
               <Pressable accessibilityRole="button" onPress={() => setCreatorVisible(true)} style={({ pressed }) => [styles.emptyButton, pressed && styles.emptyButtonPressed]}>
-                <Text style={styles.emptyButtonLabel}>Add a person</Text>
+                <Text style={styles.emptyButtonLabel}>{t('today.addPerson')}</Text>
               </Pressable>
             </View>
           </View>
@@ -80,20 +86,22 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines }: { focusedO
     <>
       <ScrollView contentContainerStyle={styles.screen} ref={scrollRef}>
         <View style={styles.contentColumn}>
-          <CareHeader accountName={session?.displayName} onAddPerson={() => setCreatorVisible(true)} onChangePerson={() => setSwitcherVisible(true)} onSignOut={() => void signOut()} patient={activePatient} />
+          <CareHeader accountName={session?.displayName} onChangePerson={() => setSwitcherVisible(true)} onOpenSettings={onOpenSettings} patient={activePatient} />
           <SyncNotice error={error} onRetry={retry} updatedAt={dataUpdatedAt} />
 
           <View accessibilityRole="tablist" style={styles.viewSwitch}>
             {(['today', 'history'] as const).map((option) => (
               <Pressable
+                accessibilityLabel={t(option === 'today' ? 'today.title' : 'today.history')}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: view === option }}
                 key={option}
                 onPress={() => setView(option)}
                 style={({ pressed }) => [styles.viewOption, view === option && styles.viewOptionSelected, pressed && styles.pressed]}
               >
+                <AppIcon color={view === option ? colors.ink : colors.muted} name={option === 'today' ? 'calendar-days' : 'history'} size={18} />
                 <Text style={[styles.viewOptionLabel, view === option && styles.viewOptionLabelSelected]}>
-                  {option === 'today' ? 'Today' : 'Past 7 days'}
+                  {t(option === 'today' ? 'today.title' : 'today.history')}
                 </Text>
               </Pressable>
             ))}
@@ -101,11 +109,10 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines }: { focusedO
 
           {view === 'today' ? (
             <>
-              <View style={styles.todayIntro}>
-                <Text accessibilityRole="header" style={styles.sectionTitle}>Today</Text>
+              <View style={styles.dateRow}>
+                <AppIcon color={colors.muted} name="calendar-days" size={18} />
                 <Text style={styles.date}>{formattedDate}</Text>
               </View>
-              <ReminderControl patient={activePatient} />
               <View onLayout={(event) => { timelineOffset.current = event.nativeEvent.layout.y; }}>
                 <DoseTimeline
                   focusedOccurrenceId={focusedOccurrenceId}
@@ -114,12 +121,13 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines }: { focusedO
                   patient={activePatient}
                 />
               </View>
+              <ReminderControl patient={activePatient} />
             </>
           ) : <HistoryPanel patient={activePatient} />}
         </View>
       </ScrollView>
 
-      <PatientSwitcher activePatientId={activePatient.id} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} />
+      <PatientSwitcher activePatientId={activePatient.id} onAddPerson={() => setCreatorVisible(true)} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} />
       <CreatePatientModal isCreating={isCreating} onClose={() => setCreatorVisible(false)} onCreate={createPatient} visible={isCreatorVisible} />
     </>
   );
@@ -132,26 +140,11 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   brand: { color: colors.ink, fontSize: 26, fontWeight: '800', letterSpacing: -0.8 },
   greeting: { marginTop: 2, color: colors.muted, fontSize: 14 },
   exitButton: { minHeight: 48, justifyContent: 'center', borderRadius: radii.sm, paddingHorizontal: spacing.sm },
-  exitButtonPressed: { backgroundColor: colors.mist },
   exitLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
-  identityCard: { gap: spacing.lg, borderRadius: radii.xl, backgroundColor: colors.ink, padding: spacing.lg },
-  identityMain: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  avatar: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center', borderRadius: 32, backgroundColor: colors.sun },
-  avatarLabel: { color: colors.ink, fontSize: 20, fontWeight: '900' },
-  identityCopy: { flex: 1 },
-  eyebrow: { color: colors.inkMuted, fontSize: 13, fontWeight: '700' },
-  patientName: { marginTop: spacing.xs, color: colors.white, fontSize: 26, fontWeight: '800', letterSpacing: -0.4 },
-  relationship: { marginTop: 3, color: colors.inkMuted, fontSize: 14 },
-  patientActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  switchButton: { minHeight: 52, minWidth: 180, flex: 2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.inkLine, borderRadius: radii.md, backgroundColor: colors.inkRaised },
-  addPersonButton: { minHeight: 52, minWidth: 120, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.inkLine, borderRadius: radii.md },
-  switchButtonPressed: { backgroundColor: colors.primaryDark },
-  switchLabel: { color: colors.white, fontSize: 15, fontWeight: '700' },
-  todayIntro: { gap: spacing.xs },
-  sectionTitle: { color: colors.ink, fontSize: 28, fontWeight: '900', letterSpacing: -0.6 },
+  dateRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   date: { color: colors.muted, fontSize: 14 },
   viewSwitch: { flexDirection: 'row', gap: spacing.xs, borderRadius: radii.md, backgroundColor: colors.mist, padding: spacing.xs },
-  viewOption: { minHeight: 48, flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radii.sm, paddingHorizontal: spacing.sm },
+  viewOption: { minHeight: 48, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: radii.sm, paddingHorizontal: spacing.sm },
   viewOptionSelected: { backgroundColor: colors.white },
   viewOptionLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
   viewOptionLabelSelected: { color: colors.ink, fontWeight: '900' },
@@ -166,6 +159,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   emptyScreen: { flexGrow: 1, padding: 20, backgroundColor: colors.canvas },
   emptyColumn: { width: '100%', maxWidth: 640, flex: 1, alignSelf: 'center', gap: spacing.xl },
   emptyCard: { flex: 1, justifyContent: 'center', gap: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: radii.lg, backgroundColor: colors.white, padding: spacing.xl },
+  emptyIcon: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 26, backgroundColor: colors.sun },
   emptyEyebrow: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
   emptyTitle: { maxWidth: 420, color: colors.ink, fontSize: 30, fontWeight: '900', lineHeight: 37 },
   emptyBody: { maxWidth: 440, color: colors.muted, fontSize: 16, lineHeight: 24 },

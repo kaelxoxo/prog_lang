@@ -72,6 +72,17 @@ Milestone 6 uses in-app invitations tied to a normalized account email. An owner
 
 The local prototype does not send invitation email and account emails are not yet externally verified. Shared “not recorded” escalation means every accepted caregiver sees overdue items on Home when they open Alaga. Remote notifications, verified identity and household rules remain later decisions.
 
+## Task-first UI reference pass
+
+The 2026-08-27 UI polish pass used interaction references from real mobile products without copying their branding:
+
+- [Apple Health Medications](https://support.apple.com/en-ie/guide/iphone/iph811670c81/ios) informed explicit Taken/Skipped outcomes and a date-led daily log.
+- [Medisafe Timeline](https://medisafeapp.com/en/new-on-android-improved-reminder-screens/) informed chronological dose scanning with the next decision visible in context.
+- [MyTherapy](https://apps.apple.com/us/app/pill-reminder-mytherapy/id662170995) reinforced one uncluttered daily task flow instead of a dashboard of equal cards.
+- Familiar three-destination mobile navigation informed icon-plus-label tabs, while Settings remains nested and owns account sign-out.
+
+Alaga retains its kitchen-table care-log palette, patient-first safety anchor, source wording and cautious not-recorded language. The only external visual asset added is the MIT-licensed Lucide icon font. Stock photography and decorative medical illustration remain out because they compete with medication information and conflict with `PRODUCT.md`.
+
 ## AI and testing
 
 No cloud AI provider is required for Milestone 3. Free or local OCR/model options may be used for experiments with synthetic data, but they are testing tools rather than the production architecture. ChatGPT Pro does not include OpenAI API usage; any later production API integration needs separate provider credentials, consent, retention rules, and cost controls.

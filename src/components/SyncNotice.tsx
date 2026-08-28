@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { errorMessage } from '../lib/api';
 import { radii, spacing, type AppColors } from '../theme/tokens';
 import { useThemedStyles } from '../theme/useTheme';
+import { useLocale } from '../features/settings/LocaleProvider';
 
 export function SyncNotice({ error, onRetry, updatedAt }: {
   error: unknown;
@@ -10,17 +11,18 @@ export function SyncNotice({ error, onRetry, updatedAt }: {
   updatedAt: number;
 }) {
   const { styles } = useThemedStyles(createStyles);
+  const { localeTag, t } = useLocale();
   if (!error || !updatedAt) return null;
 
-  const time = new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(updatedAt);
+  const time = new Intl.DateTimeFormat(localeTag, { hour: 'numeric', minute: '2-digit' }).format(updatedAt);
   return (
     <View accessibilityLiveRegion="polite" style={styles.notice}>
       <View style={styles.copy}>
-        <Text style={styles.title}>Showing information saved at {time}</Text>
+        <Text style={styles.title}>{t('sync.savedAt', { time })}</Text>
         <Text style={styles.body}>{errorMessage(error)}</Text>
       </View>
       <Pressable accessibilityRole="button" onPress={onRetry} style={({ pressed }) => [styles.retry, pressed && styles.pressed]}>
-        <Text style={styles.retryLabel}>Try again</Text>
+        <Text style={styles.retryLabel}>{t('app.retry')}</Text>
       </Pressable>
     </View>
   );

@@ -164,7 +164,8 @@ export function CareCircleSection({ patient }: Props) {
         />
         {emailError ? <Text accessibilityLiveRegion="assertive" style={styles.fieldError}>{emailError}</Text> : null}
         <Pressable
-          accessibilityRole="switch"
+          accessibilityLabel="Allow medicine management"
+          accessibilityRole="checkbox"
           accessibilityState={{ checked: canManageMedications }}
           onPress={() => setCanManageMedications((current) => !current)}
           style={({ pressed }) => [styles.permissionRow, pressed && styles.pressed]}

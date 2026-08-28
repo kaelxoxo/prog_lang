@@ -11,11 +11,13 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppIcon } from '../../components/AppIcon';
 import { apiRequest, errorMessage } from '../../lib/api';
 import { useCurrentTime } from '../../lib/useCurrentTime';
 import { SyncNotice } from '../../components/SyncNotice';
@@ -23,7 +25,8 @@ import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
-import { manilaDate, type DoseOccurrence, type TimelineResponse } from './types';
+import { useLocale } from '../settings/LocaleProvider';
+import { actionableAt, manilaDate, type DoseOccurrence, type TimelineResponse } from './types';
 
 type Props = {
   focusedOccurrenceId?: string | null;
@@ -48,8 +51,10 @@ function actionId() {
   });
 }
 
-function friendlyTime(value: string) {
-  return new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' }).format(new Date(value));
+type Translator = ReturnType<typeof useLocale>['t'];
+
+function friendlyTime(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' }).format(new Date(value));
 }
 
 function doseLine(dose: DoseOccurrence) {
@@ -57,24 +62,30 @@ function doseLine(dose: DoseOccurrence) {
   return `${dose.doseQuantity} ${dose.doseUnit}${strength}`;
 }
 
-function statusCopy(dose: DoseOccurrence) {
-  const correction = dose.reason ? ` · Correction: ${dose.reason}` : '';
-  if (dose.status === 'taken') return `Taken${dose.recordedByName ? ` by ${dose.recordedByName}` : ''}${dose.recordedAt ? ` at ${friendlyTime(dose.recordedAt)}` : ''}${correction}`;
-  if (dose.status === 'skipped') return `Skipped${dose.recordedByName ? ` by ${dose.recordedByName}` : ''}${dose.recordedAt ? ` at ${friendlyTime(dose.recordedAt)}` : ''}${correction}`;
-  if (dose.status === 'snoozed' && dose.snoozedUntil) return `Snoozed until ${friendlyTime(dose.snoozedUntil)}`;
-  return 'Not recorded';
+function statusCopy(dose: DoseOccurrence, locale: string, t: Translator) {
+  const correction = dose.reason ? t('dose.correction', { reason: dose.reason }) : '';
+  const actor = dose.recordedByName ? t('dose.by', { name: dose.recordedByName }) : '';
+  const time = dose.recordedAt ? t('dose.at', { time: friendlyTime(dose.recordedAt, locale) }) : '';
+  if (dose.status === 'taken') return `${t('dose.taken')}${actor}${time}${correction}`;
+  if (dose.status === 'skipped') return `${t('dose.skipped')}${actor}${time}${correction}`;
+  if (dose.status === 'snoozed' && dose.snoozedUntil) return t('dose.snoozedUntil', { time: friendlyTime(dose.snoozedUntil, locale) });
+  return t('dose.notRecorded');
 }
 
 export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicines, patient }: Props) {
   const { colors, styles } = useThemedStyles(createStyles);
-  const date = manilaDate(useCurrentTime());
+  const { localeTag, t } = useLocale();
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 1.3;
+  const now = useCurrentTime();
+  const date = manilaDate(now);
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [notice, setNotice] = useState<string | null>(null);
   const [correcting, setCorrecting] = useState<DoseOccurrence | null>(null);
   const [correctionKind, setCorrectionKind] = useState<'taken' | 'skipped'>('taken');
   const [correctionReason, setCorrectionReason] = useState('');
-  const focusedRef = useRef<Text>(null);
+  const focusedRef = useRef<View>(null);
   const listOffset = useRef(0);
   const queryKey = ['today', patient.id, date] as const;
   const query = useQuery({
@@ -88,10 +99,10 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
     ),
     onSuccess: (_result, action) => {
       setNotice(action.correctsEventId
-        ? `${action.occurrence.medicationName} was corrected to ${action.kind} for ${patient.displayName}.`
+        ? t('dose.correctedNotice', { medicine: action.occurrence.medicationName, status: t(action.kind === 'taken' ? 'dose.taken' : 'dose.skipped').toLowerCase(), patient: patient.displayName })
         : action.kind === 'snoozed'
-        ? `${action.occurrence.medicationName} reminder moved by ${action.snoozeMinutes} minutes.`
-        : `${action.occurrence.medicationName} recorded as ${action.kind} for ${patient.displayName}.`);
+        ? t('dose.snoozedNotice', { medicine: action.occurrence.medicationName, minutes: action.snoozeMinutes ?? '' })
+        : t('dose.recordedNotice', { medicine: action.occurrence.medicationName, status: t(action.kind === 'taken' ? 'dose.taken' : 'dose.skipped').toLowerCase(), patient: patient.displayName }));
       setCorrecting(null);
       setCorrectionReason('');
       void queryClient.invalidateQueries({ queryKey });
@@ -112,21 +123,21 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
       mutation.mutate(mutationAction);
       return;
     }
-    const label = action.kind === 'taken' ? 'taken' : 'skipped';
+    const label = t(action.kind === 'taken' ? 'dose.taken' : 'dose.skipped').toLowerCase();
     Alert.alert(
-      `Record ${action.occurrence.medicationName} as ${label}?`,
-      `${doseLine(action.occurrence)}, scheduled ${friendlyTime(action.occurrence.scheduledFor)}, for ${patient.displayName}. This adds an attributed care-history entry.`,
-      [{ text: 'Cancel', style: 'cancel' }, { text: `Record ${label}`, onPress: () => mutation.mutate(mutationAction) }],
+      t('dose.recordTitle', { medicine: action.occurrence.medicationName, status: label }),
+      t('dose.recordBody', { dose: doseLine(action.occurrence), time: friendlyTime(action.occurrence.scheduledFor, localeTag), patient: patient.displayName }),
+      [{ text: t('dose.cancel'), style: 'cancel' }, { text: t('dose.recordAction', { status: label }), onPress: () => mutation.mutate(mutationAction) }],
     );
   };
 
   const snooze = (occurrence: DoseOccurrence) => Alert.alert(
-    `Snooze ${occurrence.medicationName} for ${patient.displayName}`,
-    `This dose was scheduled for ${friendlyTime(occurrence.scheduledFor)}. When should the private reminder return?`,
+    t('dose.snoozeTitle', { medicine: occurrence.medicationName, patient: patient.displayName }),
+    t('dose.snoozeBody', { time: friendlyTime(occurrence.scheduledFor, localeTag) }),
     ([15, 30, 60].map((minutes) => ({
-      text: `${minutes} minutes`,
+      text: t('dose.minutes', { minutes }),
       onPress: () => record({ occurrence, kind: 'snoozed', snoozeMinutes: minutes as 15 | 30 | 60 }),
-    })) as AlertButton[]).concat([{ text: 'Cancel', style: 'cancel' }]),
+    })) as AlertButton[]).concat([{ text: t('dose.cancel'), style: 'cancel' }]),
   );
 
   const openCorrection = (occurrence: DoseOccurrence) => {
@@ -146,13 +157,13 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
   };
 
   if (query.isLoading && !query.data) {
-    return <View accessibilityLabel="Loading today's medicines" style={styles.stack}>{[0, 1, 2].map((item) => <View key={item} style={styles.skeleton} />)}</View>;
+    return <View accessibilityLabel={t('dose.loading')} accessible style={styles.stack}>{[0, 1, 2].map((item) => <View key={item} style={styles.skeleton} />)}</View>;
   }
   if (query.error && !query.data) {
-    return <View style={styles.messageCard}><Text style={styles.messageTitle}>Today’s schedule could not load.</Text><Text style={styles.messageBody}>{errorMessage(query.error)}</Text><Pressable accessibilityRole="button" onPress={() => void query.refetch()} style={styles.retry}><Text style={styles.retryLabel}>Try again</Text></Pressable></View>;
+    return <View style={styles.messageCard}><Text style={styles.messageTitle}>{t('dose.loadError')}</Text><Text style={styles.messageBody}>{errorMessage(query.error)}</Text><Pressable accessibilityRole="button" onPress={() => void query.refetch()} style={styles.retry}><Text style={styles.retryLabel}>{t('app.retry')}</Text></Pressable></View>;
   }
   if (!query.data?.timeline.length) {
-    return <View style={styles.messageCard}><Text style={styles.messageTitle}>No doses are scheduled today.</Text><Text style={styles.messageBody}>Add a confirmed medicine and schedule to start today’s care log.</Text><Pressable accessibilityRole="button" onPress={onOpenMedicines} style={styles.retry}><Text style={styles.retryLabel}>Open Medicines</Text></Pressable></View>;
+    return <View style={styles.messageCard}><Text style={styles.messageTitle}>{t('dose.emptyTitle')}</Text><Text style={styles.messageBody}>{t('dose.emptyBody')}</Text><Pressable accessibilityRole="button" onPress={onOpenMedicines} style={styles.retry}><Text style={styles.retryLabel}>{t('dose.openMedicines')}</Text></Pressable></View>;
   }
 
   return (
@@ -162,37 +173,55 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
       <View onLayout={(event) => { listOffset.current = event.nativeEvent.layout.y; }} style={styles.list}>
       {query.data.timeline.map((dose, index) => {
         const terminal = dose.status === 'taken' || dose.status === 'skipped';
+        const dueForReview = !terminal && new Date(actionableAt(dose)).getTime() <= now.getTime();
+        const statusIcon = dose.status === 'taken' ? 'check' : dose.status === 'skipped' ? 'minus' : 'clock-3';
+        const statusColor = dose.status === 'taken'
+          ? colors.successDark
+          : dueForReview
+              ? colors.warning
+              : dose.status === 'snoozed'
+                ? colors.primaryDark
+              : colors.muted;
         const busy = mutation.isPending && mutation.variables?.occurrence.id === dose.id;
         return (
           <View
             key={dose.id}
             onLayout={focusedOccurrenceId === dose.id ? (event) => onFocusLayout?.(listOffset.current + event.nativeEvent.layout.y) : undefined}
-            style={[styles.doseCard, focusedOccurrenceId === dose.id && styles.doseCardFocused, index < query.data.timeline.length - 1 && styles.doseCardBorder]}
+            style={[styles.doseCard, dueForReview && styles.doseCardAttention, focusedOccurrenceId === dose.id && styles.doseCardFocused, index < query.data.timeline.length - 1 && styles.doseCardBorder]}
           >
-            <View style={styles.doseTop}>
-              <View style={styles.timeBlock}><Text style={styles.time}>{friendlyTime(dose.scheduledFor)}</Text><View style={[styles.timelineDot, terminal && styles.timelineDotDone]} /></View>
+            <View
+              accessibilityLabel={`${friendlyTime(dose.scheduledFor, localeTag)}, ${dose.medicationName}, ${doseLine(dose)}, ${statusCopy(dose, localeTag, t)}`}
+              accessible
+              ref={focusedOccurrenceId === dose.id ? focusedRef : undefined}
+              style={[styles.doseTop, largeText && styles.doseTopLarge]}
+            >
+              <View style={[styles.timeBlock, largeText && styles.timeBlockLarge]}>
+                <Text accessible={false} style={styles.time}>{friendlyTime(dose.scheduledFor, localeTag)}</Text>
+                <View style={[styles.statusIcon, dose.status === 'taken' && styles.statusIconTaken, dose.status === 'snoozed' && styles.statusIconSnoozed, dueForReview && styles.statusIconAttention]}><AppIcon color={statusColor} name={statusIcon} size={17} /></View>
+              </View>
               <View style={styles.doseCopy}>
-                <Text accessibilityLabel={`${dose.medicationName}, ${doseLine(dose)}, ${statusCopy(dose)}`} ref={focusedOccurrenceId === dose.id ? focusedRef : undefined} style={styles.medicine}>{dose.medicationName}</Text>
-                <Text style={styles.details}>{doseLine(dose)}</Text>
-                <Text style={[styles.status, terminal && styles.statusDone]}>{statusCopy(dose)}</Text>
+                <Text accessible={false} style={styles.medicine}>{dose.medicationName}</Text>
+                <Text accessible={false} style={styles.details}>{doseLine(dose)}</Text>
+                <Text accessible={false} style={[styles.status, dose.status === 'taken' && styles.statusTaken, dose.status === 'skipped' && styles.statusSkipped, dose.status === 'snoozed' && styles.statusSnoozed]}>{statusCopy(dose, localeTag, t)}</Text>
               </View>
             </View>
             {!terminal ? (
-              <View style={styles.actions}>
-                <Pressable accessibilityRole="button" disabled={busy} onPress={() => record({ occurrence: dose, kind: 'taken' })} style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed, busy && styles.disabled]}><Text style={styles.primaryLabel}>{busy ? 'Saving…' : 'Taken'}</Text></Pressable>
-                <Pressable accessibilityRole="button" disabled={busy} onPress={() => record({ occurrence: dose, kind: 'skipped' })} style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed, busy && styles.disabled]}><Text style={styles.secondaryLabel}>Skip</Text></Pressable>
-                <Pressable accessibilityRole="button" disabled={busy} onPress={() => snooze(dose)} style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed, busy && styles.disabled]}><Text style={styles.secondaryLabel}>Snooze</Text></Pressable>
+              <View style={[styles.actions, largeText && styles.actionsLarge]}>
+                <Pressable accessibilityLabel={t('dose.recordTitle', { medicine: dose.medicationName, status: t('dose.taken') })} accessibilityRole="button" accessibilityState={{ busy, disabled: busy }} disabled={busy} onPress={() => record({ occurrence: dose, kind: 'taken' })} style={({ pressed }) => [styles.primaryAction, largeText && styles.actionLarge, pressed && styles.pressed, busy && styles.disabled]}><AppIcon color={colors.white} name="check" size={18} /><Text style={styles.primaryLabel}>{t(busy ? 'dose.saving' : 'dose.taken')}</Text></Pressable>
+                <Pressable accessibilityLabel={t('dose.recordTitle', { medicine: dose.medicationName, status: t('dose.skipped') })} accessibilityRole="button" accessibilityState={{ busy, disabled: busy }} disabled={busy} onPress={() => record({ occurrence: dose, kind: 'skipped' })} style={({ pressed }) => [styles.secondaryAction, largeText && styles.actionLarge, pressed && styles.pressed, busy && styles.disabled]}><AppIcon color={colors.ink} name="minus" size={18} /><Text style={styles.secondaryLabel}>{t('dose.skip')}</Text></Pressable>
+                <Pressable accessibilityLabel={t('dose.snoozeTitle', { medicine: dose.medicationName, patient: patient.displayName })} accessibilityRole="button" accessibilityState={{ busy, disabled: busy }} disabled={busy} onPress={() => snooze(dose)} style={({ pressed }) => [styles.secondaryAction, largeText && styles.actionLarge, pressed && styles.pressed, busy && styles.disabled]}><AppIcon color={colors.ink} name="clock-3" size={18} /><Text style={styles.secondaryLabel}>{t('dose.snooze')}</Text></Pressable>
               </View>
             ) : (
-              <Pressable accessibilityRole="button" onPress={() => openCorrection(dose)} style={({ pressed }) => [styles.correctAction, pressed && styles.pressed]}>
-                <Text style={styles.correctLabel}>Correct record</Text>
+              <Pressable accessibilityLabel={`${t('dose.correctRecord')}: ${dose.medicationName}`} accessibilityRole="button" onPress={() => openCorrection(dose)} style={({ pressed }) => [styles.correctAction, largeText && styles.actionLarge, pressed && styles.pressed]}>
+                <AppIcon color={colors.primaryDark} name="pencil" size={17} />
+                <Text style={styles.correctLabel}>{t('dose.correctRecord')}</Text>
               </Pressable>
             )}
             {mutation.error && mutation.variables?.occurrence.id === dose.id ? (
               <View style={styles.actionError}>
                 <Text accessibilityLiveRegion="assertive" style={styles.error}>{errorMessage(mutation.error)}</Text>
                 <Pressable accessibilityRole="button" onPress={() => mutation.mutate(mutation.variables!)} style={({ pressed }) => [styles.retryInline, pressed && styles.pressed]}>
-                  <Text style={styles.retryInlineLabel}>Try again</Text>
+                  <Text style={styles.retryInlineLabel}>{t('app.retry')}</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -204,33 +233,33 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
         <SafeAreaView style={styles.modalBackdrop}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalKeyboard}>
             <View accessibilityViewIsModal style={styles.correctionSheet}>
-              <Text accessibilityRole="header" style={styles.correctionTitle}>Correct this care record</Text>
+              <Text accessibilityRole="header" style={styles.correctionTitle}>{t('dose.correctTitle')}</Text>
               <Text style={styles.correctionBody}>
-                {correcting ? `${correcting.medicationName}, ${doseLine(correcting)}, for ${patient.displayName}. The earlier entry stays in history.` : ''}
+                {correcting ? t('dose.correctBody', { medicine: correcting.medicationName, dose: doseLine(correcting), patient: patient.displayName }) : ''}
               </Text>
               <View accessibilityRole="radiogroup" style={styles.correctionChoices}>
                 {(['taken', 'skipped'] as const).map((kind) => (
                   <Pressable accessibilityRole="radio" accessibilityState={{ checked: correctionKind === kind }} key={kind} onPress={() => setCorrectionKind(kind)} style={({ pressed }) => [styles.correctionChoice, correctionKind === kind && styles.correctionChoiceSelected, pressed && styles.pressed]}>
-                    <Text style={[styles.correctionChoiceLabel, correctionKind === kind && styles.correctionChoiceLabelSelected]}>{kind === 'taken' ? 'Taken' : 'Skipped'}</Text>
+                    <Text style={[styles.correctionChoiceLabel, correctionKind === kind && styles.correctionChoiceLabelSelected]}>{t(kind === 'taken' ? 'dose.taken' : 'dose.skipped')}</Text>
                   </Pressable>
                 ))}
               </View>
-              <Text style={styles.correctionLabel}>Reason for correction</Text>
+              <Text style={styles.correctionLabel}>{t('dose.reason')}</Text>
               <TextInput
-                accessibilityLabel="Reason for correction"
+                accessibilityLabel={t('dose.reason')}
                 autoFocus
                 maxLength={240}
                 multiline
                 onChangeText={setCorrectionReason}
-                placeholder="For example, the original entry was for the wrong dose"
+                placeholder={t('dose.reasonPlaceholder')}
                 placeholderTextColor={colors.muted}
                 style={styles.correctionInput}
                 value={correctionReason}
               />
               {mutation.error && mutation.variables?.correctsEventId ? <Text accessibilityLiveRegion="assertive" style={styles.error}>{errorMessage(mutation.error)}</Text> : null}
               <View style={styles.correctionActions}>
-                <Pressable accessibilityRole="button" disabled={mutation.isPending} onPress={() => setCorrecting(null)} style={({ pressed }) => [styles.correctionCancel, pressed && styles.pressed]}><Text style={styles.correctionCancelLabel}>Cancel</Text></Pressable>
-                <Pressable accessibilityRole="button" disabled={!correctionReason.trim() || mutation.isPending} onPress={saveCorrection} style={({ pressed }) => [styles.correctionSave, pressed && styles.pressed, (!correctionReason.trim() || mutation.isPending) && styles.disabled]}><Text style={styles.correctionSaveLabel}>{mutation.isPending ? 'Saving…' : 'Save correction'}</Text></Pressable>
+                <Pressable accessibilityRole="button" disabled={mutation.isPending} onPress={() => setCorrecting(null)} style={({ pressed }) => [styles.correctionCancel, pressed && styles.pressed]}><Text style={styles.correctionCancelLabel}>{t('dose.cancel')}</Text></Pressable>
+                <Pressable accessibilityRole="button" disabled={!correctionReason.trim() || mutation.isPending} onPress={saveCorrection} style={({ pressed }) => [styles.correctionSave, pressed && styles.pressed, (!correctionReason.trim() || mutation.isPending) && styles.disabled]}><Text style={styles.correctionSaveLabel}>{t(mutation.isPending ? 'dose.saving' : 'dose.saveCorrection')}</Text></Pressable>
               </View>
             </View>
           </KeyboardAvoidingView>
@@ -251,28 +280,37 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   notice: { borderRadius: radii.md, backgroundColor: colors.successTint, padding: spacing.md },
   noticeText: { color: colors.successDark, fontSize: 14, fontWeight: '700' },
   error: { color: colors.error, fontSize: 14, fontWeight: '700' },
-  list: { overflow: 'hidden', borderWidth: 1, borderColor: colors.line, borderRadius: radii.lg, backgroundColor: colors.white },
+  list: { overflow: 'hidden', borderWidth: 1, borderColor: colors.line, borderRadius: radii.md, backgroundColor: colors.white },
   doseCard: { gap: spacing.md, padding: spacing.md },
+  doseCardAttention: { backgroundColor: colors.warningTint },
   doseCardFocused: { backgroundColor: colors.primaryTint },
   doseCardBorder: { borderBottomWidth: 1, borderBottomColor: colors.line },
   doseTop: { flexDirection: 'row', gap: spacing.md },
+  doseTopLarge: { flexDirection: 'column', gap: spacing.sm },
   timeBlock: { width: 82, alignItems: 'flex-start', gap: spacing.sm },
+  timeBlockLarge: { width: '100%', flexDirection: 'row', alignItems: 'center' },
   time: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  timelineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.sun },
-  timelineDotDone: { backgroundColor: colors.success },
+  statusIcon: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.mist },
+  statusIconTaken: { backgroundColor: colors.successTint },
+  statusIconSnoozed: { backgroundColor: colors.primaryTint },
+  statusIconAttention: { backgroundColor: colors.warningTint },
   doseCopy: { flex: 1 },
   medicine: { color: colors.ink, fontSize: 20, fontWeight: '800' },
   details: { marginTop: spacing.xs, color: colors.muted, fontSize: 15 },
   status: { alignSelf: 'flex-start', marginTop: spacing.sm, color: colors.warning, fontSize: 13, fontWeight: '800' },
-  statusDone: { color: colors.successDark },
+  statusTaken: { color: colors.successDark },
+  statusSkipped: { color: colors.muted },
+  statusSnoozed: { color: colors.primaryDark },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  primaryAction: { minHeight: 48, minWidth: 112, flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radii.sm, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
+  actionsLarge: { flexDirection: 'column' },
+  actionLarge: { width: '100%', flex: 0 },
+  primaryAction: { minHeight: 48, minWidth: 112, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radii.sm, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
   primaryLabel: { color: colors.white, fontSize: 15, fontWeight: '800' },
-  secondaryAction: { minHeight: 48, minWidth: 96, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, borderRadius: radii.sm, backgroundColor: colors.white, paddingHorizontal: spacing.md },
+  secondaryAction: { minHeight: 48, minWidth: 96, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: colors.line, borderRadius: radii.sm, backgroundColor: colors.white, paddingHorizontal: spacing.md },
   secondaryLabel: { color: colors.ink, fontSize: 15, fontWeight: '800' },
   pressed: { opacity: 0.78 },
   disabled: { opacity: 0.48 },
-  correctAction: { minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: spacing.sm },
+  correctAction: { minHeight: 48, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: spacing.sm },
   correctLabel: { color: colors.primaryDark, fontSize: 15, fontWeight: '800' },
   actionError: { gap: spacing.xs, borderRadius: radii.sm, backgroundColor: colors.errorTint, padding: spacing.sm },
   retryInline: { minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: spacing.sm },

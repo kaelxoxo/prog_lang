@@ -25,6 +25,7 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 ## Accessibility
 
 - [ ] VoiceOver and TalkBack announce “Change person” as a button with a useful hint.
+- [ ] TalkBack announces labeled actions without reading icon font names or glyphs.
 - [ ] The picker heading and purpose are announced when it opens.
 - [ ] Each patient option is announced as a radio option with its selected state.
 - [ ] Focus does not move to content behind the open picker.
@@ -63,6 +64,7 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 - [ ] Signing in as a second account does not expose the first account's patients.
 - [ ] A revoked caregiver no longer sees the patient on the next request.
 - [ ] A physical device connects through the computer's LAN address without exposing PostgreSQL itself.
+- [ ] With Android connected over USB, the runtime checker confirms both reverse routes and no visible Expo CLI connection warning.
 
 ## Slice 3: confirmed medicines and schedules
 
@@ -122,6 +124,7 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 
 - [ ] Creating, selecting or accepting access to a patient opens Home for that person.
 - [ ] Home names the active person before showing care information.
+- [ ] With no confirmed doses today, Home names the person, avoids “caught up” or `0 of 0` completion language, and offers one medicine action.
 - [ ] The next upcoming dose is understandable at a glance without hiding its medicine or quantity.
 - [ ] A passed scheduled or snoozed time without a final event says it needs a care record and never claims it was missed.
 - [ ] Today's recorded count includes taken and skipped events and updates after a Today action.
@@ -172,3 +175,29 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 - [ ] Missing or uncertain name, strength, dose and time values remain visibly incomplete rather than guessed.
 - [ ] Review every field opens the normal Details, Schedule, and Review and confirm flow.
 - [ ] Closing the editor before confirmation creates no active medicine or reminder.
+
+## Milestone 9: English and Filipino settings
+
+- [ ] Settings opens from Home while the bottom navigation remains limited to Home, Today and Medicines.
+- [ ] English and Filipino are announced as radio options with the current choice selected.
+- [ ] Selecting Filipino immediately updates navigation, active-patient context, authentication, Home, Today/history and the medicine list shell.
+- [ ] Selecting English restores the same core interface surfaces to English.
+- [ ] The selected language survives an Android app restart and a web reload.
+- [ ] Patient names, medicine wording, dose units, notes, correction reasons, OCR output and label text do not change when the interface language changes.
+- [ ] Filipino safety copy describes overdue care as not recorded or needing review and never as definitely missed.
+- [ ] Settings accurately identifies the interface areas that remain English.
+- [ ] Large system text does not clip the Settings heading, options, saved state or coverage note.
+
+## Milestone 10: task-first UI polish
+
+- [ ] Home, Today and Medicines show consistent Lucide icons with visible labels and an announced selected tab.
+- [ ] Settings opens from every main care tab, hides the primary tab bar while nested, and returns to Home with Back or Android system back.
+- [ ] Sign out is absent from the everyday care header and remains clearly available in the Settings account section.
+- [ ] The patient selector stays ahead of care content, wraps at large text sizes and keeps a full-width Change action; Add another person is available inside the picker.
+- [ ] Home makes the next actionable dose, items needing review and recorded progress understandable in that order.
+- [ ] A snoozed dose uses its snoozed-until time on Home and does not appear as needing review before that time.
+- [ ] Today distinguishes taken, skipped, snoozed and not-recorded states with icon, text and color rather than color alone.
+- [ ] Taken, Skip and Snooze actions remain at least 48dp, wrap without clipping and still open the existing safety confirmation.
+- [ ] Medicine rows keep name, dose and schedule visually dominant while Confirmed, Review or edit and Archive remain recognizable.
+- [ ] Auth, Settings, Home and Today remain readable in both light and dark system themes.
+- [ ] English and Filipino labels do not collide with icons or truncate at large system text sizes.

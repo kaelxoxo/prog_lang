@@ -2,13 +2,15 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { spacing, type AppColors } from '../theme/tokens';
 import { useThemedStyles } from '../theme/useTheme';
+import { useLocale } from '../features/settings/LocaleProvider';
 
 export function SyntheticDataNotice() {
   const { styles } = useThemedStyles(createStyles);
+  const { t } = useLocale();
 
   return (
     <View accessibilityRole="text" style={styles.notice}>
-      <Text style={styles.label}>Side-project build. Use synthetic information only.</Text>
+      <Text style={styles.label}>{t('synthetic.notice')}</Text>
     </View>
   );
 }

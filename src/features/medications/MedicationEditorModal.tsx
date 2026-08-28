@@ -436,7 +436,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
         <View style={styles.header}>
           <View style={styles.headerColumn}>
-            <View accessibilityLabel={`Medicine for ${patient.displayName}`} style={styles.patientContext}>
+            <View accessibilityLabel={`Medicine for ${patient.displayName}`} accessible style={styles.patientContext}>
               <View style={styles.patientDot} />
               <Text style={styles.patientContextText}>Medicine for <Text style={styles.patientContextName}>{patient.displayName}</Text></Text>
             </View>
@@ -446,7 +446,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               </Text>
               <Pressable accessibilityRole="button" onPress={requestClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}><Text style={styles.closeLabel}>Close</Text></Pressable>
             </View>
-            <View accessibilityLabel={`Step ${step === 'details' ? 1 : step === 'schedule' ? 2 : 3} of 3`} style={styles.progress}>
+            <View accessibilityLabel={`Step ${step === 'details' ? 1 : step === 'schedule' ? 2 : 3} of 3`} accessible style={styles.progress}>
               {(['details', 'schedule', 'review'] as Step[]).map((item, index) => (
                 <View key={item} style={styles.progressItem}>
                   <View style={[styles.progressLine, (item === step || (step === 'review' && index < 2) || (step === 'schedule' && index === 0)) && styles.progressLineActive]} />

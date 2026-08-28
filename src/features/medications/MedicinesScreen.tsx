@@ -11,11 +11,11 @@ import { PatientSwitcher } from '../patients/PatientSwitcher';
 import { usePatient } from '../patients/PatientProvider';
 import { MedicationSection } from './MedicationSection';
 
-export function MedicinesScreen() {
+export function MedicinesScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
   const { styles } = useThemedStyles(createStyles);
   const [isSwitcherVisible, setSwitcherVisible] = useState(false);
   const [isCreatorVisible, setCreatorVisible] = useState(false);
-  const { session, signOut } = useAuth();
+  const { session } = useAuth();
   const { activePatient, createPatient, dataUpdatedAt, error, isCreating, patients, retry, selectPatient } = usePatient();
 
   if (!activePatient) return null;
@@ -26,16 +26,15 @@ export function MedicinesScreen() {
         <View style={styles.contentColumn}>
           <CareHeader
             accountName={session?.displayName}
-            onAddPerson={() => setCreatorVisible(true)}
             onChangePerson={() => setSwitcherVisible(true)}
-            onSignOut={() => void signOut()}
+            onOpenSettings={onOpenSettings}
             patient={activePatient}
           />
           <SyncNotice error={error} onRetry={retry} updatedAt={dataUpdatedAt} />
           <MedicationSection patient={activePatient} />
         </View>
       </ScrollView>
-      <PatientSwitcher activePatientId={activePatient.id} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} />
+      <PatientSwitcher activePatientId={activePatient.id} onAddPerson={() => setCreatorVisible(true)} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} />
       <CreatePatientModal isCreating={isCreating} onClose={() => setCreatorVisible(false)} onCreate={createPatient} visible={isCreatorVisible} />
     </>
   );

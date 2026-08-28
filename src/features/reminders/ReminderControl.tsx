@@ -8,6 +8,7 @@ import { spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
+import { useLocale } from '../settings/LocaleProvider';
 import { manilaDate, type DoseOccurrence } from '../today/types';
 import {
   cancelPatientReminders,
@@ -22,6 +23,7 @@ type ReminderResponse = { timeline: DoseOccurrence[] };
 
 export function ReminderControl({ patient }: { patient: Patient }) {
   const { colors, styles } = useThemedStyles(createStyles);
+  const { t } = useLocale();
   const { session, token } = useAuth();
   const [enabled, setEnabled] = useState(false);
   const [ready, setReady] = useState(false);
@@ -73,7 +75,7 @@ export function ReminderControl({ patient }: { patient: Patient }) {
       const granted = await requestRemindersPermission();
       setPermission(granted);
       if (!granted) {
-        setSyncError('Notifications are blocked in device settings.');
+        setSyncError(t('reminders.blocked'));
         return;
       }
       await saveReminderPreference(session.id, patient.id, true);
@@ -105,12 +107,12 @@ export function ReminderControl({ patient }: { patient: Patient }) {
   return (
     <View style={styles.card}>
       <View style={styles.copy}>
-        <Text style={styles.title}>Private reminders</Text>
-        <Text style={styles.body}>{enabled && permission ? 'On for 7 days · medicine details stay private' : 'Off · alerts stay on this device'}</Text>
+        <Text style={styles.title}>{t('reminders.title')}</Text>
+        <Text style={styles.body}>{t(enabled && permission ? 'reminders.onBody' : 'reminders.offBody')}</Text>
       </View>
       <View style={[styles.switchTarget, (!ready || saving) && styles.disabled]}>
         <Switch
-          accessibilityLabel={`Private reminders for ${patient.displayName}`}
+          accessibilityLabel={t('reminders.label', { patient: patient.displayName })}
           accessibilityState={{ busy: saving, disabled: !ready || saving }}
           disabled={!ready || saving}
           onValueChange={(value) => void (value ? enable() : disable())}
@@ -119,9 +121,9 @@ export function ReminderControl({ patient }: { patient: Patient }) {
           value={enabled && permission}
         />
       </View>
-      {query.isFetching ? <Text accessibilityLiveRegion="polite" style={styles.status}>Refreshing reminders…</Text> : null}
+      {query.isFetching ? <Text accessibilityLiveRegion="polite" style={styles.status}>{t('reminders.refreshing')}</Text> : null}
       {query.error || syncError ? <Text accessibilityLiveRegion="assertive" style={styles.error}>{syncError || errorMessage(query.error)}</Text> : null}
-      {!permission && (enabled || syncError) ? <Pressable accessibilityRole="link" onPress={() => void Linking.openSettings()} style={styles.settings}><Text style={styles.settingsLabel}>Open device settings</Text></Pressable> : null}
+      {!permission && (enabled || syncError) ? <Pressable accessibilityRole="link" onPress={() => void Linking.openSettings()} style={styles.settings}><Text style={styles.settingsLabel}>{t('reminders.openSettings')}</Text></Pressable> : null}
     </View>
   );
 }

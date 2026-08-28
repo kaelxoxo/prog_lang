@@ -38,6 +38,16 @@ Then start Expo in another terminal:
 npm.cmd start
 ```
 
+Before handing the running app back to someone, verify both services and LAN API reachability:
+
+```powershell
+npm.cmd run check:runtime
+```
+
+Keep the API and Expo terminals open while the local app is in use.
+
+When an authorized Android device is connected, this check also requires the `4000` and `8081` USB reverse routes, confirms Expo Go is in the foreground, and rejects the visible “Cannot connect to Expo CLI” state. With no connected device, the Android check is skipped.
+
 `.env.local` uses `EXPO_PUBLIC_API_URL=auto` for local development. Alaga reads Expo's current development host and uses port `4000`, so moving the computer and phone to another Wi-Fi no longer requires editing an IP address. Android Emulator falls back to `http://10.0.2.2:4000`; iOS Simulator and web fall back to `http://127.0.0.1:4000`. Set an explicit HTTPS URL instead for a deployed API.
 
 Local development currently uses HTTP. A deployed environment must terminate TLS before accepting credentials or session tokens.
@@ -59,15 +69,21 @@ For the approved side-project scope, unrelated-network access is not supported. 
 
 ### Android USB fallback
 
-With an Android device connected and authorized for USB debugging, reverse the Metro and API ports:
+With an Android device connected and authorized for USB debugging, use the supervised USB runtime:
 
 ```powershell
-adb reverse tcp:8081 tcp:8081
-adb reverse tcp:4000 tcp:4000
-npx.cmd expo start --localhost --clear
+npm.cmd run dev:usb
 ```
 
-The Expo development host becomes `127.0.0.1`; Alaga's automatic API resolver then uses `http://127.0.0.1:4000`, which the second reverse rule forwards to the local API. Remove the rules with `adb reverse --remove-all` when finished.
+Keep that terminal open. The command starts the API or Expo when either is missing, uses Expo's localhost mode, restores the `4000` and `8081` reverse routes, opens Expo Go, and checks again every five seconds so reconnecting the cable repairs the routes automatically. Confirm the complete live state at any time with:
+
+```powershell
+npm.cmd run check:runtime
+```
+
+The Expo development host becomes `127.0.0.1`; Alaga's automatic API resolver then uses `http://127.0.0.1:4000`, which USB forwards to the local API. Closing the terminal stops services that command started; after restarting the computer, run `npm.cmd run dev:usb` again.
+
+If the desktop health endpoints pass but Expo Go still says it cannot connect to Expo CLI, stop any old Expo process and rerun `npm.cmd run dev:usb`.
 
 ## Synthetic demo data
 
@@ -84,6 +100,7 @@ The command is intentionally destructive and only accepts database names ending 
 ```powershell
 npm.cmd run typecheck
 npm.cmd run test:server
+npm.cmd run check:runtime
 npx.cmd expo config --type public
 ```
 

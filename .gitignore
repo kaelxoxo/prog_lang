@@ -26,6 +26,8 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 .cache/
+/alaga-*.png
+/alaga-*.xml
 
 # macOS
 .DS_Store
