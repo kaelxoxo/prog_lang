@@ -61,7 +61,7 @@ Otherwise, start the services in separate terminals:
 
 ```powershell
 npm.cmd run server
-npm.cmd start
+npx.cmd expo start
 ```
 
 Then verify the live handoff:

@@ -4,9 +4,10 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 
 ## Side-project boundary
 
-- [ ] The persistent notice says this is a side-project build and permits synthetic information only.
-- [ ] No real person, account, medicine, prescription, timetable or label image is used.
-- [ ] Resetting demo data requires the explicit destructive confirmation flag and refuses non-development database names.
+- [x] The persistent notice says this is a side-project build and permits synthetic information only. (Verified on emulator: banner displayed in English and Filipino "Side-project build. Gumamit lamang ng synthetic na impormasyon.")
+- [x] No real person, account, medicine, prescription, timetable or label image is used. (Deterministic synthetic dataset: Maya Santos, Paolo Santos, Lola Rosa (Synthetic), synthetic-ocr-label.png).
+- [x] Resetting demo data requires the explicit destructive confirmation flag and refuses non-development database names. (Verified in server/src/resetSyntheticDatabase.ts).
+
 
 ## Current account and patient context
 
@@ -164,40 +165,40 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 
 ## Slice 7: synthetic photo/OCR draft
 
-- [ ] Photo import remains collapsed until a medicine manager chooses Try.
-- [ ] The interface repeatedly limits the experiment to synthetic label and timetable images.
-- [ ] An ordinary caregiver and unrelated account cannot invoke the OCR endpoint.
-- [ ] JPEG/PNG contents and the 4 MB decoded-size limit are enforced before OCR begins.
-- [ ] The selected image is processed in memory and no image file or base64 payload is retained.
+- [x] Photo import remains collapsed until a medicine manager chooses Try.
+- [x] The interface repeatedly limits the experiment to synthetic label and timetable images.
+- [x] An ordinary caregiver and unrelated account cannot invoke the OCR endpoint.
+- [x] JPEG/PNG contents and the 4 MB decoded-size limit are enforced before OCR begins.
+- [x] The selected image is processed in memory and no image file or base64 payload is retained.
 - [ ] First-use language-model download failure produces a useful retryable error.
-- [ ] Raw extracted wording and OCR confidence remain visible before opening the medicine editor.
-- [ ] Explicit clock times may populate the schedule draft; vague frequency or meal wording does not.
-- [ ] Missing or uncertain name, strength, dose and time values remain visibly incomplete rather than guessed.
-- [ ] Review every field opens the normal Details, Schedule, and Review and confirm flow.
-- [ ] Closing the editor before confirmation creates no active medicine or reminder.
+- [x] Raw extracted wording and OCR confidence remain visible before opening the medicine editor.
+- [x] Explicit clock times may populate the schedule draft; vague frequency or meal wording does not. (Verified in unit tests and emulator UI dump: 8:00 AM and 8:00 PM populated, vague wording produces no times).
+- [x] Missing or uncertain name, strength, dose and time values remain visibly incomplete rather than guessed.
+- [x] Review every field opens the normal Details, Schedule, and Review and confirm flow. (Verified in emulator UI hierarchy dump).
+- [x] Closing the editor before confirmation creates no active medicine or reminder.
 
 ## Milestone 9: English and Filipino settings
 
-- [ ] Settings opens from Home while the bottom navigation remains limited to Home, Today and Medicines.
-- [ ] English and Filipino are announced as radio options with the current choice selected.
-- [ ] Selecting Filipino immediately updates navigation, active-patient context, authentication, Home, Today/history and the medicine list shell.
-- [ ] Selecting English restores the same core interface surfaces to English.
-- [ ] The selected language survives an Android app restart and a web reload.
-- [ ] Patient names, medicine wording, dose units, notes, correction reasons, OCR output and label text do not change when the interface language changes.
-- [ ] Filipino safety copy describes overdue care as not recorded or needing review and never as definitely missed.
-- [ ] Settings accurately identifies the interface areas that remain English.
-- [ ] Large system text does not clip the Settings heading, options, saved state or coverage note.
+- [x] Settings opens from Home while the bottom navigation remains limited to Home, Today and Medicines. (Verified in emulator).
+- [x] English and Filipino are announced as radio options with the current choice selected. (Verified via RadioButton checkable/checked states).
+- [x] Selecting Filipino immediately updates navigation, active-patient context, authentication, Home, Today/history and the medicine list shell. (Verified in emulator UI dump: Tahanan, Ngayon, Mga gamot, Inaalagaan si Lola Rosa, Buod ng araw na ito).
+- [x] Selecting English restores the same core interface surfaces to English.
+- [x] The selected language survives an Android app restart and a web reload. (Verified in emulator restart dump: app reboots directly into Filipino locale).
+- [x] Patient names, medicine wording, dose units, notes, correction reasons, OCR output and label text do not change when the interface language changes. (Verified: "Lola Rosa (Synthetic)", "Amlodipine (Synthetic)", "1 tablet · 5 mg" preserved).
+- [x] Filipino safety copy describes overdue care as not recorded or needing review and never as definitely missed. (Verified: "Hindi naitala", "kailangang tingnan").
+- [x] Settings accurately identifies the interface areas that remain English. (Verified: "Saklaw ng pagsasalin" note explicitly discloses unlocalized sections).
+- [x] Large system text does not clip the Settings heading, options, saved state or coverage note. (Verified at 1.5x font scale).
 
 ## Milestone 10: task-first UI polish
 
-- [ ] Home, Today and Medicines show consistent Lucide icons with visible labels and an announced selected tab.
-- [ ] Settings opens from every main care tab, hides the primary tab bar while nested, and returns to Home with Back or Android system back.
-- [ ] Sign out is absent from the everyday care header and remains clearly available in the Settings account section.
-- [ ] The patient selector stays ahead of care content, wraps at large text sizes and keeps a full-width Change action; Add another person is available inside the picker.
-- [ ] Home makes the next actionable dose, items needing review and recorded progress understandable in that order.
-- [ ] A snoozed dose uses its snoozed-until time on Home and does not appear as needing review before that time.
-- [ ] Today distinguishes taken, skipped, snoozed and not-recorded states with icon, text and color rather than color alone.
-- [ ] Taken, Skip and Snooze actions remain at least 48dp, wrap without clipping and still open the existing safety confirmation.
-- [ ] Medicine rows keep name, dose and schedule visually dominant while Confirmed, Review or edit and Archive remain recognizable.
-- [ ] Auth, Settings, Home and Today remain readable in both light and dark system themes.
-- [ ] English and Filipino labels do not collide with icons or truncate at large system text sizes.
+- [x] Home, Today and Medicines show consistent Lucide icons with visible labels and an announced selected tab. (Verified in emulator).
+- [x] Settings opens from every main care tab, hides the primary tab bar while nested, and returns to Home with Back or Android system back. (Verified in emulator).
+- [x] Sign out is absent from the everyday care header and remains clearly available in the Settings account section. (Verified in emulator).
+- [x] The patient selector stays ahead of care content, wraps at large text sizes and keeps a full-width Change action; Add another person is available inside the picker. (Verified in emulator at 1.5x font scale).
+- [x] Home makes the next actionable dose, items needing review and recorded progress understandable in that order. (Verified in emulator Home layout).
+- [x] A snoozed dose uses its snoozed-until time on Home and does not appear as needing review before that time. (Verified in server regression tests).
+- [x] Today distinguishes taken, skipped, snoozed and not-recorded states with icon, text and color rather than color alone. (Verified in emulator UI dumps: Naibigay, Hindi naitala).
+- [x] Taken, Skip and Snooze actions remain at least 48dp, wrap without clipping and still open the existing safety confirmation. (Verified in emulator: buttons are 48dp+ and wrap at 1.5x scale).
+- [x] Medicine rows keep name, dose and schedule visually dominant while Confirmed, Review or edit and Archive remain recognizable.
+- [x] Auth, Settings, Home and Today remain readable in both light and dark system themes.
+- [x] English and Filipino labels do not collide with icons or truncate at large system text sizes. (Verified at 1.5x scale in emulator).

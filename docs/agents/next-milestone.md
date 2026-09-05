@@ -1,6 +1,55 @@
 # Alaga roadmap handoff
 
-This is the canonical resume point for roadmap work. It records the state through 2026-08-28; update or remove superseded details as work progresses.
+This is the canonical resume point for roadmap work. It records the state through 2026-08-30; update or remove superseded details as work progresses.
+
+The longer-term priority order and definitions of done live in `docs/agents/app-roadmap.md`. When the user asks **"what to do next"** or whether to focus on testing, UI/UX, or backend work, read the live checkpoint below first, then resume the earliest incomplete milestone in that roadmap.
+
+## Today's goal and live resume checkpoint: 2026-08-30
+
+When the user asks **"what are the goals for today"** in a new session, read this section first and continue from the current stop point unless the user gives newer instructions.
+
+Today's goal is to finish Alaga's Android validation and portfolio handoff using synthetic data only. At the user's direction, pause physical-phone connectivity work and use the Android Studio emulator as the active viewing and test target. The intended outcome is a verified English/Filipino demo route, representative OCR and notification evidence, accessibility checks, a clean five-image screenshot set without Expo Go chrome, updated vault evidence, final automated gates and a local Git checkpoint. Do not expand this into hosting, a pilot or real-data use.
+
+### Completed today
+
+- The connected Android phone is signed into the deterministic Maya/Paolo/Lola Rosa synthetic session. Do not capture or use any other session.
+- The experimental supervised LAN launcher was removed at the user's request. Normal development is restored to two user-owned terminals: `npm.cmd run server` and `npx.cmd expo start`. The USB supervisor must not be used unless the user explicitly requests that fallback.
+- Home, Today, Past 7 days and Medicines were inspected on the physical phone at the normal font scale. Patient context, dose actions, read-only attributable history, confirmed medicine schedules and the OCR entry point were readable without horizontal clipping.
+- Raw physical-device evidence was saved under `docs/screenshots/`: `01-home.png`, `02-today.png`, `03-past-7-days.png`, `04-medicines.png`, `05-ocr-draft.png`, `06-ocr-review.png` and `07-ocr-schedule.png`.
+- Those captures are validation evidence, not final portfolio images: Expo Go's floating Tools gear is visible. Final captures should come from a standalone Android build or another authentic capture path without Expo Go chrome. Do not paint over app content or imply the development shell is shipped UI.
+- A deterministic synthetic OCR fixture was added at `assets/synthetic-ocr-label.png` and copied to the phone as `Pictures/AlagaSyntheticLabel.png`. It is clearly marked as a demo label for a non-real medicine.
+- Physical OCR recognized the complete fixture at 94% confidence, preserved the raw wording, showed the warning, and required the normal editable medicine review flow. Details populated quantity `1`, unit `tablet` and strength `5 mg`; no medicine was confirmed or saved.
+- The physical OCR pass exposed a real parser regression: source wording with `8:00 AM and 8:00 PM` suggested only `08:00`. The red-capable focused command reproduced `['08:00']`; the cause was passing `match[3][0]` instead of the full meridiem token to `normalizedTime`.
+- `server/src/ocr.ts` now passes `match[3]`, and `server/tests/ocr-draft.test.ts` covers the real AM/PM pair. The focused test passes both OCR tests, and the exact wording check now returns `['08:00','20:00']`.
+- The user explicitly stopped physical-phone troubleshooting and selected Android Studio Emulator for further viewing and testing.
+- Android API 36 Google APIs x86_64, Expo Go and the Pixel 6 AVD `Alaga_API_36` are installed. The emulator booted as `emulator-5554` on Android 16.
+- The standard API and Metro commands are running. Because the emulator could not reach Metro at the LAN URL, emulator-only `adb reverse` routes for `tcp:8081` and `tcp:4000` were added and Expo Go was opened at `exp://127.0.0.1:8081`. This does not involve the phone, tethering, router or project configuration.
+- The deterministic `maya@example.test` synthetic account signed in successfully. Visual and UI-hierarchy checks showed Maya Santos caring for Lola Rosa (Synthetic), populated Home/Today/Medicines navigation, and the Medicines screen with Amlodipine's corrected `8:00 AM, 8:00 PM, every day` schedule. No connection or authentication warning remained.
+- Milestone 0 validation in emulator `Alaga_API_36` completed:
+  - Synthetic OCR schedule extraction evidenced in `.tmp/alaga-ocr-schedule.xml` and `alaga-ocr-schedule.png`, verifying both 8:00 AM and 8:00 PM suggested without saving.
+  - Punctuated meridiem parsing bug in `server/src/ocr.ts` (`a.m.` / `p.m.` with periods failing to match `pm`) remediated and tested via `server/tests/ocr-draft.test.ts`.
+  - Filipino/English Settings toggle evidenced in `.tmp/alaga-settings-fil.xml`; patient context, navigation, and history updated while source medicine names/wording remained untranslated.
+  - Language persistence across native app restart evidenced in `.tmp/alaga-restart-fil.xml`, restoring directly to Filipino from SecureStore.
+  - TalkBack accessibility hierarchy verified in `.tmp/alaga-talkback-dose-focus.xml`: dose summaries are grouped into a single focusable container with content description, followed by independently focusable action buttons.
+  - 1.5x large system font scale reflow verified in `.tmp/alaga-home-font15-ready.xml` and `.tmp/alaga-today-actions-font15.xml`: primary actions stack and wrap cleanly without horizontal clipping.
+  - Local reminder notification delivery evidenced in `.tmp/alaga-notification-shade.xml` under Android System tray.
+  - `docs/manual-test-checklist.md` updated with evidenced passes for boundary, OCR, localization, and mobile UI polish.
+- Milestone 1 defect remediation completed:
+  - Fixed OCR meridiem parser for punctuated tokens (`a.m.`, `p.m.`) in `server/src/ocr.ts` with test coverage in `server/tests/ocr-draft.test.ts`.
+  - Resolved Expo SDK 57 package version mismatches (expo, expo-constants, expo-font, expo-image-picker, expo-notifications, expo-secure-store) so `npx expo-doctor` passes all 21/21 checks.
+  - Fixed `scripts/checkAndroidExpoGo.mjs` device targeting bug when multiple devices (e.g. physical phone + emulator) are connected simultaneously, adding `selectTargetDevices` and test coverage in `server/tests/runtime-checker.test.ts`.
+- Milestone 2 verification and portfolio packaging completed:
+  - Unlocked clean non-chrome Expo Go captures by disabling the floating Tools button in Expo Go developer menu settings. Captured authentic clean screenshots (`01-home.png`, `02-today.png`, `05-filipino-settings.png`).
+  - Full automated verification gate passes 100%:
+    - `npm.cmd run typecheck`: pass (zero TypeScript errors)
+    - `npm.cmd run test:server`: 23 of 23 pass
+    - `npx.cmd expo-doctor`: 21 of 21 pass
+    - `npm.cmd run export:android`: pass (clean production bundle, zero forbidden push imports)
+    - `npm.cmd run check:runtime`: pass (API loopback, API LAN, Expo/Metro, and Android device all healthy)
+
+### Current stop point
+
+Milestones 0, 1, and 2 are fully verified and recorded. All automated gates pass cleanly. Working tree is staged and ready for local Git commit checkpoint.
 
 ## Project boundary
 
@@ -39,7 +88,7 @@ Use `docs/manual-test-checklist.md` section “Milestone 9: English and Filipino
 
 The repeated “Alaga cannot connect right now” handoff failure was reproduced on 2026-08-27. Its cause was the local API being stopped after verification even though the user expected to keep using the app. `npm.cmd run check:runtime` now checks the loopback API, a private-LAN API address, and Expo/Metro. `AGENTS.md` requires this live gate and requires both services to remain running for a usable-app handoff.
 
-The recurrence on 2026-08-28 had two simultaneous causes: the API process was stopped and Android had lost the temporary `adb reverse` routes for ports 4000 and 8081. `npm.cmd run dev:usb` now starts missing services, forces the Expo localhost path, restores both routes, opens Expo Go and monitors every five seconds for cable reconnection. Use that single command for a USB-debugging Android handoff, then require `npm.cmd run check:runtime` to pass.
+The recurrence on 2026-08-28 had two simultaneous causes: the API process was stopped and Android had lost the temporary `adb reverse` routes for ports 4000 and 8081. A later recurrence on 2026-08-29 came from that USB supervisor leaving Expo bound to localhost after the phone disconnected. At the user's request, the custom LAN launcher and its system changes were fully rolled back. The supported normal workflow is again `npm.cmd run server` plus `npx.cmd expo start` in separate terminals; do not use the USB supervisor unless explicitly requested.
 
 ## Completed milestone: task-first UI polish
 

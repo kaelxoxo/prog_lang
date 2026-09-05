@@ -26,6 +26,7 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 .cache/
+.tmp/
 /alaga-*.png
 /alaga-*.xml
 

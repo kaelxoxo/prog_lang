@@ -5,6 +5,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 const warningText = 'Cannot connect to Expo CLI';
+const launcherText = ['recently opened', 'scan qr code', 'enter url manually'];
 const requiredPorts = [4000, 8081];
 
 export function parseAdbDevices(output) {
@@ -19,6 +20,10 @@ export function parseAdbDevices(output) {
 export function evaluateExpoGoUi(xml) {
   if (xml.includes(warningText)) {
     return 'Expo Go shows “Cannot connect to Expo CLI”. Restart Expo, reapply the USB reverse routes, and reopen the app.';
+  }
+
+  if (launcherText.some((text) => xml.toLowerCase().includes(text))) {
+    return 'Expo Go is running, but Alaga is not open. Open the local Alaga project and run the check again.';
   }
 
   if (!xml.includes('package="host.exp.exponent"')) {
@@ -55,6 +60,12 @@ async function adb(adbPath, args) {
   });
 }
 
+function selectTargetDevices(allDevices) {
+  const targetSerial = process.env.ANDROID_SERIAL
+    || (allDevices.length > 1 ? allDevices.find((d) => d.serial.startsWith('emulator-'))?.serial : undefined);
+  return targetSerial ? allDevices.filter(({ serial }) => serial === targetSerial) : allDevices;
+}
+
 export async function ensureAndroidUsbConnection({
   adbPath = resolveAdb(),
   openExpoGo = false,
@@ -71,7 +82,8 @@ export async function ensureAndroidUsbConnection({
     return { ok: false, message: `Android USB recovery: FAIL (${error.message})` };
   }
 
-  const devices = parseAdbDevices(devicesOutput);
+  const allDevices = parseAdbDevices(devicesOutput);
+  const devices = selectTargetDevices(allDevices);
   if (devices.length === 0) {
     return { ok: true, message: 'Android USB recovery: waiting for a connected device' };
   }
@@ -133,7 +145,8 @@ export async function checkAndroidExpoGo() {
     return { ok: false, message: `Android device health: FAIL (${error.message})` };
   }
 
-  const devices = parseAdbDevices(devicesOutput);
+  const allDevices = parseAdbDevices(devicesOutput);
+  const devices = selectTargetDevices(allDevices);
   if (devices.length === 0) {
     return { ok: true, message: 'Android device health: skipped (no connected device)' };
   }

@@ -35,7 +35,7 @@ npm.cmd run server
 Then start Expo in another terminal:
 
 ```powershell
-npm.cmd start
+npx.cmd expo start
 ```
 
 Before handing the running app back to someone, verify both services and LAN API reachability:

@@ -10,7 +10,7 @@ This route uses deterministic synthetic data and demonstrates Alaga's safety and
    npm.cmd run db:reset:synthetic -- --confirm-synthetic-reset
    ```
 
-2. Start Alaga with `npm.cmd run dev:usb` for a USB-debugging Android phone, or run `npm.cmd run server` and `npm.cmd start` in separate terminals.
+2. Start Alaga with `npm.cmd run dev:usb` for a USB-debugging Android phone, or run `npm.cmd run server` and `npx.cmd expo start` in separate terminals.
 3. Require `npm.cmd run check:runtime` to pass before presenting a live device.
 4. Sign in as `maya@example.test` with password `alaga-synthetic-only`.
 

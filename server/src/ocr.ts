@@ -21,13 +21,15 @@ export type MedicationOcrDraft = {
   warnings: string[];
 };
 
-const NAME_NOISE = /\b(take|tablet|capsule|daily|morning|evening|breakfast|lunch|dinner|instruction|patient|doctor|prescription)\b/i;
+const NAME_NOISE = /\b(take|daily|morning|evening|breakfast|lunch|dinner|instruction|patient|doctor|prescription)\b/i;
+const NON_MEDICINE_BANNER = /\b(synthetic test label|for demo only|not a real medicine)\b/i;
+const STRENGTH_ONLY_LINE = /^\d+(?:\.\d+)?\s*(?:mcg|mg|g|ml)(?:\s+(?:tablets?|capsules?))?$/i;
 
 function normalizedTime(hours: number, minutes: number, meridiem?: string) {
   let normalizedHours = hours;
   if (meridiem) {
     normalizedHours %= 12;
-    if (meridiem.toLowerCase() === 'pm') normalizedHours += 12;
+    if (meridiem.replace(/\./g, '').toLowerCase() === 'pm') normalizedHours += 12;
   }
   return `${String(normalizedHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
@@ -41,7 +43,7 @@ function explicitTimes(text: string) {
     times.add(normalizedTime(Number(match[1]), Number(match[2])));
   }
   for (const match of text.matchAll(meridiemPattern)) {
-    times.add(normalizedTime(Number(match[1]), Number(match[2] || 0), match[3][0]));
+    times.add(normalizedTime(Number(match[1]), Number(match[2] || 0), match[3]));
   }
   return [...times].sort();
 }
@@ -53,7 +55,12 @@ export function medicationDraftFromText(
 ): MedicationOcrDraft {
   const text = rawText.replaceAll('\r', '').trim();
   const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
-  const candidateName = lines.find((line) => !NAME_NOISE.test(line) && /[a-z]/i.test(line)) || '';
+  const candidateName = lines.find((line) => (
+    /[a-z]/i.test(line)
+    && !NAME_NOISE.test(line)
+    && !NON_MEDICINE_BANNER.test(line)
+    && !STRENGTH_ONLY_LINE.test(line)
+  )) || '';
   const strength = text.match(/\b(\d+(?:\.\d+)?)\s*(mcg|mg|g|ml)\b/i);
   const dose = text.match(/\btake\s+(\d+(?:\.\d+)?)\s*(tablet|tablets|capsule|capsules|ml)\b/i);
   const times = explicitTimes(text);

@@ -19,6 +19,12 @@ test('runtime checker accepts a foreground Expo Go screen without the warning', 
   assert.equal(evaluateExpoGoUi(xml), null);
 });
 
+test('runtime checker rejects the Expo Go launcher when Alaga is not open', () => {
+  const xml = '<node package="host.exp.exponent" text="Scan QR Code" />';
+
+  assert.match(evaluateExpoGoUi(xml) || '', /Alaga is not open/);
+});
+
 test('runtime checker parses authorized and unauthorized adb devices', () => {
   const devices = parseAdbDevices('List of devices attached\n9903936d\tdevice\nother\tunauthorized\n\n');
 
@@ -51,3 +57,41 @@ test('USB recovery restores both Alaga routes and reopens Expo Go', async () => 
     ['-s', '9903936d', 'shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', 'exp://127.0.0.1:8081', 'host.exp.exponent'],
   ]);
 });
+
+test('USB recovery targets ANDROID_SERIAL when multiple devices are attached', async () => {
+  const previous = process.env.ANDROID_SERIAL;
+  process.env.ANDROID_SERIAL = 'emulator-5554';
+
+  try {
+    const calls: string[][] = [];
+    const runAdb = async (_adbPath: string, args: string[]) => {
+      calls.push(args);
+
+      if (args[0] === 'devices') {
+        return {
+          stdout: 'List of devices attached\n9903936d\tdevice\nemulator-5554\tdevice\n\n',
+          stderr: '',
+        };
+      }
+
+      return { stdout: '', stderr: '' };
+    };
+
+    const result = await ensureAndroidUsbConnection({ adbPath: 'adb', runAdb });
+    assert.equal(result.ok, true);
+    assert.deepEqual(calls, [
+      ['devices'],
+      ['-s', 'emulator-5554', 'reverse', '--list'],
+      ['-s', 'emulator-5554', 'reverse', 'tcp:4000', 'tcp:4000'],
+      ['-s', 'emulator-5554', 'reverse', 'tcp:8081', 'tcp:8081'],
+      ['-s', 'emulator-5554', 'shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', 'exp://127.0.0.1:8081', 'host.exp.exponent'],
+    ]);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.ANDROID_SERIAL;
+    } else {
+      process.env.ANDROID_SERIAL = previous;
+    }
+  }
+});
+
