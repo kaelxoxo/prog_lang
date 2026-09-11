@@ -155,6 +155,7 @@ export function MedicationPhotoImport({
                       const isReviewed = reviewedIndices.includes(index);
                       return (
                         <Pressable
+                          accessibilityLabel={`Medicine ${index + 1}: ${d.displayName || 'Unrecognized'}${isReviewed ? ', reviewed' : ''}`}
                           accessibilityRole="button"
                           accessibilityState={{ selected: selectedDraftIndex === index }}
                           key={`${d.displayName}-${index}`}

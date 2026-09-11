@@ -349,6 +349,71 @@ Take 1 tablet every 4 hours
   assert.equal(drafts[1].intervalHours, 4);
 });
 
+test('OCR handles range dose lines inside numbered items without creating phantom medications', () => {
+  const text = `1. Amoxicillin 500mg
+1 to 2 capsules every 8 hours
+2. Paracetamol 500mg
+Take 1 tablet as needed`;
+
+  const drafts = medicationDraftsFromText(text, 'timetable_photo', 90);
+  assert.equal(drafts.length, 2, 'Should not produce phantom draft named "to" from "1 to 2 capsules"');
+  assert.equal(drafts[0].displayName, 'Amoxicillin');
+  assert.equal(drafts[0].doseQuantity, 1);
+  assert.equal(drafts[0].doseUnit, 'capsule');
+  assert.equal(drafts[0].intervalHours, 8);
+  assert.equal(drafts[1].displayName, 'Paracetamol');
+  assert.equal(drafts[1].doseQuantity, 1);
+  assert.equal(drafts[1].isAsNeeded, true);
+});
+
+test('OCR keeps sub-bullet instructions attached to parent numbered medications', () => {
+  const text = `1. Losartan 50mg
+- Take 1 tablet daily in the morning
+2. Amlodipine 5mg
+- Take 1 tablet in the evening`;
+
+  const drafts = medicationDraftsFromText(text, 'timetable_photo', 90);
+  assert.equal(drafts.length, 2);
+  assert.equal(drafts[0].displayName, 'Losartan');
+  assert.equal(drafts[0].doseQuantity, 1);
+  assert.equal(drafts[0].doseUnit, 'tablet');
+  assert.equal(drafts[1].displayName, 'Amlodipine');
+  assert.equal(drafts[1].doseQuantity, 1);
+  assert.equal(drafts[1].doseUnit, 'tablet');
+});
+
+test('OCR preserves single medication header when prescription contains bulleted instructions', () => {
+  const text = `Losartan 50mg
+- Take 1 tablet daily in the morning
+- Dispense #30`;
+
+  const drafts = medicationDraftsFromText(text, 'label_photo', 90);
+  assert.equal(drafts.length, 1);
+  assert.equal(drafts[0].displayName, 'Losartan');
+  assert.equal(drafts[0].doseQuantity, 1);
+  assert.equal(drafts[0].doseUnit, 'tablet');
+});
+
+test('OCR safely resolves range doses with "or" and "o" to minimum single dose', () => {
+  const textEn = `Paracetamol 500mg\nTake 1 or 2 tablets every 6 hours`;
+  const draftEn = medicationDraftFromText(textEn, 'label_photo', 90);
+  assert.equal(draftEn.doseQuantity, 1, 'Should resolve "1 or 2" to safe minimum 1');
+  assert.equal(draftEn.doseUnit, 'tablet');
+
+  const textFil = `Paracetamol 500mg\nUminom ng 1 o 2 tableta bawat 6 na oras`;
+  const draftFil = medicationDraftFromText(textFil, 'label_photo', 90);
+  assert.equal(draftFil.doseQuantity, 1, 'Should resolve "1 o 2" to safe minimum 1');
+  assert.equal(draftFil.doseUnit, 'tablet');
+});
+
+test('OCR extracts Filipino interval instructions with ligature na (bawat 6 na oras)', () => {
+  const text = `Paracetamol 500mg\nUminom bawat 6 na oras`;
+  const draft = medicationDraftFromText(text, 'label_photo', 90);
+  assert.equal(draft.intervalHours, 6);
+  assert.equal(draft.suggestedScheduleKind, 'interval');
+});
+
+
 
 
 

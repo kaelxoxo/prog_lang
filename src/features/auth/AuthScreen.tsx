@@ -196,7 +196,7 @@ export function AuthScreen() {
           </Pressable>
 
           <Pressable
-            accessibilityLabel="Gamitin ang demo account (Maya Santos)"
+            accessibilityLabel={t('auth.demoAccount')}
             accessibilityRole="button"
             disabled={isSubmitting}
             onPress={async () => {
@@ -221,7 +221,7 @@ export function AuthScreen() {
             ]}
           >
             <AppIcon color={colors.primary} name="sparkles" size={18} />
-            <Text style={styles.demoButtonLabel}>Gamitin ang demo account (Maya Santos)</Text>
+            <Text style={styles.demoButtonLabel}>{t('auth.demoAccount')}</Text>
           </Pressable>
         </View>
       </ScrollView>

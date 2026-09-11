@@ -600,7 +600,8 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                         <Pressable
                           accessibilityRole="button"
                           onPress={() => {
-                            const times = calculateIntervalTimes(draft.intervalHours!, 6);
+                            const startHour = parseInt(intervalStart.split(':')[0], 10) || 6;
+                            const times = calculateIntervalTimes(draft.intervalHours!, startHour);
                             setExactTimes(times);
                             setScheduleKind('exact');
                             setDirty(true);
@@ -609,7 +610,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                           style={styles.clarifyOptionButton}
                         >
                           <Text style={styles.clarifyOptionText}>
-                            Clarify to fixed clock times ({calculateIntervalTimes(draft.intervalHours, 6).map(friendlyTime).join(', ')})
+                            Clarify to fixed clock times ({calculateIntervalTimes(draft.intervalHours, parseInt(intervalStart.split(':')[0], 10) || 6).map(friendlyTime).join(', ')})
                           </Text>
                         </Pressable>
                       ) : (

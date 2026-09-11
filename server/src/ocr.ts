@@ -29,7 +29,8 @@ export type MedicationOcrDraft = {
   isAsNeeded?: boolean;
 };
 
-const NAME_NOISE = /\b(take|daily|morning|evening|breakfast|lunch|dinner|instruction|instructions|patient|doctor|physician|consultant|dr|md|prescription|almusal|tanghalian|hapunan|bago|pagkatapos|uminom|signature|license|lic|prc|ptr|s2|clinic|hospital|center|infirmary|medical|name|age|sex|gender|date|address|contact|tel|phone|sig)\b/i;
+const NAME_NOISE = /\b(take|daily|morning|evening|breakfast|lunch|dinner|instruction|instructions|patient|doctor|physician|consultant|dr|md|prescription|almusal|tanghalian|hapunan|bago|pagkatapos|uminom|signature|license|lic|prc|ptr|s2|clinic|hospital|center|infirmary|medical|name|age|sex|gender|date|address|contact|tel|phone|sig|to|or|hanggang)\b/i;
+const INTAKE_OR_DOSE_LINE = /^(?:take\b|uminom\b|inumin\b|instill\b|apply\b|use\b|sig\b|\d+(?:\.\d+)?\s*(?:-|to|hanggang|or|o)\s*\d+|\d+\s*(?:na\s+)?(?:tablets?|capsules?|tableta|kapsula|tabs?|caps?|ml|drops?|patak|puffs?)\b|\d+\s*sa\s*(?:umaga|tanghali|hapon|gabi)\b)/i;
 const NON_MEDICINE_BANNER = /\b(synthetic test label|for demo only|not a real medicine)\b/i;
 const STRENGTH_ONLY_LINE = /^\d+(?:\.\d+)?\s*(?:mcg|mg|g|ml)\b(?:\s+(?:tablets?|capsules?|tableta|kapsula|tabs?|caps?))?$/i;
 const DISPENSE_OR_FORM_LINE = /^(?:(?:dispense|qty|quantity|total|bilang|mitte|mitt|d\.t\.d)\b|#\s*\d+|#?\s*\d*\s*(?:tablets?|capsules?|tableta|kapsula|tabs?|caps?)$)/i;
@@ -77,7 +78,7 @@ function parseFractionOrNumber(str: string): number | null {
     return total > 0 ? total : null;
   }
 
-  const range = trimmed.match(/^(\d+(?:\.\d+)?)\s*(?:-|to|hanggang)\s*(\d+(?:\.\d+)?)$/);
+  const range = trimmed.match(/^(\d+(?:\.\d+)?)\s*(?:-|to|hanggang|or|o)\s*(\d+(?:\.\d+)?)$/);
   if (range) {
     const minVal = Number(range[1]);
     if (Number.isFinite(minVal) && minVal > 0) return minVal;
@@ -102,7 +103,7 @@ function parseFractionOrNumber(str: string): number | null {
   return Number.isFinite(num) && num > 0 ? num : null;
 }
 
-const DOSE_AMOUNT_PATTERN = String.raw`(?:\d+(?:\.\d+)?\s*(?:-|to|hanggang)\s*\d+(?:\.\d+)?|\d+\s*(?:and\s+|\-|\s+)\d+\/\d+|\d+\s*[½¼¾⅓⅔]|\d+\/\d+|\d+(?:\.\d+)?|[½¼¾⅓⅔]|quarter|sangkapat|half|kalahati|kalahating|semis|ss|one|two|three|four|five|isa|dalawa|tatlo|apat|lima|isang|dalawang|tatlong|apat na|limang|iii|ii|iv|i\b)`;
+const DOSE_AMOUNT_PATTERN = String.raw`(?:\d+(?:\.\d+)?\s*(?:-|to|hanggang|or|o)\s*\d+(?:\.\d+)?|\d+\s*(?:and\s+|\-|\s+)\d+\/\d+|\d+\s*[½¼¾⅓⅔]|\d+\/\d+|\d+(?:\.\d+)?|[½¼¾⅓⅔]|quarter|sangkapat|half|kalahati|kalahating|semis|ss|one|two|three|four|five|isa|dalawa|tatlo|apat|lima|isang|dalawang|tatlong|apat na|limang|iii|ii|iv|i\b)`;
 const DOSE_UNIT_PATTERN = String.raw`(?:tablets?|tableta|tabs?|capsules?|kapsula|caps?|ml|drops?|patak|puffs?)`;
 
 const EXPLICIT_DOSE_PATTERN = new RegExp(
@@ -215,15 +216,8 @@ export function splitPrescriptionBlocks(rawText: string): string[] {
   const text = rawText.replaceAll('\r', '').trim();
   if (!text) return [];
 
-  // Match items indicated by numbers/letters:
-  // 1., 1), (1), [1], 1 - , 1:
-  // A., A), (A), [A]
-  // I., I), (I), [I], II., III.
-  // Optional prefix: "Item 1.", "Item #1", "Rx 1."
-  // Bullets: •, -, *
-  // OCR dropped period: single digit 1-9 followed by space and drug name (not a unit, noise word, or number)
-  const itemPattern = /(?:^|\n)\s*(?:(?:(?:item|rx)\s*[:\.]?\s*)?(?:(?:[1-9]\d?|[A-Z]|(?:[IVXLCDM]+))[\.\)\:\-]\s+|(?:\([1-9]\d?\)|\([A-Z]\)|\((?:[IVXLCDM]+)\)|\[[1-9]\d?\]|\[[A-Z]\]|\[(?:[IVXLCDM]+)\])\s*)|[-•*–—\u2022]\s+|(?=[1-9]\s+(?![0-9]|mg\b|mcg\b|g\b|ml\b|tabs?\b|caps?\b|tablets?\b|capsules?\b|tableta\b|kapsula\b|drops?\b|patak\b|puffs?\b|times\b|beses\b|hours?\b|hrs?\b|oras\b|days?\b|araw\b|x\b|take\b|sig\b|dispense\b|qty\b|total\b|bago\b|pagkatapos\b)[A-Za-z]))/g;
-
+  // Tier 1: Explicit numbered/lettered items (1., 1), (1), [1], A., I., etc.) and dropped-period items (1 Paracetamol)
+  const itemPattern = /(?:^|\n)\s*(?:(?:(?:item|rx)\s*[:\.]?\s*)?(?:(?:[1-9]\d?|[A-Z]|(?:[IVXLCDM]+))[\.\)\:\-]\s+|(?:\([1-9]\d?\)|\([A-Z]\)|\((?:[IVXLCDM]+)\)|\[[1-9]\d?\]|\[[A-Z]\]|\[(?:[IVXLCDM]+)\])\s*)|(?=[1-9]\s+(?![0-9]|mg\b|mcg\b|g\b|ml\b|tabs?\b|caps?\b|tablets?\b|capsules?\b|tableta\b|kapsula\b|drops?\b|patak\b|puffs?\b|times\b|beses\b|hours?\b|hrs?\b|oras\b|days?\b|araw\b|x\b|take\b|sig\b|dispense\b|qty\b|total\b|bago\b|pagkatapos\b|to\b|or\b|hanggang\b|o\b|sa\b|bawat\b|tuwing\b|kalahati\b|isang?\b|dalawang?\b)[A-Za-z]))/g;
   const itemMatches = [...text.matchAll(itemPattern)];
 
   if (itemMatches.length >= 2) {
@@ -237,7 +231,7 @@ export function splitPrescriptionBlocks(rawText: string): string[] {
     if (blocks.length > 0) return blocks;
   }
 
-  // Match multiple distinct Rx headers
+  // Tier 2: Multiple distinct Rx headers
   const rxPattern = /(?:^|\n)\s*Rx\s*[:\.]?\s+/gi;
   const rxMatches = [...text.matchAll(rxPattern)];
   if (rxMatches.length >= 2) {
@@ -251,6 +245,33 @@ export function splitPrescriptionBlocks(rawText: string): string[] {
     if (blocks.length > 0) return blocks;
   }
 
+  // Tier 4: Bulleted list: •, -, *
+  // Only split if the bullets do not represent instructions/intake steps under one medicine
+  const bulletPattern = /(?:^|\n)\s*[-•*–—\u2022]\s+/g;
+  const bulletMatches = [...text.matchAll(bulletPattern)];
+  if (bulletMatches.length >= 2) {
+    const nonInstructionBullets = bulletMatches.filter((m) => {
+      const lineAfter = text.slice(m.index! + m[0].length).split('\n')[0].trim();
+      return !/^(?:take\b|uminom\b|inumin\b|dispense\b|sig\b|qty\b|total\b|apply\b|instill\b|bago\b|pagkatapos\b|every\b|tuwing\b|bawat\b|\d+\s*(?:to|or|-)\s*\d+)/i.test(lineAfter);
+    });
+
+    if (nonInstructionBullets.length >= 2) {
+      const blocks: string[] = [];
+      const preText = text.slice(0, nonInstructionBullets[0].index!).trim();
+      if (preText && /\b(\d+(?:\.\d+)?\s*(?:mcg|mg|g|ml)|tablets?|capsules?|tableta|kapsula)\b/i.test(preText)) {
+        blocks.push(preText);
+      }
+      for (let i = 0; i < nonInstructionBullets.length; i++) {
+        const start = nonInstructionBullets[i].index! + (nonInstructionBullets[i][0].startsWith('\n') ? 1 : 0);
+        const end = i + 1 < nonInstructionBullets.length ? nonInstructionBullets[i + 1].index! : text.length;
+        const chunk = text.slice(start, end).trim();
+        if (chunk) blocks.push(chunk);
+      }
+      if (blocks.length >= 2) return blocks;
+    }
+  }
+
+  // Tier 5: Paragraphs separated by blank lines
   const doubleNewlineBlocks = text
     .split(/\n\s*\n+/)
     .map((b) => b.trim())
@@ -279,12 +300,14 @@ export function medicationDraftFromText(
   let candidateName = '';
   for (const rawLine of lines) {
     let stripped = rawLine.replace(/^[\s\-•*–—\u2022]+/g, '').trim();
-    while (/^(?:Rx\s*[:\.]?|#\s*\d+[\.\)\:\-]?|item\s*#?\s*\d+[\.\)\:\-]?|\(\d+\)[\.\)\:\-]?|\[\d+\][\.\)\:\-]?|\d+[\.\)\:\-]?|\([A-Z]\)[\.\)\:\-]?|\[[A-Z]\][\.\)\:\-]?|[A-Z][\.\)\:\-]|(?:[IVXLCDM]+)[\.\)\:\-])\s*/i.test(stripped)) {
-      stripped = stripped.replace(/^(?:Rx\s*[:\.]?|#\s*\d+[\.\)\:\-]?|item\s*#?\s*\d+[\.\)\:\-]?|\(\d+\)[\.\)\:\-]?|\[\d+\][\.\)\:\-]?|\d+[\.\)\:\-]?|\([A-Z]\)[\.\)\:\-]?|\[[A-Z]\][\.\)\:\-]?|[A-Z][\.\)\:\-]|(?:[IVXLCDM]+)[\.\)\:\-])\s*/i, '').trim();
+    while (/^(?:Rx\s*[:\.]?|#\s*\d+[\.\)\:\-]?|item\s*#?\s*\d+[\.\)\:\-]?|\(\d+\)[\.\)\:\-]?|\[\d+\][\.\)\:\-]?|\d+[\.\)\:\-]|\d+\s+(?=[A-Z][a-z])|\([A-Z]\)[\.\)\:\-]?|\[[A-Z]\][\.\)\:\-]?|[A-Z][\.\)\:\-]|(?:[IVXLCDM]+)[\.\)\:\-])\s*/i.test(stripped)) {
+      stripped = stripped.replace(/^(?:Rx\s*[:\.]?|#\s*\d+[\.\)\:\-]?|item\s*#?\s*\d+[\.\)\:\-]?|\(\d+\)[\.\)\:\-]?|\[\d+\][\.\)\:\-]?|\d+[\.\)\:\-]|\d+\s+(?=[A-Z][a-z])|\([A-Z]\)[\.\)\:\-]?|\[[A-Z]\][\.\)\:\-]?|[A-Z][\.\)\:\-]|(?:[IVXLCDM]+)[\.\)\:\-])\s*/i, '').trim();
     }
     stripped = stripped.replace(/^[:\.\-\s]+/g, '').trim();
     if (
       /[a-z]/i.test(stripped)
+      && !INTAKE_OR_DOSE_LINE.test(stripped)
+      && !INTAKE_OR_DOSE_LINE.test(rawLine.trim())
       && !DISPENSE_OR_FORM_LINE.test(stripped)
       && !NAME_NOISE.test(stripped)
       && !NON_MEDICINE_BANNER.test(stripped)
@@ -354,7 +377,7 @@ export function medicationDraftFromText(
     }
   }
 
-  const intervalMatch = text.match(/(?:every|tuwing\s+ika-|tuwing|bawat|q)\s*(\d{1,2})(?:\s*(?:-|to|hanggang)\s*\d{1,2})?\s*(?:hours?|hrs?|oras|h\b)/i);
+  const intervalMatch = text.match(/(?:every|tuwing\s+ika-|tuwing|bawat|q)\s*(\d{1,2})(?:\s*(?:-|to|hanggang|or|o)\s*\d{1,2})?\s*(?:na\s+)?(?:hours?|hrs?|oras|h\b)/i);
   const intervalHours = intervalMatch && Number(intervalMatch[1]) >= 1 && Number(intervalMatch[1]) <= 24
     ? Number(intervalMatch[1])
     : null;
