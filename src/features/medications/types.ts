@@ -72,6 +72,8 @@ export type MedicationInput = {
 export type MedicationOcrDraft = {
   confidence: number;
   displayName: string;
+  genericName?: string;
+  brandName?: string;
   doseQuantity: number | null;
   doseUnit: string;
   exactTimes: string[];
@@ -83,4 +85,10 @@ export type MedicationOcrDraft = {
   strengthUnit: string;
   strengthValue: number | null;
   warnings: string[];
+  suggestedScheduleKind?: 'exact' | 'interval' | 'meal';
+  detectedMeals?: Array<'breakfast' | 'lunch' | 'dinner'>;
+  mealRelation?: 'before' | 'after';
+  intervalHours?: number | null;
+  timingClarification?: string | null;
+  isAsNeeded?: boolean;
 };

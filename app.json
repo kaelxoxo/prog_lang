@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "scheme": "alaga",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },

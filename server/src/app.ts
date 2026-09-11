@@ -6,7 +6,7 @@ import type { Pool, PoolClient } from 'pg';
 import { serverConfig } from './config';
 import { databasePool } from './database';
 import { historyForRange, timelineForDate, timelineForRange, validatedLocalDate } from './doses';
-import { recognizeMedicationImage, type PhotoSourceKind } from './ocr';
+import { recognizeMedicationImage, type MedicationOcrDraft, type PhotoSourceKind } from './ocr';
 
 const SESSION_LENGTH_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_BODY_BYTES = 16 * 1024;
@@ -657,7 +657,12 @@ function databaseError(error: unknown) {
 
 export function createAppServer(
   pool: Pool = databasePool,
-  dependencies: { recognizeImage?: typeof recognizeMedicationImage } = {},
+  dependencies: {
+    recognizeImage?: (
+      image: Buffer,
+      sourceKind: PhotoSourceKind,
+    ) => Promise<MedicationOcrDraft | { drafts: MedicationOcrDraft[] } | MedicationOcrDraft[]>;
+  } = {},
 ) {
   const recognizeImage = dependencies.recognizeImage || recognizeMedicationImage;
   return createServer(async (request, response) => {
@@ -1016,8 +1021,15 @@ export function createAppServer(
           throw new HttpError(400, 'The image contents do not match its file type.');
         }
 
-        const draft = await recognizeImage(image, sourceKind as PhotoSourceKind);
-        sendJson(response, 200, { draft });
+        const ocrResult = await recognizeImage(image, sourceKind as PhotoSourceKind);
+        const drafts = (ocrResult && typeof ocrResult === 'object' && 'drafts' in ocrResult && Array.isArray((ocrResult as { drafts: unknown }).drafts))
+          ? (ocrResult as { drafts: unknown[] }).drafts
+          : Array.isArray(ocrResult)
+            ? ocrResult
+            : [ocrResult];
+        const draft = drafts[0] || ocrResult;
+
+        sendJson(response, 200, { draft, drafts });
         return;
       }
 

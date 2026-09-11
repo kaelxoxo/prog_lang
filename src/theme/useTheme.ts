@@ -4,7 +4,7 @@ import { useColorScheme } from 'react-native';
 import { darkColors, lightColors, type AppColors } from './tokens';
 
 export function useAppColors() {
-  return useColorScheme() === 'dark' ? darkColors : lightColors;
+  return lightColors;
 }
 
 export function useThemedStyles<T>(factory: (colors: AppColors) => T) {

@@ -59,6 +59,24 @@ function emptyMealTimes(): Record<MealName, MealTime> {
   };
 }
 
+function calculateIntervalTimes(intervalHours: number, startHour = 6): string[] {
+  const times: string[] = [];
+  const count = Math.min(6, Math.floor(24 / Math.max(1, intervalHours)));
+  for (let i = 0; i < count; i++) {
+    const hour = (startHour + i * intervalHours) % 24;
+    times.push(`${String(hour).padStart(2, '0')}:00`);
+  }
+  return times.length > 0 ? times : ['08:00'];
+}
+
+function mealTimesFromMeals(meals: MealName[], isBedtime = false): string[] {
+  const result: string[] = [];
+  if (meals.includes('breakfast')) result.push('08:00');
+  if (meals.includes('lunch')) result.push('12:00');
+  if (meals.includes('dinner')) result.push(isBedtime ? '21:00' : '18:00');
+  return result.length > 0 ? result : ['08:00'];
+}
+
 function timeAsDate(value: string) {
   const [hours, minutes] = value.split(':').map(Number);
   const date = new Date();
@@ -217,6 +235,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
   const [intervalStart, setIntervalStart] = useState('06:00');
   const [mealRelation, setMealRelation] = useState<'before' | 'after'>('after');
   const [mealTimes, setMealTimes] = useState(emptyMealTimes);
+  const [enabledMeals, setEnabledMeals] = useState<Record<MealName, boolean>>({ breakfast: true, lunch: true, dinner: true });
   const [customMealWindows, setCustomMealWindows] = useState<Record<MealName, boolean>>({ breakfast: false, lunch: false, dinner: false });
   const [everyDay, setEveryDay] = useState(true);
   const [weekdays, setWeekdays] = useState<number[]>(ALL_WEEKDAYS);
@@ -243,12 +262,12 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
     if (!visible) return;
     setStep('details');
     setDisplayName(medication?.displayName ?? draft?.displayName ?? '');
-    setGenericName(medication?.genericName ?? '');
-    setBrandName(medication?.brandName ?? '');
+    setGenericName(medication?.genericName ?? draft?.genericName ?? '');
+    setBrandName(medication?.brandName ?? draft?.brandName ?? '');
     setStrengthValue(medication?.strengthValue?.toString() ?? draft?.strengthValue?.toString() ?? '');
-    setStrengthUnit(medication?.strengthUnit ?? draft?.strengthUnit ?? 'mg');
-    setDoseQuantity(medication?.doseQuantity.toString() ?? draft?.doseQuantity?.toString() ?? (draft ? '' : '1'));
-    setDoseUnit(medication?.doseUnit ?? draft?.doseUnit ?? 'tablet');
+    setStrengthUnit(medication?.strengthUnit || draft?.strengthUnit || 'mg');
+    setDoseQuantity(medication?.doseQuantity != null ? medication.doseQuantity.toString() : (draft?.doseQuantity != null ? draft.doseQuantity.toString() : '1'));
+    setDoseUnit(medication?.doseUnit || draft?.doseUnit || 'tablet');
     setMedicineForm(medication?.medicineForm ?? draft?.medicineForm ?? '');
     setRoute(medication?.route ?? draft?.route ?? '');
     setPrescriber(medication?.prescriber ?? '');
@@ -262,13 +281,37 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
 
     const first = medication?.schedules[0];
     if (!first) {
-      setScheduleKind('exact');
-      setExactTimes(draft ? draft.exactTimes : ['08:00', '20:00']);
-      setIntervalHours('8');
+      const suggestedKind = draft?.suggestedScheduleKind ?? 'exact';
+      setScheduleKind(suggestedKind);
+      setIntervalHours(draft?.intervalHours ? String(draft.intervalHours) : '8');
       setIntervalStart('06:00');
-      setMealRelation('after');
-      setMealTimes(emptyMealTimes());
+      setMealRelation(draft?.mealRelation ?? 'after');
+      const isBedtime = Boolean(draft?.timingClarification?.toLowerCase().includes('bedtime'));
+      const initialMealTimes = emptyMealTimes();
+      if (isBedtime) {
+        initialMealTimes.dinner = { time: '21:00', windowStart: '20:00', windowEnd: '22:00' };
+      }
+      setMealTimes(initialMealTimes);
       setCustomMealWindows({ breakfast: false, lunch: false, dinner: false });
+
+      if (draft?.suggestedScheduleKind === 'meal' && draft.detectedMeals?.length) {
+        const initialMeals: Record<MealName, boolean> = { breakfast: false, lunch: false, dinner: false };
+        draft.detectedMeals.forEach((m) => { initialMeals[m] = true; });
+        setEnabledMeals(initialMeals);
+      } else {
+        setEnabledMeals({ breakfast: true, lunch: true, dinner: true });
+      }
+
+      let initialExactTimes = ['08:00', '20:00'];
+      if (draft?.exactTimes?.length) {
+        initialExactTimes = draft.exactTimes;
+      } else if (draft?.intervalHours) {
+        initialExactTimes = calculateIntervalTimes(draft.intervalHours, 6);
+      } else if (draft?.detectedMeals?.length) {
+        initialExactTimes = mealTimesFromMeals(draft.detectedMeals, isBedtime);
+      }
+      setExactTimes(initialExactTimes);
+
       setEveryDay(true);
       setWeekdays(ALL_WEEKDAYS);
       setStartOn(todayInManila());
@@ -285,6 +328,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
     setMealRelation(first.mealRelation ?? 'after');
     const restoredMeals = emptyMealTimes();
     const restoredCustom = { breakfast: false, lunch: false, dinner: false };
+    const restoredEnabled: Record<MealName, boolean> = { breakfast: false, lunch: false, dinner: false };
     medication.schedules.forEach((item) => {
       if (item.kind === 'meal' && item.mealName) {
         restoredMeals[item.mealName] = {
@@ -293,17 +337,23 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
           windowEnd: item.windowEnd ?? item.timeOfDay,
         };
         restoredCustom[item.mealName] = true;
+        restoredEnabled[item.mealName] = true;
       }
     });
     setMealTimes(restoredMeals);
     setCustomMealWindows(restoredCustom);
+    if (Object.values(restoredEnabled).some(Boolean)) {
+      setEnabledMeals(restoredEnabled);
+    } else {
+      setEnabledMeals({ breakfast: true, lunch: true, dinner: true });
+    }
     setEveryDay(first.weekdays.length === 7);
     setWeekdays(first.weekdays);
     setStartOn(first.startOn);
     setEndEnabled(Boolean(first.endOn));
     setEndOn(first.endOn ?? first.startOn);
     setDirty(false);
-  }, [medication, visible]);
+  }, [draft, medication, visible]);
 
   const requestClose = () => {
     if (isSaving) return;
@@ -345,7 +395,9 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
       if (!Number.isInteger(hours) || hours < 1 || hours > 24) problem = 'Choose a whole interval from 1 to 24 hours.';
     }
     if (scheduleKind === 'meal') {
-      const invalidWindow = MEALS.some(({ key }) => mealTimes[key].windowEnd <= mealTimes[key].windowStart);
+      const activeMeals = MEALS.filter(({ key }) => enabledMeals[key]);
+      if (!activeMeals.length) problem = 'Choose at least one meal (Breakfast, Lunch, or Dinner).';
+      const invalidWindow = activeMeals.some(({ key }) => mealTimes[key].windowEnd <= mealTimes[key].windowStart);
       if (invalidWindow) problem = 'Each meal window must end after it starts.';
     }
     setScheduleError(problem);
@@ -376,7 +428,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
       ? exactTimes.map((timeOfDay) => ({ kind: 'exact' as const, timeOfDay, ...common }))
       : scheduleKind === 'interval'
         ? [{ kind: 'interval' as const, timeOfDay: intervalStart, intervalHours: Number(intervalHours), ...common }]
-        : MEALS.map(({ key }) => ({
+        : MEALS.filter(({ key }) => enabledMeals[key]).map(({ key }) => ({
           kind: 'meal' as const,
           timeOfDay: mealTimes[key].time,
           mealName: key,
@@ -424,11 +476,12 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
     void save();
   };
 
+  const activeMealNames = MEALS.filter(({ key }) => enabledMeals[key]).map((m) => m.label);
   const scheduleSummary = scheduleKind === 'exact'
     ? exactTimes.map(friendlyTime).join(', ')
     : scheduleKind === 'interval'
       ? `Every ${intervalHours} hours, starting ${friendlyTime(intervalStart)}`
-      : `${mealRelation === 'after' ? 'After' : 'Before'} breakfast, lunch, and dinner`;
+      : `${mealRelation === 'after' ? 'After' : 'Before'} ${activeMealNames.join(', ') || 'meals'}`;
 
   return (
     <Modal animationType="slide" onRequestClose={requestClose} visible={visible}>
@@ -502,6 +555,83 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
           {step === 'schedule' ? (
             <>
               <Text style={styles.helper}>Choose the pattern that matches the written instruction. Alaga uses Philippine local time.</Text>
+
+              {draft?.timingClarification ? (
+                <View style={styles.clarificationBanner}>
+                  <Text style={styles.clarificationTitle}>Prescription Timing Notice</Text>
+                  <Text style={styles.clarificationText}>{draft.timingClarification}</Text>
+                  <View style={styles.clarificationActions}>
+                    {draft.suggestedScheduleKind === 'meal' ? (
+                      scheduleKind === 'meal' ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => {
+                            const isBedtime = Boolean(draft.timingClarification?.toLowerCase().includes('bedtime'));
+                            const activeMeals = MEALS.filter(({ key }) => enabledMeals[key]).map(({ key }) => key);
+                            const times = mealTimesFromMeals(activeMeals.length ? activeMeals : (draft.detectedMeals ?? ['breakfast']), isBedtime);
+                            setExactTimes(times);
+                            setScheduleKind('exact');
+                            setDirty(true);
+                            setScheduleError(null);
+                          }}
+                          style={styles.clarifyOptionButton}
+                        >
+                          <Text style={styles.clarifyOptionText}>
+                            Clarify to fixed clock time ({mealTimesFromMeals(MEALS.filter(({ key }) => enabledMeals[key]).map(({ key }) => key), Boolean(draft.timingClarification?.toLowerCase().includes('bedtime'))).map(friendlyTime).join(', ')})
+                          </Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => {
+                            setScheduleKind('meal');
+                            setDirty(true);
+                            setScheduleError(null);
+                          }}
+                          style={styles.clarifyOptionButton}
+                        >
+                          <Text style={styles.clarifyOptionText}>
+                            Keep meal-based timing ({draft.mealRelation || 'after'} {draft.detectedMeals?.join(', ') || 'meals'})
+                          </Text>
+                        </Pressable>
+                      )
+                    ) : (draft.suggestedScheduleKind === 'interval' && draft.intervalHours) ? (
+                      scheduleKind === 'interval' ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => {
+                            const times = calculateIntervalTimes(draft.intervalHours!, 6);
+                            setExactTimes(times);
+                            setScheduleKind('exact');
+                            setDirty(true);
+                            setScheduleError(null);
+                          }}
+                          style={styles.clarifyOptionButton}
+                        >
+                          <Text style={styles.clarifyOptionText}>
+                            Clarify to fixed clock times ({calculateIntervalTimes(draft.intervalHours, 6).map(friendlyTime).join(', ')})
+                          </Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => {
+                            setScheduleKind('interval');
+                            setDirty(true);
+                            setScheduleError(null);
+                          }}
+                          style={styles.clarifyOptionButton}
+                        >
+                          <Text style={styles.clarifyOptionText}>
+                            Keep interval timing (every {draft.intervalHours} hours)
+                          </Text>
+                        </Pressable>
+                      )
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
+
               <View accessibilityRole="radiogroup" style={styles.choiceGroup}>
                 {(['exact', 'interval', 'meal'] as ScheduleKind[]).map((kind) => (
                   <Pressable
@@ -512,7 +642,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                     style={[styles.choice, scheduleKind === kind && styles.choiceSelected]}
                   >
                     <Text style={[styles.choiceLabel, scheduleKind === kind && styles.choiceLabelSelected]}>{scheduleLabel(kind)}</Text>
-                    <Text style={styles.choiceHint}>{kind === 'exact' ? 'Specific reminder times' : kind === 'interval' ? 'Repeat from a first time' : 'Breakfast, lunch, and dinner'}</Text>
+                    <Text style={styles.choiceHint}>{kind === 'exact' ? 'Specific reminder times' : kind === 'interval' ? 'Repeat from a first time' : 'Breakfast, lunch, or dinner'}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -548,7 +678,29 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                       </Pressable>
                     ))}
                   </View>
-                  {MEALS.map(({ key, label }) => (
+
+                  <Text style={styles.groupTitle}>Meals to include</Text>
+                  <View style={styles.mealChoices}>
+                    {MEALS.map(({ key, label }) => (
+                      <Pressable
+                        accessibilityLabel={`${label} meal schedule`}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: enabledMeals[key] }}
+                        key={key}
+                        onPress={() => {
+                          setEnabledMeals((current) => ({ ...current, [key]: !current[key] }));
+                          setDirty(true);
+                        }}
+                        style={[styles.mealPill, enabledMeals[key] && styles.mealPillSelected]}
+                      >
+                        <Text style={[styles.mealPillText, enabledMeals[key] && styles.mealPillTextSelected]}>
+                          {enabledMeals[key] ? '✓ ' : ''}{label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  {MEALS.filter(({ key }) => enabledMeals[key]).map(({ key, label }) => (
                     <View key={key} style={styles.mealRow}>
                       <View style={styles.mealHeading}>
                         <Text style={styles.mealTitle}>{label}</Text>
@@ -618,7 +770,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                 <View style={styles.reviewHeading}><Text style={styles.reviewTitle}>Schedule</Text><Pressable accessibilityRole="button" onPress={() => setStep('schedule')} style={styles.editSection}><Text style={styles.editSectionLabel}>Edit schedule</Text></Pressable></View>
                 <ReviewRow label="Pattern" value={scheduleLabel(scheduleKind)} />
                 <ReviewRow label="Timing" value={scheduleSummary} />
-                {scheduleKind === 'meal' ? MEALS.map(({ key, label }) => <ReviewRow key={key} label={`${label} window`} value={`${friendlyTime(mealTimes[key].windowStart)} to ${friendlyTime(mealTimes[key].windowEnd)}, reminder ${friendlyTime(mealTimes[key].time)}`} />) : null}
+                {scheduleKind === 'meal' ? MEALS.filter(({ key }) => enabledMeals[key]).map(({ key, label }) => <ReviewRow key={key} label={`${label} window`} value={`${friendlyTime(mealTimes[key].windowStart)} to ${friendlyTime(mealTimes[key].windowEnd)}, reminder ${friendlyTime(mealTimes[key].time)}`} />) : null}
                 <ReviewRow label="Days" value={everyDay ? 'Every day' : weekdays.map((day) => WEEKDAYS[day]).join(', ')} />
                 <ReviewRow label="Dates" value={`From ${friendlyDate(startOn)}${endEnabled ? ` through ${friendlyDate(endOn)}` : ', no end date'}`} />
                 <ReviewRow label="Time zone" value="Philippine time" />
@@ -687,6 +839,12 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   disclosureHint: { color: colors.muted, fontSize: 13, lineHeight: 19 },
   disclosureAction: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
   optionalFields: { gap: spacing.lg },
+  clarificationBanner: { gap: spacing.xs, borderRadius: radii.md, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primaryTint, padding: spacing.md },
+  clarificationTitle: { color: colors.primaryDark, fontSize: 14, fontWeight: '900' },
+  clarificationText: { color: colors.ink, fontSize: 14, lineHeight: 21 },
+  clarificationActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
+  clarifyOptionButton: { minHeight: 44, justifyContent: 'center', borderRadius: radii.sm, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  clarifyOptionText: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
   choiceGroup: { gap: spacing.sm },
   choice: { gap: 4, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, padding: spacing.md },
   choiceSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
@@ -714,6 +872,11 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   pillSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
   pillLabel: { color: colors.muted, fontSize: 14, fontWeight: '700', textAlign: 'center' },
   pillLabelSelected: { color: colors.primaryDark },
+  mealChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  mealPill: { minHeight: 48, minWidth: 96, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.white, paddingHorizontal: spacing.md },
+  mealPillSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
+  mealPillText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+  mealPillTextSelected: { color: colors.primaryDark, fontWeight: '900' },
   mealRow: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
   mealHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   mealTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },

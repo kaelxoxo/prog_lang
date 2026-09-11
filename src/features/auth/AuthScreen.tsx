@@ -194,6 +194,35 @@ export function AuthScreen() {
               {t(mode === 'register' ? 'auth.modeSignIn' : 'auth.modeRegister')}
             </Text>
           </Pressable>
+
+          <Pressable
+            accessibilityLabel="Gamitin ang demo account (Maya Santos)"
+            accessibilityRole="button"
+            disabled={isSubmitting}
+            onPress={async () => {
+              setMode('sign-in');
+              setEmail('maya@example.test');
+              setPassword('alaga-synthetic-only');
+              setError(null);
+              setFieldErrors({});
+              setSubmitting(true);
+              try {
+                await signIn({ email: 'maya@example.test', password: 'alaga-synthetic-only' });
+              } catch (err) {
+                setError(errorMessage(err));
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+            style={({ pressed }) => [
+              styles.demoButton,
+              pressed && styles.modeButtonPressed,
+              isSubmitting && styles.buttonDisabled,
+            ]}
+          >
+            <AppIcon color={colors.primary} name="sparkles" size={18} />
+            <Text style={styles.demoButtonLabel}>Gamitin ang demo account (Maya Santos)</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -268,4 +297,18 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   modeButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm },
   modeButtonPressed: { backgroundColor: colors.mist },
   modeButtonLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '700', textAlign: 'center' },
+  demoButton: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.inkLine,
+    borderRadius: radii.md,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm,
+  },
+  demoButtonLabel: { color: colors.primaryDark, fontSize: 15, fontWeight: '700' },
 });

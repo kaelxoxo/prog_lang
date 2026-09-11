@@ -78,7 +78,7 @@ export default function App() {
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <SafeAreaView style={styles.app}>
-        <StatusBar style={colors.canvas === '#17211F' ? 'light' : 'dark'} />
+        <StatusBar style="dark" />
         <QueryClientProvider client={queryClient}>
           <LocaleProvider>
             <SyntheticDataNotice />
