@@ -42,14 +42,24 @@ Today's goal is to finish Alaga's Android validation and portfolio handoff using
   - Unlocked clean non-chrome Expo Go captures by disabling the floating Tools button in Expo Go developer menu settings. Captured authentic clean screenshots (`01-home.png`, `02-today.png`, `05-filipino-settings.png`).
   - Full automated verification gate passes 100%:
     - `npm.cmd run typecheck`: pass (zero TypeScript errors)
-    - `npm.cmd run test:server`: 23 of 23 pass
+    - `npm.cmd run test:server`: 45 of 45 pass
     - `npx.cmd expo-doctor`: 21 of 21 pass
     - `npm.cmd run export:android`: pass (clean production bundle, zero forbidden push imports)
     - `npm.cmd run check:runtime`: pass (API loopback, API LAN, Expo/Metro, and Android device all healthy)
+- Milestone 3 (Targeted reliability and test hardening) — Step 1 completed:
+  - Multi-medicine prescription parsing and draft splitting with clean extraction across numbered lists, bullets, Roman numerals, and dropped-period items.
+  - Sub-bullets protected from severing dosage and frequency instructions from parent medications.
+  - Conjunctions `or` and `o` recognized in dosage patterns, safely defaulting to minimum single doses (`1 or 2 tablets` -> 1 tablet).
+  - Filipino interval frequency with ligature `na` (`bawat 6 na oras`) recognized and mapped to interval schedules.
+  - `MedicationPhotoImport` multi-medicine selector equipped with TalkBack accessibility labels.
+  - `MedicationEditorModal` interval clarification respects user-customized `intervalStart` time.
+  - `AuthScreen` demo button localized in both English and Filipino.
+  - Dynamic dark/light theme switching restored across `useTheme.ts`, `App.tsx`, and `app.json`.
+  - Comprehensive test coverage: all 45 server tests pass, 47 stress test scenarios pass, and clean Android bundle verified.
 
 ### Current stop point
 
-Milestones 0, 1, and 2 are fully verified and recorded. All automated gates pass cleanly. Working tree is staged and ready for local Git commit checkpoint.
+Milestones 0, 1, 2, and Milestone 3 Step 1 (OCR parsing, multi-medicine extraction, and UI robustness) are fully verified and committed to git master (`4940877`). All automated verification gates pass 100%. Ready for Milestone 3 Step 2 (session restore, patient switching isolation, and duplicate dose guards).
 
 ## Project boundary
 
