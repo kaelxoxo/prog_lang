@@ -356,7 +356,7 @@ const filipino: Record<CopyKey, string> = {
   'medicine.archivedLoadError': 'Hindi ma-load ang mga naka-archive na gamot.',
 };
 
-const translations: Record<Locale, Record<CopyKey, string>> = { en: english, fil: filipino };
+export const translations: Record<Locale, Record<CopyKey, string>> = { en: english, fil: filipino };
 
 export function localeTag(locale: Locale) {
   return locale === 'fil' ? 'fil-PH' : 'en-PH';

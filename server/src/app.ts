@@ -535,6 +535,15 @@ function scheduleJson(schedule: ScheduleRow) {
 }
 
 async function medicationsFor(client: PoolClient, patientId: string, archived = false) {
+  const membership = await client.query<{ allowed: boolean }>(
+    'SELECT alaga_private.is_active_patient_member($1) AS allowed',
+    [patientId],
+  );
+
+  if (!membership.rows[0]?.allowed) {
+    throw new HttpError(403, 'Active patient membership is required.');
+  }
+
   const medicationResult = await client.query<MedicationRow>(
     `SELECT
        medication.id,

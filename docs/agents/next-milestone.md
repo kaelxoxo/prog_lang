@@ -46,20 +46,19 @@ Today's goal is to finish Alaga's Android validation and portfolio handoff using
     - `npx.cmd expo-doctor`: 21 of 21 pass
     - `npm.cmd run export:android`: pass (clean production bundle, zero forbidden push imports)
     - `npm.cmd run check:runtime`: pass (API loopback, API LAN, Expo/Metro, and Android device all healthy)
-- Milestone 3 (Targeted reliability and test hardening) — Step 1 completed:
-  - Multi-medicine prescription parsing and draft splitting with clean extraction across numbered lists, bullets, Roman numerals, and dropped-period items.
-  - Sub-bullets protected from severing dosage and frequency instructions from parent medications.
-  - Conjunctions `or` and `o` recognized in dosage patterns, safely defaulting to minimum single doses (`1 or 2 tablets` -> 1 tablet).
-  - Filipino interval frequency with ligature `na` (`bawat 6 na oras`) recognized and mapped to interval schedules.
-  - `MedicationPhotoImport` multi-medicine selector equipped with TalkBack accessibility labels.
-  - `MedicationEditorModal` interval clarification respects user-customized `intervalStart` time.
-  - `AuthScreen` demo button localized in both English and Filipino.
-  - Dynamic dark/light theme switching restored across `useTheme.ts`, `App.tsx`, and `app.json`.
-  - Comprehensive test coverage: all 45 server tests pass, 47 stress test scenarios pass, and clean Android bundle verified.
+- Milestone 3 (Targeted reliability and test hardening) — Complete:
+  - Step 1: Multi-medicine prescription parsing and draft splitting with clean extraction across numbered lists, bullets, Roman numerals, and dropped-period items. Sub-bullets protected from severing dosage and frequency instructions from parent medications. Conjunctions `or` and `o` recognized in dosage patterns, safely defaulting to minimum single doses (`1 or 2 tablets` -> 1 tablet). Filipino interval frequency with ligature `na` (`bawat 6 na oras`) recognized and mapped to interval schedules. `MedicationPhotoImport` multi-medicine selector equipped with TalkBack accessibility labels. `MedicationEditorModal` interval clarification respects user-customized `intervalStart` time. `AuthScreen` demo button localized in both English and Filipino. Dynamic dark/light theme switching restored across `useTheme.ts`, `App.tsx`, and `app.json`.
+  - Step 2:
+    - Session restore, expiration, sign-out, and downtime recovery: multi-device session isolation, invalid/malformed session rejection, expired session rejection (`expires_at < now()`), and persistent database session recovery across server downtime (`server/tests/session-recovery.test.ts`).
+    - Patient switching and isolation: strict zero-leakage isolation across multi-patient accounts for medications, timeline, history, and reminders. Cross-patient tampering attempts rejected with 404. Outsider access rejected with 403 across all endpoints including medication listing (`server/tests/patient-isolation.test.ts`).
+    - Medication lifecycle & schedule validation: immutable version creation on revision, history retention on archive, archived medication mutation prevention, and exhaustive rejection of invalid schedule inputs (empty/oversized arrays, invalid kinds, weekdays, impossible dates, reversed date ranges, invalid 24-hr times, intervals, meal windows, strength pairs, and non-positive doses) (`server/tests/medication-lifecycle.test.ts`).
+    - Dose actions, corrections, snooze, and reminders: dose recording idempotency across network retries, concurrent dose recording under simultaneous client action IDs guarded by row lock re-check, prevention of cross-occurrence action ID reuse (migration `009_dose_event_concurrency.sql`), immutable audit logging of corrections with reason tracking, snooze timing progression and `actionableAt` resolution, and full permutation de-duplication in reminder sync planning (`server/tests/dose-actions.test.ts`).
+    - Localization invariants: complete 174-key dictionary parity, matching interpolation parameter sets between English and Filipino, and verified verbatim preservation of patient names (including accents/symbols), medicine names, units, notes, reasons, and OCR extracts across both locales (`server/tests/localization.test.ts`).
+    - Deterministic synthetic reset: safety guard enforcement (`--confirm-synthetic-reset` required), verified deterministic entity and dose seeding (Maya, Paolo, Lola Rosa, 2 medications, 3 schedules, 5 dose events), and repeatable idempotency (`server/tests/synthetic-reset.test.ts`).
 
 ### Current stop point
 
-Milestones 0, 1, 2, and Milestone 3 Step 1 (OCR parsing, multi-medicine extraction, and UI robustness) are fully verified and committed to git master (`4940877`). All automated verification gates pass 100%. Ready for Milestone 3 Step 2 (session restore, patient switching isolation, and duplicate dose guards).
+Milestones 0, 1, 2, and Milestone 3 (Targeted reliability and test hardening) are fully completed, hardened against concurrency races, and verified. 52 of 52 server integration and pure-logic tests pass cleanly, typecheck passes with 0 errors, Expo Doctor passes 21 of 21 checks, and Android export is verified with zero forbidden notification imports. Database reset leaves synthetic demo data clean and deterministic. Ready for QA verification audit.
 
 ## Project boundary
 
