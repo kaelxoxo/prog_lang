@@ -38,7 +38,11 @@ function TabIcon({ selected, tab }: { selected: boolean; tab: Tab }) {
   );
 }
 
-export function MainTabs() {
+type Props = {
+  onOpenWelcomeStory?: () => void;
+};
+
+export function MainTabs({ onOpenWelcomeStory }: Props = {}) {
   const { styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
   const { session, signOut } = useAuth();
@@ -112,7 +116,7 @@ export function MainTabs() {
             ? <TodayScreen focusedOccurrenceId={focusedOccurrenceId} onOpenMedicines={() => setTab('medicines')} onOpenSettings={openSettings} />
             : tab === 'medicines'
               ? <MedicinesScreen onOpenSettings={openSettings} />
-              : <SettingsScreen accountName={session?.displayName} onBack={() => setTab(settingsOrigin.current)} onSignOut={() => void signOut()} />}
+              : <SettingsScreen accountName={session?.displayName} onBack={() => setTab(settingsOrigin.current)} onOpenWelcomeStory={onOpenWelcomeStory} onSignOut={() => void signOut()} />}
       </View>
       {tab !== 'settings' ? (
         <View

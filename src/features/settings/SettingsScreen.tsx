@@ -7,9 +7,14 @@ import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from './LocaleProvider';
 import type { Locale } from './translations';
 
-type Props = { accountName?: string; onBack: () => void; onSignOut: () => void };
+type Props = {
+  accountName?: string;
+  onBack: () => void;
+  onOpenWelcomeStory?: () => void;
+  onSignOut: () => void;
+};
 
-export function SettingsScreen({ accountName, onBack, onSignOut }: Props) {
+export function SettingsScreen({ accountName, onBack, onOpenWelcomeStory, onSignOut }: Props) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { locale, setLocale, t } = useLocale();
   const [saving, setSaving] = useState(false);
@@ -70,6 +75,30 @@ export function SettingsScreen({ accountName, onBack, onSignOut }: Props) {
           </View>
           {error ? <Text accessibilityLiveRegion="assertive" style={styles.error}>{t('settings.saveError')}</Text> : null}
         </View>
+
+        {onOpenWelcomeStory ? (
+          <View style={styles.card}>
+            <View style={styles.sectionCopy}>
+              <View style={styles.sectionHeading}>
+                <View style={styles.iconWrap}>
+                  <AppIcon color={colors.primaryDark} name="sparkles" size={18} />
+                </View>
+                <Text accessibilityRole="header" style={styles.sectionTitle}>
+                  {t('settings.welcomeStory')}
+                </Text>
+              </View>
+              <Text style={styles.body}>{t('settings.welcomeStoryBody')}</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onOpenWelcomeStory}
+              style={({ pressed }) => [styles.storyReplayButton, pressed && styles.pressed]}
+            >
+              <AppIcon color={colors.primaryDark} name="sparkles" size={18} />
+              <Text style={styles.storyReplayLabel}>{t('settings.replayStory')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={styles.card}>
           <View style={styles.sectionCopy}>
@@ -176,4 +205,18 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   coverageCopy: { flex: 1, gap: spacing.xs },
   coverageTitle: { color: colors.ink, fontSize: 14, fontWeight: '800' },
   coverageBody: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  storyReplayButton: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    backgroundColor: colors.canvas,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
+  },
+  storyReplayLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
 });

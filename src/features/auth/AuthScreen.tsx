@@ -19,7 +19,11 @@ import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
 import { useAuth } from './AuthProvider';
 
-export function AuthScreen() {
+type Props = {
+  onOpenWelcomeStory?: () => void;
+};
+
+export function AuthScreen({ onOpenWelcomeStory }: Props = {}) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
   const [mode, setMode] = useState<'sign-in' | 'register'>('register');
@@ -257,6 +261,19 @@ export function AuthScreen() {
             <AppIcon color={colors.primary} name="sparkles" size={18} />
             <Text style={styles.demoButtonLabel}>{t('auth.demoAccount')}</Text>
           </Pressable>
+
+          {onOpenWelcomeStory ? (
+            <Pressable
+              accessibilityHint="Replays the welcome walkthrough and mascot introduction"
+              accessibilityLabel={t('auth.meetBantayLink')}
+              accessibilityRole="button"
+              onPress={onOpenWelcomeStory}
+              style={({ pressed }) => [styles.storyLink, pressed && styles.modeButtonPressed]}
+            >
+              <AppIcon color={colors.primary} name="sparkles" size={15} />
+              <Text style={styles.storyLinkLabel}>{t('auth.meetBantayLink')}</Text>
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -345,4 +362,20 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     marginTop: spacing.xs,
   },
   demoButtonLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  storyLink: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderRadius: radii.full,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
+  },
+  storyLinkLabel: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
 });

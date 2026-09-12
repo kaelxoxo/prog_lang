@@ -1,11 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { initialWindowMetrics, SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/features/auth/AuthProvider';
 import { AuthScreen } from './src/features/auth/AuthScreen';
+import { OnboardingSlideshow } from './src/features/onboarding/OnboardingSlideshow';
+import { markOnboardingCompleted, readHasSeenOnboarding } from './src/features/onboarding/onboardingStorage';
 import { SyntheticDataNotice } from './src/components/SyntheticDataNotice';
 import { MainTabs } from './src/features/navigation/MainTabs';
 import { PatientProvider } from './src/features/patients/PatientProvider';
@@ -30,8 +32,20 @@ function AppContent() {
   const { styles } = useThemedStyles(createStyles);
   const { restoreError, retryRestore, session, signOut, status } = useAuth();
   const { t } = useLocale();
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
+  const [showReplayOnboarding, setShowReplayOnboarding] = useState(false);
 
-  if (status === 'loading') {
+  useEffect(() => {
+    let active = true;
+    void readHasSeenOnboarding().then((seen) => {
+      if (active) setHasSeenOnboarding(seen);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (status === 'loading' || hasSeenOnboarding === null) {
     return (
       <View accessibilityLiveRegion="polite" style={styles.loadingScreen}>
         <Text style={styles.loadingBrand}>Alaga</Text>
@@ -55,13 +69,25 @@ function AppContent() {
     );
   }
 
+  if (!hasSeenOnboarding || showReplayOnboarding) {
+    return (
+      <OnboardingSlideshow
+        onComplete={async () => {
+          await markOnboardingCompleted();
+          setHasSeenOnboarding(true);
+          setShowReplayOnboarding(false);
+        }}
+      />
+    );
+  }
+
   if (!session) {
-    return <AuthScreen />;
+    return <AuthScreen onOpenWelcomeStory={() => setShowReplayOnboarding(true)} />;
   }
 
   return (
     <PatientProvider>
-      <MainTabs />
+      <MainTabs onOpenWelcomeStory={() => setShowReplayOnboarding(true)} />
     </PatientProvider>
   );
 }
