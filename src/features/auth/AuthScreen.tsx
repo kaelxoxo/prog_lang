@@ -10,7 +10,9 @@ import {
   View,
 } from 'react-native';
 
+import { AnimatedFeaturePills } from '../../components/AnimatedFeaturePills';
 import { AppIcon } from '../../components/AppIcon';
+import { WelcomingMascot } from '../../components/WelcomingMascot';
 import { errorMessage } from '../../lib/api';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
@@ -78,8 +80,11 @@ export function AuthScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.brandBlock}>
+          <WelcomingMascot
+            greetingText={t('auth.welcomeMascot')}
+            size={112}
+          />
           <View style={styles.brandLockup}>
-            <View style={styles.brandMark}><AppIcon color={colors.ink} name="notebook-tabs" size={24} /></View>
             <Text accessibilityRole="header" style={styles.brand}>Alaga</Text>
           </View>
           <Text style={styles.kicker}>{t('auth.kicker')}</Text>
@@ -87,6 +92,35 @@ export function AuthScreen() {
             {t(mode === 'register' ? 'auth.registerTitle' : 'auth.signInTitle')}
           </Text>
           <Text style={styles.body}>{t('auth.body')}</Text>
+
+          <AnimatedFeaturePills
+            items={[
+              {
+                animation: 'pulse',
+                description: t('auth.pillar1Desc'),
+                icon: 'heart',
+                iconColor: (c) => c.primary,
+                id: 'pillar-meds',
+                title: t('auth.pillar1Title'),
+              },
+              {
+                animation: 'float',
+                description: t('auth.pillar2Desc'),
+                icon: 'users',
+                iconColor: (c) => c.primaryDark,
+                id: 'pillar-family',
+                title: t('auth.pillar2Title'),
+              },
+              {
+                animation: 'chime',
+                description: t('auth.pillar3Desc'),
+                icon: 'shield-check',
+                iconColor: (c) => c.successDark,
+                id: 'pillar-privacy',
+                title: t('auth.pillar3Title'),
+              },
+            ]}
+          />
         </View>
 
         <View style={styles.formCard}>
@@ -239,13 +273,12 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     paddingVertical: spacing.xl,
     backgroundColor: colors.canvas,
   },
-  brandBlock: { gap: spacing.sm, alignSelf: 'center', width: '100%', maxWidth: 520 },
-  brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  brandMark: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: colors.sun },
-  brand: { color: colors.ink, fontSize: 38, fontWeight: '900', letterSpacing: -1.5 },
-  kicker: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
-  title: { marginTop: spacing.sm, color: colors.ink, fontSize: 28, fontWeight: '800', lineHeight: 36, letterSpacing: -0.5 },
-  body: { color: colors.muted, fontSize: 15, lineHeight: 22 },
+  brandBlock: { gap: spacing.sm, alignSelf: 'center', width: '100%', maxWidth: 520, alignItems: 'center' },
+  brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' },
+  brand: { color: colors.ink, fontSize: 36, fontWeight: '900', letterSpacing: -1.2, textAlign: 'center' },
+  kicker: { color: colors.primaryDark, fontSize: 13, fontWeight: '800', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.5 },
+  title: { marginTop: 2, color: colors.ink, fontSize: 24, fontWeight: '800', lineHeight: 32, letterSpacing: -0.4, textAlign: 'center' },
+  body: { color: colors.muted, fontSize: 15, lineHeight: 22, textAlign: 'center', paddingHorizontal: spacing.sm },
   formCard: {
     alignSelf: 'center',
     width: '100%',
