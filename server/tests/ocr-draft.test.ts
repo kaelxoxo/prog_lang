@@ -413,6 +413,30 @@ test('OCR extracts Filipino interval instructions with ligature na (bawat 6 na o
   assert.equal(draft.suggestedScheduleKind, 'interval');
 });
 
+test('OCR extracts Filipino kada interval and mixed fraction dosage (isa at kalahati)', () => {
+  const text = `Carbocisteine 500mg kapsula\nUminom ng isa at kalahating tableta kada 8 oras`;
+  const draft = medicationDraftFromText(text, 'label_photo', 92);
+  assert.equal(draft.displayName, 'Carbocisteine');
+  assert.equal(draft.doseQuantity, 1.5);
+  assert.equal(draft.intervalHours, 8);
+  assert.equal(draft.suggestedScheduleKind, 'interval');
+  assert.equal(draft.pndfVerified, true);
+  assert.equal(draft.pndfGenericName, 'Carbocisteine');
+});
+
+test('OCR extracts Filipino before-breakfast instruction (bago mag-almusal)', () => {
+  const text = `Omeprazole 20mg kapsula\nUminom ng 1 kapsula bago mag-almusal`;
+  const draft = medicationDraftFromText(text, 'label_photo', 93);
+  assert.equal(draft.displayName, 'Omeprazole');
+  assert.equal(draft.doseQuantity, 1);
+  assert.equal(draft.doseUnit, 'capsule');
+  assert.equal(draft.suggestedScheduleKind, 'meal');
+  assert.deepEqual(draft.detectedMeals, ['breakfast']);
+  assert.equal(draft.mealRelation, 'before');
+  assert.equal(draft.pndfVerified, true);
+});
+
+
 
 
 

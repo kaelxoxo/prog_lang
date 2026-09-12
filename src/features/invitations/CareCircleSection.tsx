@@ -15,7 +15,7 @@ type InviteInput = { email: string; canManageMedications: boolean };
 
 function permissionCopy(member: CareCircleMember) {
   if (member.role === 'owner') return 'Owner';
-  return member.canManageMedications ? 'Caregiver and medicine manager' : 'Caregiver';
+  return member.canManageMedications ? 'Care manager' : 'Caregiver';
 }
 
 export function CareCircleSection({ patient }: Props) {
@@ -90,7 +90,7 @@ export function CareCircleSection({ patient }: Props) {
         <View style={styles.sharedCopy}>
           <Text accessibilityRole="header" style={styles.sharedTitle}>You are in {patient.displayName}'s care circle</Text>
           <Text style={styles.sharedBody}>
-            The owner controls membership. Your care entries remain attributed to your account.
+            Managed by the space owner. Your recorded doses remain attributed to you.
           </Text>
         </View>
       </View>
@@ -291,7 +291,7 @@ export function CareCircleSection({ patient }: Props) {
                         <Text style={styles.memberName}>{invitation.email}</Text>
                         <View style={[styles.roleBadge, styles.pendingBadge]}>
                           <Text style={[styles.roleText, styles.pendingText]}>
-                            {invitation.canManageMedications ? 'Caregiver & medicine manager' : 'Caregiver'}
+                            {invitation.canManageMedications ? 'Care manager' : 'Caregiver'}
                           </Text>
                         </View>
                       </View>

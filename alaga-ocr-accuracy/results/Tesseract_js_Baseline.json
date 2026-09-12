@@ -1,0 +1,20 @@
+{
+  "model_type": "Classical LSTM neural network OCR engine (Tesseract.js v5+ with LSTM-only OEM)",
+  "deployment_location": "Local Node.js backend server (server/src/ocr.ts)",
+  "privacy_compliance": "100% private and on-premise. Processes image in server memory with zero external transmission; fully compliant with PHI isolation and local data governance standards.",
+  "on_device_binary_size_impact": "0 MB on mobile app bundle in current client-server setup. If embedded locally in React Native, requires ~30MB-50MB for native binaries and eng+fil traineddata files.",
+  "printed_label_accuracy": "Moderate (75-84% character accuracy on clean, planar labels; drops below 60% on low-contrast, colored, or curved pharmaceutical containers).",
+  "handwriting_recognition": "Extremely poor (<20% accuracy on handwritten physician prescriptions; frequently generates symbol noise like pipes, backslashes, and random ASCII punctuation).",
+  "multilingual_code_switching_support": "Limited. Requires eng+fil language models. Raw character recognition frequently garbles Filipino ligatures (na, ng) and accented text; relies heavily on post-processing regex rules.",
+  "curved_surface_and_glare_tolerance": "Very low. Planar assumption leads to severe distortion on cylindrical pill bottles and character fragmentation under metallic blister pack glare.",
+  "tabular_timetable_parsing": "Weak. Lacks spatial document understanding; multi-dose timetable rows and columnar hospital schedules frequently merge into unparseable text streams.",
+  "hallucination_under_degraded_input": "Low generative hallucination. It does not invent words out of thin air, but degraded inputs produce garbage character strings that can trigger false positive regex matches.",
+  "latency_seconds": "4.2 to 8.5 seconds on multi-core CPU (worker initialization, canvas rasterization, and LSTM matrix passes).",
+  "ram_peak_footprint": "280MB to 450MB peak resident memory per active Tesseract worker in Node.js.",
+  "cost_profile": "100% Free and open-source (Apache 2.0 license). Zero API subscription fees, zero per-image operational cost.",
+  "react_native_compatibility": "Currently integrated via Node.js API endpoint (POST /medications/ocr-draft). Decouples mobile client from engine weight, maintaining Expo Go compatibility.",
+  "offline_readiness": "High within local network. Operates without external internet connectivity as long as local server is reachable.",
+  "structured_output_support": "Zero native schema support. Emits raw unstructured text; relies entirely on 450+ lines of handwritten regex heuristics in server/src/ocr.ts to populate MedicationOcrDraft.",
+  "formulary_grounding_readiness": "Moderate. Raw output contains optical errors that require heavy fuzzy phonetic normalization (e.g., Levenshtein/SymSpell) to map to standard Philippine National Drug Formulary (PNDF) codes.",
+  "uncertain": []
+}

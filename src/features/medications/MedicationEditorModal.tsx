@@ -535,6 +535,23 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
           {step === 'details' ? (
             <>
               <Text style={styles.helper}>Copy the essentials from the label first. You can add more detail only when it is available.</Text>
+              {draft?.pndfVerified ? (
+                <View style={styles.pndfBadge}>
+                  <AppIcon color={colors.successDark} name="circle-check-big" size={14} />
+                  <Text style={styles.pndfText}>
+                    Philippine Formulary (PNDF) Verified{draft.pndfGenericName ? `: ${draft.pndfGenericName}` : ''}
+                  </Text>
+                </View>
+              ) : null}
+              {draft?.lasaWarning ? (
+                <View style={styles.lasaWarningBox}>
+                  <View style={styles.lasaHeadingRow}>
+                    <AppIcon color={colors.warning} name="alert-triangle" size={15} />
+                    <Text style={styles.lasaHeading}>Look-Alike / Sound-Alike (LASA) Alert</Text>
+                  </View>
+                  <Text style={styles.lasaText}>{draft.lasaWarning}</Text>
+                </View>
+              ) : null}
               <Field error={detailErrors.displayName} inputRef={displayNameRef} label="Medicine name" onChangeText={change(setDisplayName)} placeholder="Amlodipine" value={displayName} />
               <View style={[styles.fieldRow, stackFields && styles.fieldStack]}>
                 <View style={styles.fieldColumn}><Field error={detailErrors.dose} inputRef={doseRef} keyboardType="decimal-pad" label="Dose quantity" onChangeText={change(setDoseQuantity)} value={doseQuantity} /></View>
@@ -942,6 +959,23 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                     <Text style={styles.warningText}>Strength, form, or route is not provided. Confirm only if you checked the source and this is intentional.</Text>
                   </View>
                 ) : null}
+                {draft?.pndfVerified ? (
+                  <View style={styles.pndfBadge}>
+                    <AppIcon color={colors.successDark} name="circle-check-big" size={14} />
+                    <Text style={styles.pndfText}>
+                      Philippine Formulary (PNDF) Verified{draft.pndfGenericName ? `: ${draft.pndfGenericName}` : ''}
+                    </Text>
+                  </View>
+                ) : null}
+                {draft?.lasaWarning ? (
+                  <View accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.lasaWarningBox}>
+                    <View style={styles.lasaHeadingRow}>
+                      <AppIcon color={colors.warning} name="alert-triangle" size={16} />
+                      <Text style={styles.lasaHeading}>Look-Alike / Sound-Alike (LASA) Alert</Text>
+                    </View>
+                    <Text style={styles.lasaText}>{draft.lasaWarning}</Text>
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.reviewSection}>
@@ -1139,6 +1173,30 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   reviewRowValue: { flex: 1, color: colors.ink, fontSize: 15, fontWeight: '600', lineHeight: 22 },
   warning: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.warningTint, padding: spacing.md },
   warningText: { flex: 1, color: colors.warning, fontSize: 13, lineHeight: 19 },
+  pndfBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radii.full,
+    backgroundColor: colors.successTint,
+    borderWidth: 1,
+    borderColor: colors.success,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    alignSelf: 'flex-start',
+  },
+  pndfText: { color: colors.successDark, fontSize: 12, fontWeight: '800' },
+  lasaWarningBox: {
+    gap: 4,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    backgroundColor: colors.warningTint,
+    padding: spacing.sm,
+  },
+  lasaHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  lasaHeading: { color: colors.warning, fontSize: 12, fontWeight: '900' },
+  lasaText: { color: colors.ink, fontSize: 13, lineHeight: 19 },
   confirmationNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.successTint, padding: spacing.md },
   confirmationText: { flex: 1, color: colors.successDark, fontSize: 14, lineHeight: 21 },
   confirmationName: { fontWeight: '900' },

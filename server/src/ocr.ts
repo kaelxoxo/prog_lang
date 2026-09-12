@@ -3,6 +3,10 @@ import { resolve } from 'node:path';
 
 import { createWorker, OEM, PSM } from 'tesseract.js';
 
+import { groundDraftWithFormulary } from './formulary';
+import { recognizeWithGemini } from './gemini-ocr';
+import { preprocessOcrImage } from './image-preprocessing';
+
 export type PhotoSourceKind = 'label_photo' | 'timetable_photo';
 
 export type MedicationOcrDraft = {
@@ -27,6 +31,9 @@ export type MedicationOcrDraft = {
   intervalHours?: number | null;
   timingClarification?: string | null;
   isAsNeeded?: boolean;
+  pndfVerified?: boolean;
+  pndfGenericName?: string;
+  lasaWarning?: string | null;
 };
 
 const NAME_NOISE = /\b(take|daily|morning|evening|breakfast|lunch|dinner|instruction|instructions|patient|doctor|physician|consultant|dr|md|prescription|almusal|tanghalian|hapunan|bago|pagkatapos|uminom|signature|license|lic|prc|ptr|s2|clinic|hospital|center|infirmary|medical|name|age|sex|gender|date|address|contact|tel|phone|sig|to|or|hanggang)\b/i;
@@ -69,6 +76,10 @@ function parseFractionOrNumber(str: string): number | null {
   if (trimmed === 'four' || trimmed === 'apat' || trimmed === 'apat na' || trimmed === 'iv') return 4;
   if (trimmed === 'five' || trimmed === 'lima' || trimmed === 'limang' || trimmed === 'v') return 5;
 
+  if (trimmed === 'isa at kalahati' || trimmed === "isa't kalahati" || trimmed === '1 at kalahati' || trimmed === '1 and a half' || trimmed === 'isa at kalahating' || trimmed === '1 at kalahating') return 1.5;
+  if (trimmed === 'dalawa at kalahati' || trimmed === "dalawa't kalahati" || trimmed === '2 at kalahati' || trimmed === 'dalawa at kalahating' || trimmed === '2 at kalahating') return 2.5;
+  if (trimmed === 'tatlo at kalahati' || trimmed === '3 at kalahati' || trimmed === 'tatlo at kalahating' || trimmed === '3 at kalahating') return 3.5;
+
   const unicodeMixed = trimmed.match(/^(\d+)?\s*([½¼¾⅓⅔])$/);
   if (unicodeMixed) {
     const whole = unicodeMixed[1] ? Number(unicodeMixed[1]) : 0;
@@ -103,7 +114,7 @@ function parseFractionOrNumber(str: string): number | null {
   return Number.isFinite(num) && num > 0 ? num : null;
 }
 
-const DOSE_AMOUNT_PATTERN = String.raw`(?:\d+(?:\.\d+)?\s*(?:-|to|hanggang|or|o)\s*\d+(?:\.\d+)?|\d+\s*(?:and\s+|\-|\s+)\d+\/\d+|\d+\s*[½¼¾⅓⅔]|\d+\/\d+|\d+(?:\.\d+)?|[½¼¾⅓⅔]|quarter|sangkapat|half|kalahati|kalahating|semis|ss|one|two|three|four|five|isa|dalawa|tatlo|apat|lima|isang|dalawang|tatlong|apat na|limang|iii|ii|iv|i\b)`;
+const DOSE_AMOUNT_PATTERN = String.raw`(?:\d+(?:\.\d+)?\s*(?:-|to|hanggang|or|o)\s*\d+(?:\.\d+)?|\d+\s*(?:and\s+|\-|\s+)\d+\/\d+|\d+\s*[½¼¾⅓⅔]|\d+\/\d+|\d+(?:\.\d+)?|[½¼¾⅓⅔]|(?:isa|dalawa|tatlo|1|2|3)\s*(?:at\s+|\'t\s+)?kalahating?|quarter|sangkapat|half|kalahating?|semis|ss|one|two|three|four|five|isa|dalawa|tatlo|apat|lima|isang|dalawang|tatlong|apat na|limang|iii|ii|iv|i\b)`;
 const DOSE_UNIT_PATTERN = String.raw`(?:tablets?|tableta|tabs?|capsules?|kapsula|caps?|ml|drops?|patak|puffs?)`;
 
 const EXPLICIT_DOSE_PATTERN = new RegExp(
@@ -377,7 +388,7 @@ export function medicationDraftFromText(
     }
   }
 
-  const intervalMatch = text.match(/(?:every|tuwing\s+ika-|tuwing|bawat|q)\s*(\d{1,2})(?:\s*(?:-|to|hanggang|or|o)\s*\d{1,2})?\s*(?:na\s+)?(?:hours?|hrs?|oras|h\b)/i);
+  const intervalMatch = text.match(/(?:every|tuwing\s+ika-|tuwing|bawat|kada|q)\s*(\d{1,2})(?:\s*(?:-|to|hanggang|or|o)\s*\d{1,2})?\s*(?:na\s+)?(?:hours?|hrs?|oras|h\b)/i);
   const intervalHours = intervalMatch && Number(intervalMatch[1]) >= 1 && Number(intervalMatch[1]) <= 24
     ? Number(intervalMatch[1])
     : null;
@@ -418,7 +429,7 @@ export function medicationDraftFromText(
   if (!strength) warnings.push('Strength was not recognized. Leave it blank unless the image clearly provides it.');
   if (!candidateName) warnings.push('Medicine name was not recognized. Enter it manually.');
 
-  return {
+  const rawDraft: MedicationOcrDraft = {
     confidence: Math.max(0, Math.min(100, Math.round(confidence))),
     displayName: candidateName.slice(0, 120),
     genericName,
@@ -441,6 +452,8 @@ export function medicationDraftFromText(
     timingClarification,
     isAsNeeded,
   };
+
+  return groundDraftWithFormulary(rawDraft);
 }
 
 export function medicationDraftsFromText(
@@ -470,6 +483,25 @@ export async function recognizeMedicationImage(
   image: Buffer,
   sourceKind: PhotoSourceKind,
 ): Promise<RecognizeMedicationResult> {
+  // 1. Cloud VLM (Gemini 3.7 Flash) adapter if GEMINI_API_KEY is configured
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const geminiDrafts = await recognizeWithGemini(image, sourceKind);
+      if (geminiDrafts && geminiDrafts.length > 0) {
+        return {
+          ...geminiDrafts[0],
+          drafts: geminiDrafts,
+        };
+      }
+    } catch {
+      // Graceful fallback to local preprocessed OCR
+    }
+  }
+
+  // 2. Pre-process image with Sharp CLAHE, glare suppression, and contrast normalization
+  const preprocessedImage = await preprocessOcrImage(image);
+
+  // 3. Local Tesseract LSTM OCR on pre-processed image
   const cachePath = resolve(process.cwd(), '.cache', 'tesseract');
   await mkdir(cachePath, { recursive: true });
   const worker = await createWorker('eng', OEM.LSTM_ONLY, { cachePath });
@@ -479,7 +511,7 @@ export async function recognizeMedicationImage(
       preserve_interword_spaces: '1',
       tessedit_pageseg_mode: PSM.AUTO,
     });
-    const result = await worker.recognize(image);
+    const result = await worker.recognize(preprocessedImage);
     const drafts = medicationDraftsFromText(result.data.text, sourceKind, result.data.confidence);
     const primary = drafts[0];
     return {

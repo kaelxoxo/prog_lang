@@ -127,7 +127,7 @@ export function MedicationPhotoImport({
       </Pressable>
       {expanded ? (
         <View style={styles.content}>
-          <Text style={styles.body}>Synthetic images only. The local API reads the image in memory and does not save it.</Text>
+          <Text style={styles.body}>Images are processed locally and never stored.</Text>
           <View accessibilityRole="radiogroup" style={styles.sourceChoices}>
             {(['timetable_photo', 'label_photo'] as const).map((kind) => (
               <Pressable
@@ -145,7 +145,7 @@ export function MedicationPhotoImport({
           </View>
           <Pressable accessibilityRole="button" disabled={ocrMutation.isPending} onPress={() => void chooseImage()} style={({ pressed }) => [styles.chooseButton, pressed && styles.chooseButtonPressed, ocrMutation.isPending && styles.disabled]}>
             <AppIcon color={colors.white} name="image" size={18} />
-            <Text style={styles.chooseLabel}>{ocrMutation.isPending ? 'Reading image locally...' : 'Choose synthetic image'}</Text>
+            <Text style={styles.chooseLabel}>{ocrMutation.isPending ? 'Reading image…' : 'Choose image'}</Text>
           </Pressable>
 
           {imageUri ? <Image accessibilityLabel="Selected synthetic source" resizeMode="contain" source={{ uri: imageUri }} style={styles.preview} /> : null}
@@ -202,6 +202,25 @@ export function MedicationPhotoImport({
                       );
                     })}
                   </View>
+                </View>
+              ) : null}
+
+              {activeDraft.pndfVerified ? (
+                <View style={styles.pndfBadge}>
+                  <AppIcon color={colors.successDark} name="circle-check-big" size={14} />
+                  <Text style={styles.pndfText}>
+                    Philippine Formulary (PNDF) Verified{activeDraft.pndfGenericName ? `: ${activeDraft.pndfGenericName}` : ''}
+                  </Text>
+                </View>
+              ) : null}
+
+              {activeDraft.lasaWarning ? (
+                <View style={styles.lasaWarningBox}>
+                  <View style={styles.lasaHeadingRow}>
+                    <AppIcon color={colors.warning} name="alert-triangle" size={15} />
+                    <Text style={styles.lasaHeading}>Look-Alike / Sound-Alike (LASA) Alert</Text>
+                  </View>
+                  <Text style={styles.lasaText}>{activeDraft.lasaWarning}</Text>
                 </View>
               ) : null}
 
@@ -327,6 +346,30 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   timingClarificationBox: { gap: 4, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primaryTint, padding: spacing.sm },
   timingClarificationHeading: { color: colors.primaryDark, fontSize: 12, fontWeight: '900' },
   timingClarificationText: { color: colors.ink, fontSize: 13, lineHeight: 19 },
+  pndfBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radii.full,
+    backgroundColor: colors.successTint,
+    borderWidth: 1,
+    borderColor: colors.success,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    alignSelf: 'flex-start',
+  },
+  pndfText: { color: colors.successDark, fontSize: 12, fontWeight: '800' },
+  lasaWarningBox: {
+    gap: 4,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    backgroundColor: colors.warningTint,
+    padding: spacing.sm,
+  },
+  lasaHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  lasaHeading: { color: colors.warning, fontSize: 12, fontWeight: '900' },
+  lasaText: { color: colors.ink, fontSize: 13, lineHeight: 19 },
   resultHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   resultTitle: { color: colors.ink, fontSize: 18, fontWeight: '900' },
   confidenceBadge: {

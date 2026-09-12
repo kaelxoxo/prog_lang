@@ -91,4 +91,7 @@ export type MedicationOcrDraft = {
   intervalHours?: number | null;
   timingClarification?: string | null;
   isAsNeeded?: boolean;
+  pndfVerified?: boolean;
+  pndfGenericName?: string;
+  lasaWarning?: string | null;
 };

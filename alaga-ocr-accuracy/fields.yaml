@@ -1,0 +1,61 @@
+fields:
+  architecture_and_deployment:
+    - name: model_type
+      description: Model family and inference classification (LSTM OCR, native on-device vision, cloud multimodal VLM, edge VLM, hybrid)
+      detail_level: brief
+    - name: deployment_location
+      description: Execution environment (client on-device, local Node backend, cloud API)
+      detail_level: brief
+    - name: privacy_compliance
+      description: PHI/HIPAA/GDPR compliance, data retention policy, suitability for synthetic vs real eldercare patient labels
+      detail_level: detailed
+    - name: on_device_binary_size_impact
+      description: Mobile bundle size increase (APK/IPA megabytes), native C++ library dependencies (ONNX, ExecuTorch, OpenCV)
+      detail_level: moderate
+
+  accuracy_and_capabilities:
+    - name: printed_label_accuracy
+      description: Word error rate (WER) and field extraction accuracy on standard printed pharmaceutical packaging
+      detail_level: detailed
+    - name: handwriting_recognition
+      description: Accuracy on physician handwritten prescriptions, sig notations, and messy doctor annotations
+      detail_level: detailed
+    - name: multilingual_code_switching_support
+      description: Handling of mixed English and Filipino instructions (e.g., kalahating tableta, tuwing gabi, bago mag-almusal, q8h, PRN)
+      detail_level: detailed
+    - name: curved_surface_and_glare_tolerance
+      description: Resilience against non-planar cylindrical amber pill bottles, foil blister specular reflections, and uneven lighting
+      detail_level: moderate
+    - name: tabular_timetable_parsing
+      description: Ability to preserve 2D spatial relationships in hospital discharge schedules and multi-row timetable grids without column/row crosstalk
+      detail_level: moderate
+    - name: hallucination_under_degraded_input
+      description: Behavior under extreme blur, tear, or occlusion (safe explicit nulls vs dangerous invented medication names/dosages)
+      detail_level: detailed
+
+  performance_and_cost:
+    - name: latency_seconds
+      description: End-to-end extraction duration per image in seconds on mobile or server
+      detail_level: brief
+    - name: ram_peak_footprint
+      description: Peak memory consumption during inference and compatibility with mid-to-low tier caregiver mobile devices (3GB-4GB RAM)
+      detail_level: moderate
+    - name: cost_profile
+      description: Pricing model, free-tier rate limits (RPM/RPD), token charges, or local zero-cost characteristics
+      detail_level: moderate
+
+  alaga_integration_readiness:
+    - name: react_native_compatibility
+      description: Integration path with React Native 0.86 / Expo SDK 57 (native bridge, JSI module, local Node server, REST API)
+      detail_level: moderate
+    - name: offline_readiness
+      description: Operational availability without active internet connection in rural Philippine communities or home care
+      detail_level: brief
+    - name: structured_output_support
+      description: Direct compatibility with Alaga's MedicationOcrDraft schema (generic name, brand name, strength, unit, intervals, meal relation, exact times)
+      detail_level: moderate
+    - name: formulary_grounding_readiness
+      description: Ease of piping extracted medication tokens into Philippine National Drug Formulary (PNDF) validation and SymSpell LASA checks
+      detail_level: moderate
+
+uncertain: []
