@@ -34,7 +34,7 @@ type SlideData = {
 const SLIDES: SlideData[] = [
   {
     id: 'slide-0',
-    tag: 'MEET BANTAY',
+    tag: 'Meet Bantay',
     titleKey: 'onboarding.slide1Title',
     defaultTitle: 'Your gentle care companion',
     descKey: 'onboarding.slide1Desc',
@@ -44,7 +44,7 @@ const SLIDES: SlideData[] = [
   },
   {
     id: 'slide-1',
-    tag: 'GENTLE MEDICINE CARE',
+    tag: 'Gentle Medicine Care',
     titleKey: 'onboarding.slide2Title',
     defaultTitle: 'Clear schedules with zero confusion',
     descKey: 'onboarding.slide2Desc',
@@ -54,7 +54,7 @@ const SLIDES: SlideData[] = [
   },
   {
     id: 'slide-2',
-    tag: 'SHARED CARE CIRCLE',
+    tag: 'Shared Care Circle',
     titleKey: 'onboarding.slide3Title',
     defaultTitle: 'Cared for together, 100% private',
     descKey: 'onboarding.slide3Desc',
@@ -169,7 +169,7 @@ export function OnboardingSlideshow({ onComplete }: Props) {
             <View style={[styles.slide, { width: windowWidth }]}>
               {/* Mascot Animated Stage: Open Crisp Canvas with Contact Shadow */}
               <View style={styles.stageWrapper}>
-                <OnboardingMascotStage size={190} slideIndex={index} />
+                <OnboardingMascotStage size={220} slideIndex={index} />
               </View>
 
               {/* Direct Canvas Typography: No Cards, No Bubbles */}
@@ -278,8 +278,8 @@ const createStyles = (colors: AppColors) =>
       flexDirection: 'row',
       gap: 2,
       justifyContent: 'center',
-      minHeight: 44,
-      minWidth: 60,
+      minHeight: 48,
+      minWidth: 48,
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs,
     },
@@ -343,15 +343,10 @@ const createStyles = (colors: AppColors) =>
       alignItems: 'center',
       backgroundColor: colors.primaryDark,
       borderRadius: radii.full,
-      elevation: 2,
       flexDirection: 'row',
       gap: spacing.xs,
       justifyContent: 'center',
       minHeight: 54,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.12,
-      shadowRadius: 6,
       width: '100%',
     },
     getStartedButton: {

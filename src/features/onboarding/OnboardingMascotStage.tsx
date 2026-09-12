@@ -11,6 +11,8 @@ import {
 
 import { type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
+import { useLocale } from '../settings/LocaleProvider';
+import type { CopyKey } from '../settings/translations';
 
 type Props = {
   slideIndex: number;
@@ -21,20 +23,24 @@ type Props = {
 const SLIDE_ASSETS = [
   {
     gif: require('../../../assets/mascot-welcome.gif'),
-    alt: 'Bantay, Alaga care companion waving hello warmly',
+    altKey: 'onboarding_mascot_alt_slide1' as CopyKey,
+    defaultAlt: 'Bantay, Alaga care companion waving hello warmly',
   },
   {
     gif: require('../../../assets/mascot-medicine.gif'),
-    alt: 'Bantay holding and inspecting a gentle medicine pill',
+    altKey: 'onboarding_mascot_alt_slide2' as CopyKey,
+    defaultAlt: 'Bantay holding up your Alaga care checklist with an approving nod',
   },
   {
     gif: require('../../../assets/mascot-heart.gif'),
-    alt: 'Bantay embracing a warm glowing golden care heart and privacy shield',
+    altKey: 'onboarding_mascot_alt_slide3' as CopyKey,
+    defaultAlt: 'Bantay hugging your glowing care heart and privacy shield',
   },
 ];
 
-export function OnboardingMascotStage({ slideIndex, size = 190, onMascotTap }: Props) {
-  const { styles } = useThemedStyles(createStyles);
+export function OnboardingMascotStage({ slideIndex, size = 220, onMascotTap }: Props) {
+  const { colors, styles } = useThemedStyles(createStyles);
+  const { t } = useLocale();
   const [reduceMotion, setReduceMotion] = useState(false);
 
   // Animation values
@@ -68,13 +74,13 @@ export function OnboardingMascotStage({ slideIndex, size = 190, onMascotTap }: P
     const floatLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
-          duration: 2200,
+          duration: 1500,
           easing: Easing.inOut(Easing.sin),
           toValue: 1,
           useNativeDriver: true,
         }),
         Animated.timing(floatAnim, {
-          duration: 2200,
+          duration: 1500,
           easing: Easing.inOut(Easing.sin),
           toValue: 0,
           useNativeDriver: true,
@@ -89,7 +95,7 @@ export function OnboardingMascotStage({ slideIndex, size = 190, onMascotTap }: P
     };
   }, [reduceMotion]);
 
-  // Interactive tap reaction (playful spring hop with squash and stretch)
+  // Interactive tap reaction with volume-conserving squash-and-stretch
   const handleTap = () => {
     if (reduceMotion) {
       onMascotTap?.();
@@ -99,14 +105,14 @@ export function OnboardingMascotStage({ slideIndex, size = 190, onMascotTap }: P
     onMascotTap?.();
 
     Animated.sequence([
-      // 1. Squash before hop
+      // 1. Anticipation squash (compression before leap)
       Animated.timing(squashAnim, {
         duration: 90,
         easing: Easing.out(Easing.quad),
         toValue: 0.92,
         useNativeDriver: true,
       }),
-      // 2. Spring hop up
+      // 2. Spring hop takeoff with vertical stretch
       Animated.parallel([
         Animated.timing(hopAnim, {
           duration: 180,
@@ -121,20 +127,37 @@ export function OnboardingMascotStage({ slideIndex, size = 190, onMascotTap }: P
           useNativeDriver: true,
         }),
       ]),
-      // 3. Fall back down and land
-      Animated.parallel([
-        Animated.spring(hopAnim, {
-          friction: 5,
-          tension: 90,
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-        Animated.spring(squashAnim, {
-          friction: 5,
-          tension: 90,
-          toValue: 1.0,
-          useNativeDriver: true,
-        }),
+      // 3. Fall back down and land with impact squash
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(hopAnim, {
+            duration: 130,
+            easing: Easing.in(Easing.quad),
+            toValue: 0,
+            useNativeDriver: true,
+          }),
+          Animated.timing(squashAnim, {
+            duration: 130,
+            easing: Easing.in(Easing.quad),
+            toValue: 0.88,
+            useNativeDriver: true,
+          }),
+        ]),
+        // 4. Elastic settling to resting baseline
+        Animated.parallel([
+          Animated.spring(hopAnim, {
+            friction: 6,
+            tension: 100,
+            toValue: 0,
+            useNativeDriver: true,
+          }),
+          Animated.spring(squashAnim, {
+            friction: 6,
+            tension: 100,
+            toValue: 1.0,
+            useNativeDriver: true,
+          }),
+        ]),
       ]),
     ]).start();
   };
@@ -153,23 +176,66 @@ export function OnboardingMascotStage({ slideIndex, size = 190, onMascotTap }: P
     outputRange: ['-0.8deg', '1.0deg'],
   });
 
-  // Dynamic ground shadow that scales inversely with float height
-  const shadowScaleX = floatAnim.interpolate({
+  // Organic chest respiration scale coupled to 3.0s breathing rhythm
+  const breathScaleY = floatAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1.05, 0.86],
+    outputRange: [1.0, 1.016],
   });
 
-  const shadowScaleY = floatAnim.interpolate({
+  const breathScaleX = floatAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1.02, 0.78],
+    outputRange: [1.0, 1.008],
   });
 
-  const shadowOpacity = floatAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.26, 0.12],
+  // Volume-conserving squash-and-stretch: scaleX * scaleY approx 1.0
+  const scaleX = squashAnim.interpolate({
+    inputRange: [0.88, 1.0, 1.08],
+    outputRange: [1.14, 1.0, 0.92],
   });
+
+  // Ground contact shadow coupling: Z = floatAnim * 10 - hopAnim
+  const verticalZ = Animated.subtract(
+    Animated.multiply(floatAnim, 10),
+    hopAnim,
+  );
+
+  const shadowBaseScaleX = verticalZ.interpolate({
+    inputRange: [0, 10, 30],
+    outputRange: [1.05, 0.88, 0.58],
+    extrapolate: 'clamp',
+  });
+
+  const shadowSquashMult = squashAnim.interpolate({
+    inputRange: [0.88, 1.0, 1.08],
+    outputRange: [1.15, 1.0, 0.92],
+    extrapolate: 'clamp',
+  });
+
+  const shadowScaleX = Animated.multiply(shadowBaseScaleX, shadowSquashMult);
+
+  const shadowScaleY = verticalZ.interpolate({
+    inputRange: [0, 10, 30],
+    outputRange: [1.02, 0.80, 0.52],
+    extrapolate: 'clamp',
+  });
+
+  const shadowBaseOpacity = verticalZ.interpolate({
+    inputRange: [0, 10, 30],
+    outputRange: [0.26, 0.18, 0.08],
+    extrapolate: 'clamp',
+  });
+
+  const shadowOpacityMult = squashAnim.interpolate({
+    inputRange: [0.88, 1.0, 1.08],
+    outputRange: [1.25, 1.0, 0.95],
+    extrapolate: 'clamp',
+  });
+
+  const shadowOpacity = Animated.multiply(shadowBaseOpacity, shadowOpacityMult);
 
   const activeAsset = SLIDE_ASSETS[slideIndex] ?? SLIDE_ASSETS[0];
+  const localizedLabel = t(activeAsset.altKey) || activeAsset.defaultAlt;
+  const localizedHint = t('onboarding_mascot_tap_hint') || 'Tap to make Bantay playfully hop';
 
   return (
     <View style={[styles.stage, { height: size + 36, width: size + 36 }]}>
@@ -180,7 +246,7 @@ export function OnboardingMascotStage({ slideIndex, size = 190, onMascotTap }: P
           {
             bottom: 2,
             height: 16,
-            opacity: reduceMotion ? 0.2 : shadowOpacity,
+            opacity: reduceMotion ? 0.22 : shadowOpacity,
             transform: [
               { scaleX: reduceMotion ? 1 : shadowScaleX },
               { scaleY: reduceMotion ? 1 : shadowScaleY },
@@ -190,7 +256,7 @@ export function OnboardingMascotStage({ slideIndex, size = 190, onMascotTap }: P
         ]}
       />
 
-      {/* Interactive Mascot Actor */}
+      {/* Interactive Free-Standing Mascot Actor */}
       <Animated.View
         style={[
           styles.mascotActor,
@@ -199,15 +265,16 @@ export function OnboardingMascotStage({ slideIndex, size = 190, onMascotTap }: P
             transform: [
               { translateY },
               { rotate: reduceMotion ? '0deg' : rotate },
-              { scaleY: squashAnim },
+              { scaleX: reduceMotion ? 1 : Animated.multiply(scaleX, breathScaleX) },
+              { scaleY: reduceMotion ? 1 : Animated.multiply(squashAnim, breathScaleY) },
             ],
             width: size,
           },
         ]}
       >
         <Pressable
-          accessibilityHint="Tap to make Bantay playfully hop"
-          accessibilityLabel={activeAsset.alt}
+          accessibilityHint={localizedHint}
+          accessibilityLabel={localizedLabel}
           accessibilityRole="button"
           hitSlop={12}
           onPress={handleTap}
@@ -215,9 +282,9 @@ export function OnboardingMascotStage({ slideIndex, size = 190, onMascotTap }: P
         >
           <Image
             accessibilityIgnoresInvertColors
-            accessibilityLabel={activeAsset.alt}
-            accessibilityRole="image"
+            accessible={false}
             fadeDuration={0}
+            importantForAccessibility="no"
             key={`slide-mascot-${slideIndex}`}
             resizeMode="contain"
             source={reduceMotion ? require('../../../assets/mascot.png') : activeAsset.gif}
@@ -237,7 +304,7 @@ const createStyles = (colors: AppColors) =>
       position: 'relative',
     },
     groundShadow: {
-      backgroundColor: '#1E332A',
+      backgroundColor: colors.canvas === '#17211F' ? 'rgba(0, 0, 0, 0.45)' : 'rgba(0, 0, 0, 0.22)',
       borderRadius: 9999,
       position: 'absolute',
     },
@@ -250,6 +317,6 @@ const createStyles = (colors: AppColors) =>
       justifyContent: 'center',
     },
     mascotImage: {
-      borderRadius: 24,
+      // Free-standing organic character: zero card borders or clipping bounding boxes
     },
   });
