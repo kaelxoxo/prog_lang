@@ -44,7 +44,7 @@ const SLIDES: SlideData[] = [
   },
   {
     id: 'slide-1',
-    tag: 'GENTLE MEDICINES',
+    tag: 'GENTLE MEDICINE CARE',
     titleKey: 'onboarding.slide2Title',
     defaultTitle: 'Clear schedules with zero confusion',
     descKey: 'onboarding.slide2Desc',
@@ -54,7 +54,7 @@ const SLIDES: SlideData[] = [
   },
   {
     id: 'slide-2',
-    tag: 'FAMILY & PRIVACY',
+    tag: 'SHARED CARE CIRCLE',
     titleKey: 'onboarding.slide3Title',
     defaultTitle: 'Cared for together, 100% private',
     descKey: 'onboarding.slide3Desc',
@@ -89,157 +89,137 @@ export function OnboardingSlideshow({ onComplete }: Props) {
     }
   };
 
-  const handleDotPress = (index: number) => {
-    flatListRef.current?.scrollToIndex({ animated: true, index });
-    setActiveIndex(index);
-  };
-
   const isLastSlide = activeIndex === SLIDES.length - 1;
 
   return (
     <View style={styles.container}>
-        {/* Top Header with Brand and Skip */}
-        <View style={styles.header}>
-          <View style={styles.brandGroup}>
-            <Text style={styles.brandTitle}>Alaga</Text>
-            <View style={styles.brandBadge}>
-              <Text style={styles.brandBadgeText}>CARE SPACE</Text>
+      {/* Sleek Segmented Story Progress Bars (Top) */}
+      <View
+        accessibilityLabel={`Step ${activeIndex + 1} of ${SLIDES.length}`}
+        accessibilityRole="progressbar"
+        style={styles.storyBarsContainer}
+      >
+        {SLIDES.map((slide, idx) => {
+          const isPassed = idx < activeIndex;
+          const isActive = idx === activeIndex;
+          const barColor =
+            activeIndex === 0
+              ? colors.sun
+              : activeIndex === 1
+                ? colors.success
+                : colors.primary;
+
+          return (
+            <View key={slide.id} style={styles.storyBarTrack}>
+              <View
+                style={[
+                  styles.storyBarFill,
+                  (isPassed || isActive) && {
+                    backgroundColor: isPassed ? colors.primaryDark : barColor,
+                    width: '100%',
+                  },
+                ]}
+              />
             </View>
-          </View>
-
-          <Pressable
-            accessibilityHint="Skips the welcome introduction and goes directly to account setup"
-            accessibilityLabel="Skip welcome walkthrough"
-            accessibilityRole="button"
-            hitSlop={12}
-            onPress={onComplete}
-            style={({ pressed }) => [styles.skipButton, pressed && styles.skipPressed]}
-          >
-            <Text style={styles.skipText}>Skip</Text>
-            <AppIcon color={colors.muted} name="chevron-right" size={16} />
-          </Pressable>
-        </View>
-
-        {/* Paging Content */}
-        <FlatList
-          bounces={false}
-          data={SLIDES}
-          decelerationRate="fast"
-          horizontal
-          keyExtractor={(item) => item.id}
-          onMomentumScrollEnd={handleScroll}
-          pagingEnabled
-          ref={flatListRef}
-          renderItem={({ item, index }) => {
-            const slideTitle = t(item.titleKey) || item.defaultTitle;
-            const slideDesc = t(item.descKey) || item.defaultDesc;
-
-            return (
-              <View style={[styles.slide, { width: windowWidth }]}>
-                {/* Mascot Animated Stage */}
-                <View style={styles.stageWrapper}>
-                  <OnboardingMascotStage size={120} slideIndex={index} />
-                </View>
-
-                {/* Editorial Content Card */}
-                <View style={styles.card}>
-                  <View
-                    style={[
-                      styles.tagPill,
-                      {
-                        backgroundColor:
-                          index === 0
-                            ? 'rgba(232, 184, 93, 0.18)'
-                            : index === 1
-                              ? 'rgba(71, 112, 100, 0.16)'
-                              : 'rgba(156, 79, 53, 0.16)',
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.tagText,
-                        {
-                          color:
-                            index === 0
-                              ? colors.sun
-                              : index === 1
-                                ? colors.successDark
-                                : colors.primary,
-                        },
-                      ]}
-                    >
-                      {item.tag}
-                    </Text>
-                  </View>
-
-                  <Text accessibilityRole="header" style={styles.slideTitle}>
-                    {slideTitle}
-                  </Text>
-                  <Text style={styles.slideDescription}>{slideDesc}</Text>
-                </View>
-              </View>
-            );
-          }}
-          showsHorizontalScrollIndicator={false}
-          style={styles.flatList}
-        />
-
-        {/* Bottom Navigation & Indicator Bar */}
-        <View style={styles.footer}>
-          {/* Animated Pagination Dots */}
-          <View accessibilityLabel={`Slide ${activeIndex + 1} of ${SLIDES.length}`} accessibilityRole="tablist" style={styles.pagination}>
-            {SLIDES.map((slide, idx) => {
-              const active = idx === activeIndex;
-              return (
-                <Pressable
-                  accessibilityLabel={`Go to slide ${idx + 1}`}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: active }}
-                  hitSlop={8}
-                  key={slide.id}
-                  onPress={() => handleDotPress(idx)}
-                  style={[
-                    styles.dot,
-                    active && styles.dotActive,
-                    active && {
-                      backgroundColor:
-                        activeIndex === 0
-                          ? colors.sun
-                          : activeIndex === 1
-                            ? colors.success
-                            : colors.primary,
-                    },
-                  ]}
-                />
-              );
-            })}
-          </View>
-
-          {/* Primary Action Button */}
-          <Pressable
-            accessibilityLabel={isLastSlide ? 'Get started and create account' : 'Next slide'}
-            accessibilityRole="button"
-            onPress={handleNext}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              isLastSlide && styles.getStartedButton,
-              pressed && styles.buttonPressed,
-            ]}
-          >
-            <Text style={styles.primaryButtonText}>
-              {isLastSlide ? 'Get Started' : 'Next'}
-            </Text>
-            <AppIcon
-              color={colors.white}
-              name={isLastSlide ? 'sparkles' : 'arrow-right'}
-              size={18}
-            />
-          </Pressable>
-        </View>
+          );
+        })}
       </View>
-    );
-  }
+
+      {/* Accessible Header with Brand and Skip */}
+      <View style={styles.header}>
+        <View style={styles.brandGroup}>
+          <View style={styles.brandDot} />
+          <Text style={styles.brandTitle}>Alaga</Text>
+        </View>
+
+        <Pressable
+          accessibilityHint="Skips the welcome introduction and goes directly to account setup"
+          accessibilityLabel={t('onboarding.skip')}
+          accessibilityRole="button"
+          hitSlop={12}
+          onPress={onComplete}
+          style={({ pressed }) => [styles.skipButton, pressed && styles.skipPressed]}
+        >
+          <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
+          <AppIcon color={colors.muted} name="chevron-right" size={16} />
+        </Pressable>
+      </View>
+
+      {/* Paging Content: Full-Bleed Minimalist Editorial Layout */}
+      <FlatList
+        bounces={false}
+        data={SLIDES}
+        decelerationRate="fast"
+        horizontal
+        keyExtractor={(item) => item.id}
+        onMomentumScrollEnd={handleScroll}
+        pagingEnabled
+        ref={flatListRef}
+        renderItem={({ item, index }) => {
+          const slideTitle = t(item.titleKey) || item.defaultTitle;
+          const slideDesc = t(item.descKey) || item.defaultDesc;
+          const accentColor =
+            index === 0
+              ? colors.sun
+              : index === 1
+                ? colors.successDark
+                : colors.primary;
+
+          return (
+            <View style={[styles.slide, { width: windowWidth }]}>
+              {/* Mascot Animated Stage: Open Crisp Canvas with Contact Shadow */}
+              <View style={styles.stageWrapper}>
+                <OnboardingMascotStage size={190} slideIndex={index} />
+              </View>
+
+              {/* Direct Canvas Typography: No Cards, No Bubbles */}
+              <View style={styles.textBlock}>
+                <Text style={[styles.categoryEyebrow, { color: accentColor }]}>
+                  {item.tag}
+                </Text>
+
+                <Text accessibilityRole="header" style={styles.slideTitle}>
+                  {slideTitle}
+                </Text>
+
+                <Text style={styles.slideDescription}>{slideDesc}</Text>
+              </View>
+            </View>
+          );
+        }}
+        showsHorizontalScrollIndicator={false}
+        style={styles.flatList}
+      />
+
+      {/* Docked Bottom Action Bar */}
+      <View style={styles.footer}>
+        <Pressable
+          accessibilityLabel={
+            isLastSlide
+              ? t('onboarding.getStarted')
+              : t('onboarding.next')
+          }
+          accessibilityRole="button"
+          onPress={handleNext}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            isLastSlide && styles.getStartedButton,
+            pressed && styles.buttonPressed,
+          ]}
+        >
+          <Text style={styles.primaryButtonText}>
+            {isLastSlide ? t('onboarding.getStarted') : t('onboarding.next')}
+          </Text>
+          <AppIcon
+            color={colors.white}
+            name={isLastSlide ? 'sparkles' : 'arrow-right'}
+            size={18}
+          />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
 
 const createStyles = (colors: AppColors) =>
   StyleSheet.create({
@@ -248,38 +228,49 @@ const createStyles = (colors: AppColors) =>
       flex: 1,
       justifyContent: 'space-between',
     },
+    storyBarsContainer: {
+      flexDirection: 'row',
+      gap: 6,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xs,
+    },
+    storyBarTrack: {
+      backgroundColor: 'rgba(0, 0, 0, 0.08)',
+      borderRadius: 2,
+      flex: 1,
+      height: 4,
+      overflow: 'hidden',
+    },
+    storyBarFill: {
+      backgroundColor: 'transparent',
+      borderRadius: 2,
+      height: '100%',
+      width: '0%',
+    },
     header: {
       alignItems: 'center',
       flexDirection: 'row',
       justifyContent: 'space-between',
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.sm,
+      paddingTop: spacing.xs,
       zIndex: 10,
     },
     brandGroup: {
       alignItems: 'center',
       flexDirection: 'row',
-      gap: spacing.xs,
+      gap: 6,
+    },
+    brandDot: {
+      backgroundColor: colors.sun,
+      borderRadius: 4,
+      height: 8,
+      width: 8,
     },
     brandTitle: {
-      color: colors.primaryDark,
+      color: colors.ink,
       fontSize: 22,
-      fontWeight: '800',
-      letterSpacing: -0.5,
-    },
-    brandBadge: {
-      backgroundColor: colors.mist,
-      borderColor: colors.line,
-      borderRadius: radii.full,
-      borderWidth: 1,
-      paddingHorizontal: spacing.xs,
-      paddingVertical: 2,
-    },
-    brandBadgeText: {
-      color: colors.muted,
-      fontSize: 9,
-      fontWeight: '700',
-      letterSpacing: 0.6,
+      fontWeight: '900',
+      letterSpacing: -0.6,
     },
     skipButton: {
       alignItems: 'center',
@@ -297,8 +288,8 @@ const createStyles = (colors: AppColors) =>
     },
     skipText: {
       color: colors.muted,
-      fontSize: 13,
-      fontWeight: '600',
+      fontSize: 14,
+      fontWeight: '700',
     },
     flatList: {
       flex: 1,
@@ -307,90 +298,59 @@ const createStyles = (colors: AppColors) =>
       alignItems: 'center',
       flex: 1,
       justifyContent: 'center',
-      paddingHorizontal: spacing.lg,
+      paddingHorizontal: spacing.xl,
     },
     stageWrapper: {
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: spacing.xs,
+      marginBottom: spacing.lg,
       width: '100%',
     },
-    card: {
+    textBlock: {
       alignItems: 'center',
-      backgroundColor: colors.white,
-      borderColor: colors.line,
-      borderRadius: radii.xl,
-      borderWidth: 1,
-      elevation: 3,
-      maxWidth: 420,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
+      maxWidth: 360,
+      paddingHorizontal: spacing.md,
       width: '100%',
     },
-    tagPill: {
-      borderRadius: radii.full,
+    categoryEyebrow: {
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: 1.2,
       marginBottom: spacing.xs,
-      paddingHorizontal: spacing.md,
-      paddingVertical: 4,
-    },
-    tagText: {
-      fontSize: 10,
-      fontWeight: '700',
-      letterSpacing: 0.8,
+      textTransform: 'uppercase',
     },
     slideTitle: {
       color: colors.ink,
-      fontSize: 20,
-      fontWeight: '800',
-      lineHeight: 26,
-      marginBottom: spacing.xs,
+      fontSize: 26,
+      fontWeight: '900',
+      letterSpacing: -0.8,
+      lineHeight: 34,
+      marginBottom: spacing.sm,
       textAlign: 'center',
     },
     slideDescription: {
       color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20,
+      fontSize: 15,
+      lineHeight: 23,
       textAlign: 'center',
     },
     footer: {
       alignItems: 'center',
-      flexDirection: 'column',
-      gap: spacing.sm,
       paddingBottom: spacing.lg,
       paddingHorizontal: spacing.lg,
-    },
-    pagination: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: spacing.xs,
-      justifyContent: 'center',
-      paddingVertical: spacing.xs,
-    },
-    dot: {
-      backgroundColor: colors.line,
-      borderRadius: radii.full,
-      height: 8,
-      width: 8,
-    },
-    dotActive: {
-      width: 26,
     },
     primaryButton: {
       alignItems: 'center',
       backgroundColor: colors.primaryDark,
       borderRadius: radii.full,
-      elevation: 3,
+      elevation: 2,
       flexDirection: 'row',
       gap: spacing.xs,
       justifyContent: 'center',
-      minHeight: 52,
+      minHeight: 54,
       shadowColor: colors.ink,
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.14,
+      shadowOpacity: 0.12,
       shadowRadius: 6,
       width: '100%',
     },
@@ -403,7 +363,8 @@ const createStyles = (colors: AppColors) =>
     },
     primaryButtonText: {
       color: colors.white,
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '800',
+      letterSpacing: 0.2,
     },
   });
