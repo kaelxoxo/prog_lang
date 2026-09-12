@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 
+import { AppIcon } from '../../components/AppIcon';
 import { apiRequest, errorMessage } from '../../lib/api';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
@@ -55,7 +56,7 @@ function statusLine(dose: DoseOccurrence, locale: string, t: ReturnType<typeof u
 }
 
 export function HistoryPanel({ patient }: { patient: Patient }) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
   const { fontScale } = useWindowDimensions();
   const { localeTag, t } = useLocale();
   const { token } = useAuth();
@@ -93,8 +94,8 @@ export function HistoryPanel({ patient }: { patient: Patient }) {
           </Pressable>
         </View>
       ) : !daysWithEntries.length ? (
-        <View style={styles.emptyState}>
-          <View style={styles.emptyDot} />
+        <View style={styles.emptyCard}>
+          <View style={styles.emptyIcon}><AppIcon color={colors.ink} name="calendar-days" size={22} /></View>
           <View style={styles.emptyCopy}>
             <Text style={styles.emptyTitle}>{t('history.emptyTitle')}</Text>
             <Text style={styles.emptyBody}>{t('history.emptyBody')}</Text>
@@ -102,31 +103,82 @@ export function HistoryPanel({ patient }: { patient: Patient }) {
         </View>
       ) : (
         <>
-          <Text accessibilityLiveRegion="polite" style={styles.summary}>
-            {t('history.summary', { recorded: totals.recorded, available: totals.available })}
-          </Text>
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryIconWrap}>
+              <AppIcon color={colors.primaryDark} name="activity" size={18} />
+            </View>
+            <View style={styles.summaryCopy}>
+              <Text style={styles.summaryTitle}>{t('history.title')}</Text>
+              <Text accessibilityLiveRegion="polite" style={styles.summaryValue}>
+                {t('history.summary', { recorded: totals.recorded, available: totals.available })}
+              </Text>
+            </View>
+          </View>
+
           <View style={styles.days}>
             {daysWithEntries.map((day) => (
-              <View key={day.date} style={styles.day}>
-                <Text accessibilityRole="header" style={styles.dayTitle}>{friendlyDate(day.date, localeTag)}</Text>
+              <View key={day.date} style={styles.dayCard}>
+                <View style={styles.dayHeader}>
+                  <View style={styles.dayBadge}>
+                    <AppIcon color={colors.primaryDark} name="calendar-days" size={14} />
+                    <Text accessibilityRole="header" style={styles.dayTitle}>{friendlyDate(day.date, localeTag)}</Text>
+                  </View>
+                  <View style={styles.doseCountBadge}>
+                    <Text style={styles.doseCountText}>{day.timeline.length}</Text>
+                  </View>
+                </View>
+
                 <View style={styles.entries}>
-                  {day.timeline.map((dose) => (
-                    <View
-                      accessibilityLabel={`${friendlyTime(dose.scheduledFor, localeTag)}, ${dose.medicationName}, ${doseLine(dose)}, ${statusLine(dose, localeTag, t)}`}
-                      accessible
-                      key={dose.id}
-                      style={[styles.entry, fontScale > 1.3 && styles.entryLarge]}
-                    >
-                      <Text style={styles.time}>{friendlyTime(dose.scheduledFor, localeTag)}</Text>
-                      <View style={styles.entryCopy}>
-                        <Text style={styles.medicine}>{dose.medicationName}</Text>
-                        <Text style={styles.dose}>{doseLine(dose)}</Text>
-                        <Text style={dose.status === 'not_recorded' ? styles.unknown : styles.status}>
-                          {statusLine(dose, localeTag, t)}
-                        </Text>
+                  {day.timeline.map((dose) => {
+                    const isTaken = dose.status === 'taken';
+                    const isSkipped = dose.status === 'skipped';
+                    const isSnoozed = dose.status === 'snoozed';
+                    const isNotRecorded = dose.status === 'not_recorded';
+
+                    return (
+                      <View
+                        accessibilityLabel={`${friendlyTime(dose.scheduledFor, localeTag)}, ${dose.medicationName}, ${doseLine(dose)}, ${statusLine(dose, localeTag, t)}`}
+                        accessible
+                        key={dose.id}
+                        style={[styles.entry, fontScale > 1.3 && styles.entryLarge]}
+                      >
+                        <View style={styles.timePill}>
+                          <AppIcon color={colors.ink} name="clock-3" size={13} />
+                          <Text style={styles.timeText}>{friendlyTime(dose.scheduledFor, localeTag)}</Text>
+                        </View>
+                        <View style={styles.entryCopy}>
+                          <View style={styles.medicineRow}>
+                            <Text style={styles.medicine}>{dose.medicationName}</Text>
+                            <View style={styles.doseChip}>
+                              <Text style={styles.doseChipText}>{doseLine(dose)}</Text>
+                            </View>
+                          </View>
+                          <View style={[
+                            styles.statusBadge,
+                            isTaken && styles.statusBadgeTaken,
+                            isSkipped && styles.statusBadgeSkipped,
+                            isSnoozed && styles.statusBadgeSnoozed,
+                            isNotRecorded && styles.statusBadgeNotRecorded,
+                          ]}>
+                            <AppIcon
+                              color={isTaken ? colors.successDark : isNotRecorded ? colors.warning : colors.ink}
+                              name={isTaken ? 'circle-check-big' : isSkipped ? 'minus' : isSnoozed ? 'clock-3' : 'alert-circle'}
+                              size={13}
+                            />
+                            <Text style={[
+                              styles.statusText,
+                              isTaken && styles.statusTextTaken,
+                              isSkipped && styles.statusTextSkipped,
+                              isSnoozed && styles.statusTextSnoozed,
+                              isNotRecorded && styles.statusTextNotRecorded,
+                            ]}>
+                              {statusLine(dose, localeTag, t)}
+                            </Text>
+                          </View>
+                        </View>
                       </View>
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
               </View>
             ))}
@@ -145,22 +197,115 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   errorText: { color: colors.error, fontSize: 14, lineHeight: 20 },
   retryButton: { minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center' },
   retryLabel: { color: colors.error, fontSize: 14, fontWeight: '800' },
-  emptyState: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.lg },
-  emptyDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: colors.sun, marginTop: 4 },
+  emptyCard: {
+    gap: spacing.md,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    padding: spacing.xl,
+  },
+  emptyIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.sun },
   emptyCopy: { flex: 1, gap: spacing.xs },
   emptyTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },
   emptyBody: { maxWidth: 560, color: colors.muted, fontSize: 14, lineHeight: 21 },
-  summary: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  days: { borderTopWidth: 1, borderTopColor: colors.line },
-  day: { gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: spacing.md },
-  dayTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+  },
+  summaryIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.full,
+    backgroundColor: colors.primaryTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryCopy: { flex: 1, gap: 2 },
+  summaryTitle: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  summaryValue: { color: colors.ink, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  days: { gap: spacing.md },
+  dayCard: {
+    gap: spacing.md,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+  },
+  dayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  dayBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dayTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
+  doseCountBadge: {
+    borderRadius: radii.full,
+    backgroundColor: colors.canvas,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+  },
+  doseCountText: { color: colors.muted, fontSize: 12, fontWeight: '800' },
   entries: { gap: spacing.sm },
-  entry: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, paddingVertical: spacing.sm },
+  entry: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    backgroundColor: colors.canvas,
+    borderRadius: radii.md,
+    padding: 12,
+  },
   entryLarge: { flexDirection: 'column', gap: spacing.xs },
-  time: { width: 76, color: colors.ink, fontSize: 15, fontWeight: '800' },
-  entryCopy: { flex: 1, gap: 2 },
-  medicine: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  dose: { color: colors.muted, fontSize: 14, lineHeight: 20 },
-  status: { color: colors.successDark, fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  unknown: { color: colors.warning, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  timePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  timeText: { color: colors.ink, fontSize: 12, fontWeight: '800' },
+  entryCopy: { flex: 1, gap: 6 },
+  medicineRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  medicine: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  doseChip: {
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  doseChipText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    borderRadius: radii.full,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderWidth: 1,
+  },
+  statusBadgeTaken: { backgroundColor: colors.successTint, borderColor: colors.success },
+  statusBadgeSkipped: { backgroundColor: colors.mist, borderColor: colors.line },
+  statusBadgeSnoozed: { backgroundColor: colors.primaryTint, borderColor: colors.primary },
+  statusBadgeNotRecorded: { backgroundColor: colors.warningTint, borderColor: colors.warning },
+  statusText: { fontSize: 12, fontWeight: '700' },
+  statusTextTaken: { color: colors.successDark },
+  statusTextSkipped: { color: colors.muted },
+  statusTextSnoozed: { color: colors.primaryDark },
+  statusTextNotRecorded: { color: colors.warning },
 });

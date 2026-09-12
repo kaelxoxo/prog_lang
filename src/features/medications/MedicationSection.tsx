@@ -180,14 +180,22 @@ export function MedicationSection({ patient }: Props) {
       ) : null}
 
       {medications.length > 6 ? (
-        <TextInput
-          accessibilityLabel={t('medicine.find')}
-          onChangeText={setSearch}
-          placeholder={t('medicine.find')}
-          placeholderTextColor={colors.muted}
-          style={styles.searchInput}
-          value={search}
-        />
+        <View style={styles.searchContainer}>
+          <AppIcon color={colors.muted} name="search" size={18} />
+          <TextInput
+            accessibilityLabel={t('medicine.find')}
+            onChangeText={setSearch}
+            placeholder={t('medicine.find')}
+            placeholderTextColor={colors.muted}
+            style={styles.searchInput}
+            value={search}
+          />
+          {search ? (
+            <Pressable accessibilityLabel={t('app.clearSearch')} accessibilityRole="button" hitSlop={12} onPress={() => setSearch('')} style={styles.clearSearchButton}>
+              <AppIcon color={colors.muted} name="x" size={16} />
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
 
       {medicationQuery.isLoading && !medicationQuery.data ? (
@@ -198,8 +206,8 @@ export function MedicationSection({ patient }: Props) {
           <Pressable accessibilityRole="button" onPress={() => void medicationQuery.refetch()} style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}><Text style={styles.retryLabel}>{t('app.retry')}</Text></Pressable>
         </View>
       ) : medications.length === 0 ? (
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIcon}><AppIcon color={colors.ink} name="pill" size={20} /></View>
+        <View style={styles.emptyCard}>
+          <View style={styles.emptyIcon}><AppIcon color={colors.ink} name="pill" size={24} /></View>
           <View style={styles.emptyCopy}>
             <Text style={styles.emptyTitle}>{t(archivedMedications.length ? 'medicine.noActive' : 'medicine.noConfirmed')}</Text>
             <Text style={styles.emptyBody}>{archivedMedications.length
@@ -212,30 +220,48 @@ export function MedicationSection({ patient }: Props) {
         <SyncNotice error={medicationQuery.error} onRetry={() => void medicationQuery.refetch()} updatedAt={medicationQuery.dataUpdatedAt} />
         <View style={styles.list}>
           {visibleMedications.map((medication) => (
-            <View key={medication.id} style={[styles.medicineRow, highlightedId === medication.id && styles.medicineRowHighlighted]}>
+            <View key={medication.id} style={[styles.medicineCard, highlightedId === medication.id && styles.medicineCardHighlighted]}>
               <View
                 accessibilityLabel={`${t('medicine.confirmed')}, ${medication.displayName}, ${medication.doseQuantity} ${medication.doseUnit}${medication.strengthValue ? `, ${medication.strengthValue} ${medication.strengthUnit}` : ''}, ${t('medicine.schedule')}: ${scheduleSummary(medication.schedules, localeTag, t)}`}
                 accessible
                 style={styles.summaryBlock}
               >
-                <View style={styles.rowTop}>
-                  <View style={styles.medicineCopy}>
-                    <View style={styles.confirmedState}><AppIcon color={colors.successDark} name="circle-check-big" size={17} /><Text style={styles.confirmedLabel}>{t('medicine.confirmed')}</Text></View>
-                    <Text style={styles.medicineName}>{medication.displayName}</Text>
-                    <Text style={styles.dose}>{medication.doseQuantity} {medication.doseUnit}{medication.strengthValue ? `, ${medication.strengthValue} ${medication.strengthUnit}` : ''}</Text>
+                <View style={styles.cardHeader}>
+                  <View style={styles.confirmedBadge}>
+                    <AppIcon color={colors.successDark} name="circle-check-big" size={14} />
+                    <Text style={styles.confirmedLabel}>{t('medicine.confirmed')}</Text>
+                  </View>
+                  <View style={styles.doseChip}>
+                    <Text style={styles.doseChipText}>
+                      {medication.doseQuantity} {medication.doseUnit}{medication.strengthValue ? ` • ${medication.strengthValue} ${medication.strengthUnit}` : ''}
+                    </Text>
                   </View>
                 </View>
+                <Text style={styles.medicineName}>{medication.displayName}</Text>
                 <View style={styles.scheduleSummary}>
-                  <View style={styles.scheduleHeading}><AppIcon color={colors.muted} name="calendar-days" size={17} /><Text style={styles.scheduleTitle}>{t('medicine.schedule')}</Text></View>
-                  <Text style={styles.scheduleValue}>{scheduleSummary(medication.schedules, localeTag, t)}</Text>
+                  <View style={styles.scheduleIconWrap}>
+                    <AppIcon color={colors.primaryDark} name="calendar-days" size={15} />
+                  </View>
+                  <View style={styles.scheduleCopyWrap}>
+                    <Text style={styles.scheduleTitle}>{t('medicine.schedule')}</Text>
+                    <Text style={styles.scheduleValue}>{scheduleSummary(medication.schedules, localeTag, t)}</Text>
+                  </View>
                 </View>
-                {(!medication.strengthValue || !medication.medicineForm || !medication.route) ? <Text style={styles.missingDetail}>{t('medicine.missingDetails')}</Text> : null}
+                {(!medication.strengthValue || !medication.medicineForm || !medication.route) ? (
+                  <View style={styles.missingDetailBox}>
+                    <AppIcon color={colors.warning} name="alert-circle" size={15} />
+                    <Text style={styles.missingDetail}>{t('medicine.missingDetails')}</Text>
+                  </View>
+                ) : null}
               </View>
               {patient.canManageMedications ? (
                 <View style={[styles.rowActions, largeText && styles.rowActionsLarge]}>
-                  <Pressable accessibilityLabel={`${t('medicine.reviewEdit')}: ${medication.displayName}`} accessibilityRole="button" onPress={() => openEdit(medication)} style={({ pressed }) => [styles.editButton, largeText && styles.rowActionLarge, pressed && styles.pressed]}><AppIcon color={colors.ink} name="pencil" size={17} /><Text style={styles.editLabel}>{t('medicine.reviewEdit')}</Text></Pressable>
+                  <Pressable accessibilityLabel={`${t('medicine.reviewEdit')}: ${medication.displayName}`} accessibilityRole="button" onPress={() => openEdit(medication)} style={({ pressed }) => [styles.editButton, largeText && styles.rowActionLarge, pressed && styles.pressed]}>
+                    <AppIcon color={colors.ink} name="pencil" size={16} />
+                    <Text style={styles.editLabel}>{t('medicine.reviewEdit')}</Text>
+                  </Pressable>
                   <Pressable accessibilityLabel={t('medicine.archiveTitle', { medicine: medication.displayName })} accessibilityRole="button" disabled={archiveMutation.isPending} onPress={() => confirmArchive(medication)} style={({ pressed }) => [styles.archiveButton, largeText && styles.rowActionLarge, pressed && styles.pressed]}>
-                    <AppIcon color={colors.error} name="archive" size={17} />
+                    <AppIcon color={colors.error} name="archive" size={16} />
                     <Text style={styles.archiveLabel}>{t(archiveMutation.isPending && archiveMutation.variables?.id === medication.id ? 'medicine.archiving' : 'medicine.archive')}</Text>
                   </Pressable>
                 </View>
@@ -248,7 +274,7 @@ export function MedicationSection({ patient }: Props) {
       )}
 
       {archivedMedications.length ? (
-        <View style={styles.archivedSection}>
+        <View style={styles.archivedCard}>
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ expanded: showArchived }}
@@ -256,10 +282,16 @@ export function MedicationSection({ patient }: Props) {
             style={({ pressed }) => [styles.archivedToggle, largeText && styles.archivedToggleLarge, pressed && styles.pressed]}
           >
             <View style={styles.archivedHeading}>
-              <Text style={styles.archivedTitle}>{t('medicine.archivedTitle')}</Text>
+              <View style={styles.archivedTitleRow}>
+                <AppIcon color={colors.muted} name="archive" size={17} />
+                <Text style={styles.archivedTitle}>{t('medicine.archivedTitle')}</Text>
+              </View>
               <Text style={styles.archivedCount}>{t('medicine.retained', { count: archivedMedications.length })}</Text>
             </View>
-            <Text style={styles.archivedToggleLabel}>{t(showArchived ? 'medicine.hide' : 'medicine.show')}</Text>
+            <View style={styles.archivedTogglePill}>
+              <Text style={styles.archivedToggleLabel}>{t(showArchived ? 'medicine.hide' : 'medicine.show')}</Text>
+              <AppIcon color={colors.primaryDark} name={showArchived ? 'chevron-up' : 'chevron-down'} size={15} />
+            </View>
           </Pressable>
           {showArchived ? (
             <View style={styles.archivedList}>
@@ -312,7 +344,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   headingCopy: { flex: 1, gap: 2 },
   title: { color: colors.ink, fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
   subtitle: { color: colors.muted, fontSize: 14 },
-  addButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 24, backgroundColor: colors.primary, paddingHorizontal: spacing.md },
+  addButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radii.full, backgroundColor: colors.primary, paddingHorizontal: spacing.md },
   addButtonLarge: { width: '100%' },
   addButtonPressed: { backgroundColor: colors.primaryDark },
   addButtonLabel: { color: colors.white, fontSize: 14, fontWeight: '800' },
@@ -321,56 +353,159 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   noticeText: { flex: 1, color: colors.successDark, fontSize: 14, fontWeight: '600', lineHeight: 20 },
   undoButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.sm },
   undoLabel: { color: colors.successDark, fontSize: 14, fontWeight: '900' },
-  searchInput: { minHeight: 52, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, color: colors.ink, fontSize: 16, paddingHorizontal: spacing.md },
+  searchContainer: {
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+  },
+  searchInput: { flex: 1, minHeight: 48, color: colors.ink, fontSize: 15 },
+  clearSearchButton: { padding: 4 },
   stateRow: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.lg },
   stateText: { color: colors.muted, fontSize: 15 },
   errorBox: { gap: spacing.sm, borderRadius: radii.md, backgroundColor: colors.errorTint, padding: spacing.md },
   errorText: { color: colors.error, fontSize: 14, lineHeight: 20 },
   retryButton: { minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center' },
   retryLabel: { color: colors.error, fontSize: 14, fontWeight: '800' },
-  emptyState: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.lg },
-  emptyIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 19, backgroundColor: colors.sun },
+  emptyCard: {
+    gap: spacing.md,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    padding: spacing.xl,
+  },
+  emptyIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.sun },
   emptyCopy: { flex: 1, gap: spacing.xs },
-  emptyTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },
+  emptyTitle: { color: colors.ink, fontSize: 19, fontWeight: '900' },
   emptyBody: { maxWidth: 520, color: colors.muted, fontSize: 14, lineHeight: 21 },
-  list: { overflow: 'hidden', borderWidth: 1, borderColor: colors.line, borderRadius: radii.md, backgroundColor: colors.white },
-  medicineRow: { gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line, padding: spacing.md },
-  summaryBlock: { gap: spacing.md },
-  medicineRowHighlighted: { backgroundColor: colors.successTint },
-  rowTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
-  medicineCopy: { flex: 1, gap: spacing.xs },
-  confirmedState: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  confirmedLabel: { color: colors.successDark, fontSize: 13, fontWeight: '800' },
-  medicineName: { color: colors.ink, fontSize: 22, fontWeight: '800' },
-  dose: { color: colors.muted, fontSize: 16 },
-  scheduleSummary: { gap: 4, borderTopWidth: 1, borderTopColor: colors.mist, paddingTop: 12 },
-  scheduleHeading: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  scheduleTitle: { color: colors.muted, fontSize: 13, fontWeight: '700' },
-  scheduleValue: { color: colors.ink, fontSize: 15, fontWeight: '700', lineHeight: 22 },
-  missingDetail: { color: colors.warning, fontSize: 13, lineHeight: 19 },
-  rowActions: { flexDirection: 'row', gap: spacing.sm },
+  list: { gap: spacing.sm },
+  medicineCard: {
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.lg,
+    backgroundColor: colors.white,
+    padding: 16,
+  },
+  summaryBlock: { gap: 10 },
+  medicineCardHighlighted: { borderColor: colors.success, backgroundColor: colors.successTint },
+  cardHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
+  confirmedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: radii.full,
+    backgroundColor: colors.successTint,
+    borderWidth: 1,
+    borderColor: colors.success,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  confirmedLabel: { color: colors.successDark, fontSize: 12, fontWeight: '800' },
+  doseChip: {
+    borderRadius: radii.full,
+    backgroundColor: colors.canvas,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  doseChipText: { color: colors.ink, fontSize: 12, fontWeight: '700' },
+  medicineName: { color: colors.ink, fontSize: 20, fontWeight: '900', letterSpacing: -0.3 },
+  scheduleSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.canvas,
+    borderRadius: radii.md,
+    padding: 10,
+  },
+  scheduleIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: radii.full,
+    backgroundColor: colors.primaryTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scheduleCopyWrap: { flex: 1, gap: 1 },
+  scheduleTitle: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  scheduleValue: { color: colors.ink, fontSize: 13, fontWeight: '700', lineHeight: 18 },
+  missingDetailBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radii.sm,
+    backgroundColor: colors.warningTint,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  missingDetail: { flex: 1, color: colors.warning, fontSize: 12, fontWeight: '600' },
+  rowActions: { flexDirection: 'row', gap: spacing.sm, paddingTop: 4, borderTopWidth: 1, borderTopColor: colors.line },
   rowActionsLarge: { flexDirection: 'column' },
   rowActionLarge: { width: '100%', flex: 0 },
-  editButton: { minHeight: 48, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: colors.ink, borderRadius: radii.sm, backgroundColor: colors.white },
-  editLabel: { color: colors.ink, fontSize: 14, fontWeight: '800' },
-  archiveButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: spacing.md },
-  archiveLabel: { color: colors.error, fontSize: 14, fontWeight: '700' },
+  editButton: {
+    minHeight: 48,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.controlBorder,
+    borderRadius: radii.full,
+    backgroundColor: colors.canvas,
+  },
+  editLabel: { color: colors.ink, fontSize: 13, fontWeight: '800' },
+  archiveButton: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.full,
+  },
+  archiveLabel: { color: colors.error, fontSize: 13, fontWeight: '700' },
   inlineError: { color: colors.error, fontSize: 13, lineHeight: 19 },
   noResults: { color: colors.muted, fontSize: 15, lineHeight: 22, paddingVertical: spacing.xl, textAlign: 'center' },
-  archivedSection: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line },
-  archivedToggle: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.sm },
+  archivedCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
+  archivedToggle: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   archivedToggleLarge: { flexDirection: 'column', alignItems: 'flex-start' },
   archivedHeading: { flex: 1, gap: 2 },
-  archivedTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
-  archivedCount: { color: colors.muted, fontSize: 13 },
-  archivedToggleLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
-  archivedList: { borderTopWidth: 1, borderTopColor: colors.line },
+  archivedTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  archivedTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
+  archivedCount: { color: colors.muted, fontSize: 12 },
+  archivedTogglePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: radii.full,
+    backgroundColor: colors.primaryTint,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  archivedToggleLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
+  archivedList: { borderTopWidth: 1, borderTopColor: colors.line, marginTop: spacing.md, paddingTop: spacing.xs },
   archivedRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: spacing.md },
   archivedCopy: { minWidth: 220, flex: 1, gap: 2 },
-  archivedName: { color: colors.ink, fontSize: 17, fontWeight: '800' },
-  archivedDose: { color: colors.muted, fontSize: 14 },
-  archivedNote: { color: colors.muted, fontSize: 13, lineHeight: 19 },
-  restoreButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.ink, borderRadius: radii.sm, paddingHorizontal: spacing.md },
-  restoreLabel: { color: colors.ink, fontSize: 14, fontWeight: '800' },
+  archivedName: { color: colors.ink, fontSize: 16, fontWeight: '800' },
+  archivedDose: { color: colors.muted, fontSize: 13 },
+  archivedNote: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  restoreButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.full, paddingHorizontal: spacing.md, backgroundColor: colors.canvas },
+  restoreLabel: { color: colors.ink, fontSize: 13, fontWeight: '800' },
   pressed: { opacity: 0.72 },
 });

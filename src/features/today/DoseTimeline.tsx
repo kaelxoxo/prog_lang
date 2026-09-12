@@ -169,9 +169,14 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
   return (
     <View style={styles.stack}>
       <SyncNotice error={query.error} onRetry={() => void query.refetch()} updatedAt={query.dataUpdatedAt} />
-      {notice ? <View accessibilityLiveRegion="polite" style={styles.notice}><Text style={styles.noticeText}>{notice}</Text></View> : null}
+      {notice ? (
+        <View accessibilityLiveRegion="polite" style={styles.notice}>
+          <AppIcon color={colors.successDark} name="circle-check-big" size={18} />
+          <Text style={styles.noticeText}>{notice}</Text>
+        </View>
+      ) : null}
       <View onLayout={(event) => { listOffset.current = event.nativeEvent.layout.y; }} style={styles.list}>
-      {query.data.timeline.map((dose, index) => {
+      {query.data.timeline.map((dose) => {
         const terminal = dose.status === 'taken' || dose.status === 'skipped';
         const dueForReview = !terminal && new Date(actionableAt(dose)).getTime() <= now.getTime();
         const statusIcon = dose.status === 'taken' ? 'check' : dose.status === 'skipped' ? 'minus' : 'clock-3';
@@ -187,7 +192,11 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
           <View
             key={dose.id}
             onLayout={focusedOccurrenceId === dose.id ? (event) => onFocusLayout?.(listOffset.current + event.nativeEvent.layout.y) : undefined}
-            style={[styles.doseCard, dueForReview && styles.doseCardAttention, focusedOccurrenceId === dose.id && styles.doseCardFocused, index < query.data.timeline.length - 1 && styles.doseCardBorder]}
+            style={[
+              styles.doseCard,
+              dueForReview && styles.doseCardAttention,
+              focusedOccurrenceId === dose.id && styles.doseCardFocused,
+            ]}
           >
             <View
               accessibilityLabel={`${friendlyTime(dose.scheduledFor, localeTag)}, ${dose.medicationName}, ${doseLine(dose)}, ${statusCopy(dose, localeTag, t)}`}
@@ -195,28 +204,67 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
               ref={focusedOccurrenceId === dose.id ? focusedRef : undefined}
               style={[styles.doseTop, largeText && styles.doseTopLarge]}
             >
-              <View style={[styles.timeBlock, largeText && styles.timeBlockLarge]}>
-                <Text accessible={false} style={styles.time}>{friendlyTime(dose.scheduledFor, localeTag)}</Text>
-                <View style={[styles.statusIcon, dose.status === 'taken' && styles.statusIconTaken, dose.status === 'snoozed' && styles.statusIconSnoozed, dueForReview && styles.statusIconAttention]}><AppIcon color={statusColor} name={statusIcon} size={17} /></View>
+              <View style={styles.doseHeaderRow}>
+                <View style={styles.timePill}>
+                  <AppIcon color={colors.ink} name="clock-3" size={13} />
+                  <Text accessible={false} style={styles.time}>{friendlyTime(dose.scheduledFor, localeTag)}</Text>
+                </View>
+                <View style={[
+                  styles.statusBadge,
+                  dose.status === 'taken' && styles.statusBadgeTaken,
+                  dose.status === 'skipped' && styles.statusBadgeSkipped,
+                  dose.status === 'snoozed' && styles.statusBadgeSnoozed,
+                  dueForReview && styles.statusBadgeAttention,
+                ]}>
+                  <AppIcon color={statusColor} name={statusIcon} size={13} />
+                  <Text style={[
+                    styles.statusBadgeText,
+                    dose.status === 'taken' && styles.statusBadgeTextTaken,
+                    dose.status === 'skipped' && styles.statusBadgeTextSkipped,
+                    dose.status === 'snoozed' && styles.statusBadgeTextSnoozed,
+                    dueForReview && styles.statusBadgeTextAttention,
+                  ]}>
+                    {t(dose.status === 'taken' ? 'dose.taken' : dose.status === 'skipped' ? 'dose.skipped' : dose.status === 'snoozed' ? 'dose.snooze' : 'dose.notRecorded')}
+                  </Text>
+                </View>
               </View>
+
               <View style={styles.doseCopy}>
                 <Text accessible={false} style={styles.medicine}>{dose.medicationName}</Text>
-                <Text accessible={false} style={styles.details}>{doseLine(dose)}</Text>
-                <Text accessible={false} style={[styles.status, dose.status === 'taken' && styles.statusTaken, dose.status === 'skipped' && styles.statusSkipped, dose.status === 'snoozed' && styles.statusSnoozed]}>{statusCopy(dose, localeTag, t)}</Text>
+                <View style={styles.detailsRow}>
+                  <AppIcon color={colors.muted} name="pill" size={14} />
+                  <Text accessible={false} style={styles.details}>{doseLine(dose)}</Text>
+                </View>
+                {terminal || dose.status === 'snoozed' ? (
+                  <Text accessible={false} style={[styles.statusLine, dose.status === 'taken' && styles.statusLineTaken, dose.status === 'snoozed' && styles.statusLineSnoozed]}>
+                    {statusCopy(dose, localeTag, t)}
+                  </Text>
+                ) : null}
               </View>
             </View>
+
             {!terminal ? (
               <View style={[styles.actions, largeText && styles.actionsLarge]}>
-                <Pressable accessibilityLabel={t('dose.recordTitle', { medicine: dose.medicationName, status: t('dose.taken') })} accessibilityRole="button" accessibilityState={{ busy, disabled: busy }} disabled={busy} onPress={() => record({ occurrence: dose, kind: 'taken' })} style={({ pressed }) => [styles.primaryAction, largeText && styles.actionLarge, pressed && styles.pressed, busy && styles.disabled]}><AppIcon color={colors.white} name="check" size={18} /><Text style={styles.primaryLabel}>{t(busy ? 'dose.saving' : 'dose.taken')}</Text></Pressable>
-                <Pressable accessibilityLabel={t('dose.recordTitle', { medicine: dose.medicationName, status: t('dose.skipped') })} accessibilityRole="button" accessibilityState={{ busy, disabled: busy }} disabled={busy} onPress={() => record({ occurrence: dose, kind: 'skipped' })} style={({ pressed }) => [styles.secondaryAction, largeText && styles.actionLarge, pressed && styles.pressed, busy && styles.disabled]}><AppIcon color={colors.ink} name="minus" size={18} /><Text style={styles.secondaryLabel}>{t('dose.skip')}</Text></Pressable>
-                <Pressable accessibilityLabel={t('dose.snoozeTitle', { medicine: dose.medicationName, patient: patient.displayName })} accessibilityRole="button" accessibilityState={{ busy, disabled: busy }} disabled={busy} onPress={() => snooze(dose)} style={({ pressed }) => [styles.secondaryAction, largeText && styles.actionLarge, pressed && styles.pressed, busy && styles.disabled]}><AppIcon color={colors.ink} name="clock-3" size={18} /><Text style={styles.secondaryLabel}>{t('dose.snooze')}</Text></Pressable>
+                <Pressable accessibilityLabel={t('dose.recordTitle', { medicine: dose.medicationName, status: t('dose.taken') })} accessibilityRole="button" accessibilityState={{ busy, disabled: busy }} disabled={busy} onPress={() => record({ occurrence: dose, kind: 'taken' })} style={({ pressed }) => [styles.primaryAction, largeText && styles.actionLarge, pressed && styles.pressed, busy && styles.disabled]}>
+                  <AppIcon color={colors.white} name="check" size={17} />
+                  <Text style={styles.primaryLabel}>{t(busy ? 'dose.saving' : 'dose.taken')}</Text>
+                </Pressable>
+                <Pressable accessibilityLabel={t('dose.recordTitle', { medicine: dose.medicationName, status: t('dose.skipped') })} accessibilityRole="button" accessibilityState={{ busy, disabled: busy }} disabled={busy} onPress={() => record({ occurrence: dose, kind: 'skipped' })} style={({ pressed }) => [styles.secondaryAction, largeText && styles.actionLarge, pressed && styles.pressed, busy && styles.disabled]}>
+                  <AppIcon color={colors.ink} name="minus" size={17} />
+                  <Text style={styles.secondaryLabel}>{t('dose.skip')}</Text>
+                </Pressable>
+                <Pressable accessibilityLabel={t('dose.snoozeTitle', { medicine: dose.medicationName, patient: patient.displayName })} accessibilityRole="button" accessibilityState={{ busy, disabled: busy }} disabled={busy} onPress={() => snooze(dose)} style={({ pressed }) => [styles.secondaryAction, largeText && styles.actionLarge, pressed && styles.pressed, busy && styles.disabled]}>
+                  <AppIcon color={colors.ink} name="clock-3" size={17} />
+                  <Text style={styles.secondaryLabel}>{t('dose.snooze')}</Text>
+                </Pressable>
               </View>
             ) : (
-              <Pressable accessibilityLabel={`${t('dose.correctRecord')}: ${dose.medicationName}`} accessibilityRole="button" onPress={() => openCorrection(dose)} style={({ pressed }) => [styles.correctAction, largeText && styles.actionLarge, pressed && styles.pressed]}>
-                <AppIcon color={colors.primaryDark} name="pencil" size={17} />
+              <Pressable accessibilityLabel={`${t('dose.correctRecord')}: ${dose.medicationName}`} accessibilityRole="button" onPress={() => openCorrection(dose)} style={({ pressed }) => [styles.correctAction, pressed && styles.pressed]}>
+                <AppIcon color={colors.primaryDark} name="pencil" size={15} />
                 <Text style={styles.correctLabel}>{t('dose.correctRecord')}</Text>
               </Pressable>
             )}
+
             {mutation.error && mutation.variables?.occurrence.id === dose.id ? (
               <View style={styles.actionError}>
                 <Text accessibilityLiveRegion="assertive" style={styles.error}>{errorMessage(mutation.error)}</Text>
@@ -233,6 +281,7 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
         <SafeAreaView style={styles.modalBackdrop}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalKeyboard}>
             <View accessibilityViewIsModal style={styles.correctionSheet}>
+              <View style={styles.sheetHandle} />
               <Text accessibilityRole="header" style={styles.correctionTitle}>{t('dose.correctTitle')}</Text>
               <Text style={styles.correctionBody}>
                 {correcting ? t('dose.correctBody', { medicine: correcting.medicationName, dose: doseLine(correcting), patient: patient.displayName }) : ''}
@@ -271,65 +320,194 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   stack: { gap: spacing.md },
-  skeleton: { height: 142, borderRadius: radii.md, backgroundColor: colors.mist },
+  skeleton: { height: 142, borderRadius: radii.lg, backgroundColor: colors.mist },
   messageCard: { gap: spacing.sm, borderWidth: 1, borderColor: colors.line, borderRadius: radii.lg, backgroundColor: colors.white, padding: spacing.lg },
   messageTitle: { color: colors.ink, fontSize: 19, fontWeight: '800' },
   messageBody: { color: colors.muted, fontSize: 15, lineHeight: 22 },
   retry: { minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.ink, marginTop: spacing.sm, paddingHorizontal: spacing.lg },
   retryLabel: { color: colors.white, fontSize: 15, fontWeight: '800' },
-  notice: { borderRadius: radii.md, backgroundColor: colors.successTint, padding: spacing.md },
-  noticeText: { color: colors.successDark, fontSize: 14, fontWeight: '700' },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: radii.md,
+    backgroundColor: colors.successTint,
+    padding: spacing.md,
+  },
+  noticeText: { flex: 1, color: colors.successDark, fontSize: 14, fontWeight: '700' },
   error: { color: colors.error, fontSize: 14, fontWeight: '700' },
-  list: { overflow: 'hidden', borderWidth: 1, borderColor: colors.line, borderRadius: radii.md, backgroundColor: colors.white },
-  doseCard: { gap: spacing.md, padding: spacing.md },
-  doseCardAttention: { backgroundColor: colors.warningTint },
-  doseCardFocused: { backgroundColor: colors.primaryTint },
-  doseCardBorder: { borderBottomWidth: 1, borderBottomColor: colors.line },
-  doseTop: { flexDirection: 'row', gap: spacing.md },
-  doseTopLarge: { flexDirection: 'column', gap: spacing.sm },
-  timeBlock: { width: 82, alignItems: 'flex-start', gap: spacing.sm },
-  timeBlockLarge: { width: '100%', flexDirection: 'row', alignItems: 'center' },
-  time: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  statusIcon: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: colors.mist },
-  statusIconTaken: { backgroundColor: colors.successTint },
-  statusIconSnoozed: { backgroundColor: colors.primaryTint },
-  statusIconAttention: { backgroundColor: colors.warningTint },
-  doseCopy: { flex: 1 },
-  medicine: { color: colors.ink, fontSize: 20, fontWeight: '800' },
-  details: { marginTop: spacing.xs, color: colors.muted, fontSize: 15 },
-  status: { alignSelf: 'flex-start', marginTop: spacing.sm, color: colors.warning, fontSize: 13, fontWeight: '800' },
-  statusTaken: { color: colors.successDark },
-  statusSkipped: { color: colors.muted },
-  statusSnoozed: { color: colors.primaryDark },
+  list: { gap: spacing.md },
+  doseCard: {
+    gap: spacing.md,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+  },
+  doseCardAttention: {
+    backgroundColor: colors.warningTint,
+    borderColor: colors.warning,
+  },
+  doseCardFocused: {
+    backgroundColor: colors.primaryTint,
+    borderColor: colors.primary,
+  },
+  doseTop: { gap: spacing.sm },
+  doseTopLarge: { gap: spacing.sm },
+  doseHeaderRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  timePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: radii.full,
+    backgroundColor: colors.mist,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  time: { color: colors.ink, fontSize: 14, fontWeight: '800' },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: radii.full,
+    backgroundColor: colors.mist,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statusBadgeTaken: { backgroundColor: colors.successTint },
+  statusBadgeSkipped: { backgroundColor: colors.mist },
+  statusBadgeSnoozed: { backgroundColor: colors.primaryTint },
+  statusBadgeAttention: { backgroundColor: colors.warningTint },
+  statusBadgeText: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  statusBadgeTextTaken: { color: colors.successDark },
+  statusBadgeTextSkipped: { color: colors.muted },
+  statusBadgeTextSnoozed: { color: colors.primaryDark },
+  statusBadgeTextAttention: { color: colors.warning },
+  doseCopy: { gap: 4 },
+  medicine: { color: colors.ink, fontSize: 21, fontWeight: '900', letterSpacing: -0.3 },
+  detailsRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  details: { color: colors.muted, fontSize: 15, fontWeight: '600' },
+  statusLine: {
+    marginTop: spacing.xs,
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  statusLineTaken: { color: colors.successDark },
+  statusLineSnoozed: { color: colors.primaryDark },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   actionsLarge: { flexDirection: 'column' },
   actionLarge: { width: '100%', flex: 0 },
-  primaryAction: { minHeight: 48, minWidth: 112, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radii.sm, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
+  primaryAction: {
+    minHeight: 48,
+    minWidth: 105,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: radii.md,
+    backgroundColor: colors.ink,
+    paddingHorizontal: spacing.md,
+  },
   primaryLabel: { color: colors.white, fontSize: 15, fontWeight: '800' },
-  secondaryAction: { minHeight: 48, minWidth: 96, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: colors.line, borderRadius: radii.sm, backgroundColor: colors.white, paddingHorizontal: spacing.md },
+  secondaryAction: {
+    minHeight: 48,
+    minWidth: 90,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+  },
   secondaryLabel: { color: colors.ink, fontSize: 15, fontWeight: '800' },
   pressed: { opacity: 0.78 },
   disabled: { opacity: 0.48 },
-  correctAction: { minHeight: 48, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: spacing.sm },
-  correctLabel: { color: colors.primaryDark, fontSize: 15, fontWeight: '800' },
+  correctAction: {
+    minHeight: 48,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: radii.full,
+    backgroundColor: colors.mist,
+    paddingHorizontal: 14,
+  },
+  correctLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
   actionError: { gap: spacing.xs, borderRadius: radii.sm, backgroundColor: colors.errorTint, padding: spacing.sm },
   retryInline: { minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: spacing.sm },
   retryInlineLabel: { color: colors.error, fontSize: 15, fontWeight: '800' },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
   modalKeyboard: { flex: 1, justifyContent: 'flex-end' },
-  correctionSheet: { gap: spacing.md, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, backgroundColor: colors.canvas, padding: spacing.lg, paddingBottom: spacing.xl },
-  correctionTitle: { color: colors.ink, fontSize: 24, fontWeight: '800' },
-  correctionBody: { color: colors.muted, fontSize: 16, lineHeight: 24 },
+  correctionSheet: {
+    gap: spacing.md,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    backgroundColor: colors.canvas,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.controlBorder,
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
+  correctionTitle: { color: colors.ink, fontSize: 24, fontWeight: '900', letterSpacing: -0.4 },
+  correctionBody: { color: colors.muted, fontSize: 15, lineHeight: 22 },
   correctionChoices: { flexDirection: 'row', gap: spacing.sm },
-  correctionChoice: { minHeight: 48, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white },
+  correctionChoice: {
+    minHeight: 48,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.controlBorder,
+    borderRadius: radii.md,
+    backgroundColor: colors.white,
+  },
   correctionChoiceSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
-  correctionChoiceLabel: { color: colors.muted, fontSize: 16, fontWeight: '700' },
-  correctionChoiceLabelSelected: { color: colors.primaryDark },
-  correctionLabel: { color: colors.ink, fontSize: 15, fontWeight: '700' },
-  correctionInput: { minHeight: 96, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, color: colors.ink, fontSize: 16, padding: spacing.md, textAlignVertical: 'top' },
+  correctionChoiceLabel: { color: colors.muted, fontSize: 15, fontWeight: '700' },
+  correctionChoiceLabelSelected: { color: colors.primaryDark, fontWeight: '900' },
+  correctionLabel: { color: colors.ink, fontSize: 14, fontWeight: '700' },
+  correctionInput: {
+    minHeight: 96,
+    borderWidth: 1,
+    borderColor: colors.controlBorder,
+    borderRadius: radii.md,
+    backgroundColor: colors.white,
+    color: colors.ink,
+    fontSize: 16,
+    padding: spacing.md,
+    textAlignVertical: 'top',
+  },
   correctionActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   correctionCancel: { minHeight: 52, minWidth: 110, flex: 1, alignItems: 'center', justifyContent: 'center' },
-  correctionCancelLabel: { color: colors.primaryDark, fontSize: 16, fontWeight: '800' },
-  correctionSave: { minHeight: 52, minWidth: 170, flex: 2, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
-  correctionSaveLabel: { color: colors.white, fontSize: 16, fontWeight: '800' },
+  correctionCancelLabel: { color: colors.primaryDark, fontSize: 15, fontWeight: '800' },
+  correctionSave: {
+    minHeight: 52,
+    minWidth: 170,
+    flex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.md,
+    backgroundColor: colors.ink,
+    paddingHorizontal: spacing.md,
+  },
+  correctionSaveLabel: { color: colors.white, fontSize: 15, fontWeight: '800' },
 });

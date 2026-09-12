@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 
+import { AppIcon } from '../../components/AppIcon';
 import { apiRequest, errorMessage } from '../../lib/api';
 import { useCurrentTime } from '../../lib/useCurrentTime';
-import { spacing, type AppColors } from '../../theme/tokens';
+import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
@@ -106,20 +107,25 @@ export function ReminderControl({ patient }: { patient: Patient }) {
 
   return (
     <View style={styles.card}>
-      <View style={styles.copy}>
-        <Text style={styles.title}>{t('reminders.title')}</Text>
-        <Text style={styles.body}>{t(enabled && permission ? 'reminders.onBody' : 'reminders.offBody')}</Text>
-      </View>
-      <View style={[styles.switchTarget, (!ready || saving) && styles.disabled]}>
-        <Switch
-          accessibilityLabel={t('reminders.label', { patient: patient.displayName })}
-          accessibilityState={{ busy: saving, disabled: !ready || saving }}
-          disabled={!ready || saving}
-          onValueChange={(value) => void (value ? enable() : disable())}
-          thumbColor={enabled && permission ? colors.white : colors.muted}
-          trackColor={{ false: colors.mist, true: colors.success }}
-          value={enabled && permission}
-        />
+      <View style={styles.headerRow}>
+        <View style={styles.iconWrap}>
+          <AppIcon color={colors.primaryDark} name="bell" size={18} />
+        </View>
+        <View style={styles.copy}>
+          <Text style={styles.title}>{t('reminders.title')}</Text>
+          <Text style={styles.body}>{t(enabled && permission ? 'reminders.onBody' : 'reminders.offBody')}</Text>
+        </View>
+        <View style={[styles.switchTarget, (!ready || saving) && styles.disabled]}>
+          <Switch
+            accessibilityLabel={t('reminders.label', { patient: patient.displayName })}
+            accessibilityState={{ busy: saving, disabled: !ready || saving }}
+            disabled={!ready || saving}
+            onValueChange={(value) => void (value ? enable() : disable())}
+            thumbColor={enabled && permission ? colors.white : colors.muted}
+            trackColor={{ false: colors.mist, true: colors.success }}
+            value={enabled && permission}
+          />
+        </View>
       </View>
       {query.isFetching ? <Text accessibilityLiveRegion="polite" style={styles.status}>{t('reminders.refreshing')}</Text> : null}
       {query.error || syncError ? <Text accessibilityLiveRegion="assertive" style={styles.error}>{syncError || errorMessage(query.error)}</Text> : null}
@@ -129,15 +135,31 @@ export function ReminderControl({ patient }: { patient: Patient }) {
 }
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
-  card: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.md },
-  copy: { minWidth: 210, flex: 1 },
-  title: { color: colors.ink, fontSize: 17, fontWeight: '800' },
-  body: { marginTop: 3, color: colors.muted, fontSize: 13, lineHeight: 19 },
-  status: { width: '100%', color: colors.successDark, fontSize: 13, fontWeight: '700' },
-  error: { width: '100%', color: colors.error, fontSize: 13, fontWeight: '700' },
-  switchTarget: { minWidth: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  card: {
+    gap: spacing.sm,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  iconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: radii.full,
+    backgroundColor: colors.primaryTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  copy: { flex: 1, gap: 2 },
+  title: { color: colors.ink, fontSize: 16, fontWeight: '800' },
+  body: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  status: { width: '100%', color: colors.successDark, fontSize: 12, fontWeight: '700', marginTop: 4 },
+  error: { width: '100%', color: colors.error, fontSize: 12, fontWeight: '700', marginTop: 4 },
+  switchTarget: { minWidth: 52, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.76 },
   disabled: { opacity: 0.5 },
-  settings: { width: '100%', minHeight: 48, alignItems: 'flex-start', justifyContent: 'center' },
-  settingsLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  settings: { width: '100%', minHeight: 48, alignItems: 'flex-start', justifyContent: 'center', marginTop: 4 },
+  settingsLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
 });

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../components/AppIcon';
-import { spacing, type AppColors } from '../../theme/tokens';
+import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import { HomeScreen } from '../home/HomeScreen';
@@ -30,7 +31,11 @@ function routeFromUrl(value: string): ReminderRoute | null {
 function TabIcon({ selected, tab }: { selected: boolean; tab: Tab }) {
   const { colors, styles } = useThemedStyles(createStyles);
   const icon = tab === 'home' ? 'house' : tab === 'today' ? 'calendar-days' : 'pill';
-  return <View style={[styles.tabIcon, selected && styles.tabIconSelected]}><AppIcon color={selected ? colors.primaryDark : colors.muted} name={icon} size={22} /></View>;
+  return (
+    <View style={[styles.tabIcon, selected && styles.tabIconSelected]}>
+      <AppIcon color={selected ? colors.primaryDark : colors.muted} name={icon} size={20} />
+    </View>
+  );
 }
 
 export function MainTabs() {
@@ -43,6 +48,7 @@ export function MainTabs() {
   const previousPatientId = useRef<string | undefined>(undefined);
   const settingsOrigin = useRef<Tab>('home');
   const { fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { activePatient, selectPatient } = usePatient();
 
   const openReminder = (route: ReminderRoute) => {
@@ -108,20 +114,47 @@ export function MainTabs() {
               ? <MedicinesScreen onOpenSettings={openSettings} />
               : <SettingsScreen accountName={session?.displayName} onBack={() => setTab(settingsOrigin.current)} onSignOut={() => void signOut()} />}
       </View>
-      {tab !== 'settings' ? <View accessibilityRole="tablist" style={[styles.nav, fontScale > 1.3 && styles.navLarge]}>
-        <Pressable accessibilityLabel={t('nav.home')} accessibilityRole="tab" accessibilityState={{ selected: tab === 'home' }} onPress={() => setTab('home')} style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
-          <TabIcon selected={tab === 'home'} tab="home" />
-          <Text style={[styles.label, tab === 'home' && styles.labelSelected]}>{t('nav.home')}</Text>
-        </Pressable>
-        <Pressable accessibilityLabel={t('nav.today')} accessibilityRole="tab" accessibilityState={{ selected: tab === 'today' }} onPress={() => setTab('today')} style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
-          <TabIcon selected={tab === 'today'} tab="today" />
-          <Text style={[styles.label, tab === 'today' && styles.labelSelected]}>{t('nav.today')}</Text>
-        </Pressable>
-        <Pressable accessibilityLabel={t('nav.medicines')} accessibilityRole="tab" accessibilityState={{ selected: tab === 'medicines' }} onPress={() => setTab('medicines')} style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
-          <TabIcon selected={tab === 'medicines'} tab="medicines" />
-          <Text style={[styles.label, tab === 'medicines' && styles.labelSelected]}>{t('nav.medicines')}</Text>
-        </Pressable>
-      </View> : null}
+      {tab !== 'settings' ? (
+        <View
+          accessibilityRole="tablist"
+          style={[
+            styles.nav,
+            fontScale > 1.3 && styles.navLarge,
+            { paddingBottom: Math.max(insets.bottom, 6) },
+          ]}
+        >
+          <Pressable
+            accessibilityLabel={t('nav.home')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === 'home' }}
+            onPress={() => setTab('home')}
+            style={({ pressed }) => [styles.tab, pressed && styles.pressed]}
+          >
+            <TabIcon selected={tab === 'home'} tab="home" />
+            <Text style={[styles.label, tab === 'home' && styles.labelSelected]}>{t('nav.home')}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel={t('nav.today')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === 'today' }}
+            onPress={() => setTab('today')}
+            style={({ pressed }) => [styles.tab, pressed && styles.pressed]}
+          >
+            <TabIcon selected={tab === 'today'} tab="today" />
+            <Text style={[styles.label, tab === 'today' && styles.labelSelected]}>{t('nav.today')}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel={t('nav.medicines')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === 'medicines' }}
+            onPress={() => setTab('medicines')}
+            style={({ pressed }) => [styles.tab, pressed && styles.pressed]}
+          >
+            <TabIcon selected={tab === 'medicines'} tab="medicines" />
+            <Text style={[styles.label, tab === 'medicines' && styles.labelSelected]}>{t('nav.medicines')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -129,12 +162,35 @@ export function MainTabs() {
 const createStyles = (colors: AppColors) => StyleSheet.create({
   shell: { flex: 1, backgroundColor: colors.canvas },
   content: { flex: 1 },
-  nav: { minHeight: 68, flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.white, paddingBottom: 3, paddingHorizontal: spacing.sm, paddingTop: 5 },
-  navLarge: { minHeight: 80 },
-  tab: { flex: 1, minHeight: 58, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 10 },
-  pressed: { opacity: 0.72 },
-  tabIcon: { width: 42, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14 },
+  nav: {
+    minHeight: 70,
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    backgroundColor: colors.white,
+    paddingBottom: 6,
+    paddingHorizontal: spacing.md,
+    paddingTop: 6,
+  },
+  navLarge: { minHeight: 84 },
+  tab: {
+    flex: 1,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    borderRadius: radii.md,
+  },
+  pressed: { opacity: 0.75 },
+  tabIcon: {
+    width: 48,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.full,
+  },
   tabIconSelected: { backgroundColor: colors.primaryTint },
-  label: { color: colors.muted, fontSize: 13, fontWeight: '700' },
+  label: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   labelSelected: { color: colors.primaryDark, fontWeight: '900' },
 });
+

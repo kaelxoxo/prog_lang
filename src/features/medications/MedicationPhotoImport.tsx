@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 
+import { AppIcon } from '../../components/AppIcon';
 import { apiRequest, errorMessage } from '../../lib/api';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
@@ -20,7 +21,7 @@ export function MedicationPhotoImport({
   onReview: (draft: MedicationOcrDraft) => void;
   patient: Patient;
 }) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
   const { token } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [sourceKind, setSourceKind] = useState<SourceKind>('timetable_photo');
@@ -103,13 +104,26 @@ export function MedicationPhotoImport({
   };
 
   return (
-    <View style={styles.section}>
+    <View style={styles.card}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setExpanded((current) => !current)} style={({ pressed }) => [styles.toggle, pressed && styles.pressed]}>
-        <View style={styles.heading}>
-          <Text style={styles.title}>Import from synthetic photo</Text>
-          <Text style={styles.summary}>Experimental local OCR & multi-medicine import</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.iconWrap}>
+            <AppIcon color={colors.primaryDark} name="camera" size={18} />
+          </View>
+          <View style={styles.heading}>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>Import from synthetic photo</Text>
+              <View style={styles.experimentalBadge}>
+                <Text style={styles.experimentalText}>Experimental</Text>
+              </View>
+            </View>
+            <Text style={styles.summary}>Local OCR & multi-medicine draft extraction</Text>
+          </View>
         </View>
-        <Text style={styles.toggleLabel}>{expanded ? 'Close' : 'Try'}</Text>
+        <View style={styles.togglePill}>
+          <Text style={styles.toggleLabel}>{expanded ? 'Close' : 'Try'}</Text>
+          <AppIcon color={colors.primaryDark} name={expanded ? 'chevron-up' : 'chevron-down'} size={15} />
+        </View>
       </Pressable>
       {expanded ? (
         <View style={styles.content}>
@@ -130,6 +144,7 @@ export function MedicationPhotoImport({
             ))}
           </View>
           <Pressable accessibilityRole="button" disabled={ocrMutation.isPending} onPress={() => void chooseImage()} style={({ pressed }) => [styles.chooseButton, pressed && styles.chooseButtonPressed, ocrMutation.isPending && styles.disabled]}>
+            <AppIcon color={colors.white} name="image" size={18} />
             <Text style={styles.chooseLabel}>{ocrMutation.isPending ? 'Reading image locally...' : 'Choose synthetic image'}</Text>
           </Pressable>
 
@@ -142,7 +157,9 @@ export function MedicationPhotoImport({
                 <Text accessibilityRole="header" style={styles.resultTitle}>
                   {drafts.length > 1 ? `${drafts.length} medicines found` : 'Draft text found'}
                 </Text>
-                <Text style={styles.confidence}>{activeDraft.confidence}% OCR confidence</Text>
+                <View style={styles.confidenceBadge}>
+                  <Text style={styles.confidence}>{activeDraft.confidence}% OCR confidence</Text>
+                </View>
               </View>
 
               {drafts.length > 1 ? (
@@ -223,52 +240,110 @@ export function MedicationPhotoImport({
 }
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
-  section: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line },
-  toggle: { minHeight: 62, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.sm },
+  card: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+  },
+  toggle: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  headerRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.full,
+    backgroundColor: colors.primaryTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   heading: { flex: 1, gap: 2 },
-  title: { color: colors.ink, fontSize: 17, fontWeight: '800' },
-  summary: { color: colors.muted, fontSize: 13 },
-  toggleLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
-  content: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.md },
-  body: { maxWidth: 560, color: colors.muted, fontSize: 14, lineHeight: 21 },
+  titleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  title: { color: colors.ink, fontSize: 16, fontWeight: '800' },
+  experimentalBadge: {
+    borderRadius: radii.full,
+    backgroundColor: colors.warningTint,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  experimentalText: { color: colors.warning, fontSize: 11, fontWeight: '800' },
+  summary: { color: colors.muted, fontSize: 12 },
+  togglePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: radii.full,
+    backgroundColor: colors.primaryTint,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  toggleLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
+  content: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, marginTop: spacing.md, paddingTop: spacing.md },
+  body: { maxWidth: 560, color: colors.muted, fontSize: 13, lineHeight: 19 },
   sourceChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  sourceChoice: { minHeight: 48, minWidth: 150, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.sm, backgroundColor: colors.white, paddingHorizontal: spacing.sm },
+  sourceChoice: {
+    minHeight: 48,
+    minWidth: 140,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.full,
+    backgroundColor: colors.canvas,
+    paddingHorizontal: spacing.md,
+  },
   sourceChoiceSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
-  sourceLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+  sourceLabel: { color: colors.muted, fontSize: 13, fontWeight: '700' },
   sourceLabelSelected: { color: colors.primaryDark, fontWeight: '900' },
-  chooseButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
+  chooseButton: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: radii.full,
+    backgroundColor: colors.ink,
+    paddingHorizontal: spacing.lg,
+  },
   chooseButtonPressed: { opacity: 0.82 },
-  chooseLabel: { color: colors.white, fontSize: 15, fontWeight: '800' },
+  chooseLabel: { color: colors.white, fontSize: 14, fontWeight: '800' },
   disabled: { opacity: 0.58 },
   preview: { width: '100%', height: 180, borderRadius: radii.md, backgroundColor: colors.mist },
   error: { color: colors.error, fontSize: 14, lineHeight: 20 },
-  result: { gap: spacing.md, borderRadius: radii.lg, backgroundColor: colors.warningTint, padding: spacing.md },
+  result: { gap: spacing.md, borderRadius: radii.md, backgroundColor: colors.warningTint, padding: spacing.md },
   multiSelector: { gap: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.line, paddingBottom: spacing.sm },
   multiSelectorHeading: { color: colors.ink, fontSize: 13, fontWeight: '800' },
   multiPills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  multiPill: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  multiPill: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.line, borderRadius: radii.full, backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   multiPillSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
   multiPillReviewed: { borderColor: colors.successDark, backgroundColor: colors.successTint },
-  multiPillIndex: { color: colors.muted, fontSize: 13, fontWeight: '800' },
+  multiPillIndex: { color: colors.muted, fontSize: 12, fontWeight: '800' },
   multiPillIndexSelected: { color: colors.primaryDark, fontWeight: '900' },
   multiPillIndexReviewed: { color: colors.successDark, fontWeight: '900' },
-  multiPillText: { maxWidth: 160, color: colors.ink, fontSize: 13, fontWeight: '700' },
+  multiPillText: { maxWidth: 160, color: colors.ink, fontSize: 12, fontWeight: '700' },
   multiPillTextSelected: { color: colors.primaryDark, fontWeight: '900' },
   multiPillTextReviewed: { color: colors.successDark, fontWeight: '800' },
   timingClarificationBox: { gap: 4, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primaryTint, padding: spacing.sm },
-  timingClarificationHeading: { color: colors.primaryDark, fontSize: 13, fontWeight: '900' },
-  timingClarificationText: { color: colors.ink, fontSize: 14, lineHeight: 20 },
-  resultHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.sm },
-  resultTitle: { color: colors.ink, fontSize: 20, fontWeight: '900' },
-  confidence: { color: colors.warning, fontSize: 13, fontWeight: '800' },
-  warning: { color: colors.warning, fontSize: 14, lineHeight: 21 },
+  timingClarificationHeading: { color: colors.primaryDark, fontSize: 12, fontWeight: '900' },
+  timingClarificationText: { color: colors.ink, fontSize: 13, lineHeight: 19 },
+  resultHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  resultTitle: { color: colors.ink, fontSize: 18, fontWeight: '900' },
+  confidenceBadge: {
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  confidence: { color: colors.warning, fontSize: 12, fontWeight: '800' },
+  warning: { color: colors.warning, fontSize: 13, lineHeight: 20 },
   rawText: { gap: spacing.xs, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
-  rawLabel: { color: colors.muted, fontSize: 13, fontWeight: '800' },
-  rawValue: { color: colors.ink, fontSize: 15, lineHeight: 22 },
+  rawLabel: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  rawValue: { color: colors.ink, fontSize: 14, lineHeight: 20 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  discardButton: { minHeight: 52, minWidth: 110, flex: 1, alignItems: 'center', justifyContent: 'center' },
-  discardLabel: { color: colors.primaryDark, fontSize: 15, fontWeight: '800' },
-  reviewButton: { minHeight: 52, minWidth: 190, flex: 2, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
-  reviewLabel: { color: colors.white, fontSize: 15, fontWeight: '800' },
+  discardButton: { minHeight: 48, minWidth: 100, flex: 1, alignItems: 'center', justifyContent: 'center' },
+  discardLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  reviewButton: { minHeight: 48, minWidth: 180, flex: 2, alignItems: 'center', justifyContent: 'center', borderRadius: radii.full, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
+  reviewLabel: { color: colors.white, fontSize: 14, fontWeight: '800' },
   pressed: { opacity: 0.72 },
 });

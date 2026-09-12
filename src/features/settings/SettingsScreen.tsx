@@ -32,14 +32,19 @@ export function SettingsScreen({ accountName, onBack, onSignOut }: Props) {
     <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.column}>
         <Pressable accessibilityLabel={t('settings.back')} accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
-          <AppIcon color={colors.primaryDark} name="arrow-left" size={20} />
+          <AppIcon color={colors.primaryDark} name="arrow-left" size={18} />
           <Text style={styles.backLabel}>{t('settings.back')}</Text>
         </Pressable>
         <Text accessibilityRole="header" style={styles.title}>{t('settings.title')}</Text>
 
-        <View style={styles.section}>
+        <View style={styles.card}>
           <View style={styles.sectionCopy}>
-            <View style={styles.sectionHeading}><AppIcon color={colors.ink} name="languages" size={21} /><Text accessibilityRole="header" style={styles.sectionTitle}>{t('settings.language')}</Text></View>
+            <View style={styles.sectionHeading}>
+              <View style={styles.iconWrap}>
+                <AppIcon color={colors.primaryDark} name="languages" size={18} />
+              </View>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>{t('settings.language')}</Text>
+            </View>
             <Text style={styles.body}>{t('settings.languageBody')}</Text>
           </View>
           <View accessibilityRole="radiogroup" style={styles.options}>
@@ -66,20 +71,28 @@ export function SettingsScreen({ accountName, onBack, onSignOut }: Props) {
           {error ? <Text accessibilityLiveRegion="assertive" style={styles.error}>{t('settings.saveError')}</Text> : null}
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.card}>
           <View style={styles.sectionCopy}>
-            <View style={styles.sectionHeading}><AppIcon color={colors.ink} name="user-round" size={21} /><Text accessibilityRole="header" style={styles.sectionTitle}>{t('settings.account')}</Text></View>
+            <View style={styles.sectionHeading}>
+              <View style={styles.iconWrap}>
+                <AppIcon color={colors.primaryDark} name="user-round" size={18} />
+              </View>
+              <Text accessibilityRole="header" style={styles.sectionTitle}>{t('settings.account')}</Text>
+            </View>
             <Text style={styles.body}>{t('settings.signedInAs', { name: accountName ?? '' })}</Text>
           </View>
           <Pressable accessibilityLabel={t('care.signOut')} accessibilityRole="button" onPress={onSignOut} style={({ pressed }) => [styles.signOutButton, pressed && styles.pressed]}>
-            <AppIcon color={colors.error} name="log-out" size={20} />
+            <AppIcon color={colors.error} name="log-out" size={18} />
             <View style={styles.signOutCopy}><Text style={styles.signOutLabel}>{t('care.signOut')}</Text><Text style={styles.signOutBody}>{t('settings.signOutBody')}</Text></View>
           </Pressable>
         </View>
 
-        <View style={styles.coverage}>
-          <AppIcon color={colors.muted} name="info" size={19} />
-          <View style={styles.coverageCopy}><Text style={styles.coverageTitle}>{t('settings.coverageTitle')}</Text><Text style={styles.body}>{t('settings.coverageBody')}</Text></View>
+        <View style={styles.coverageCard}>
+          <AppIcon color={colors.muted} name="info" size={18} />
+          <View style={styles.coverageCopy}>
+            <Text style={styles.coverageTitle}>{t('settings.coverageTitle')}</Text>
+            <Text style={styles.coverageBody}>{t('settings.coverageBody')}</Text>
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -88,32 +101,79 @@ export function SettingsScreen({ accountName, onBack, onSignOut }: Props) {
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   screen: { flexGrow: 1, paddingBottom: spacing.xl, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.canvas },
-  column: { width: '100%', maxWidth: 760, alignSelf: 'center', gap: spacing.lg },
-  back: { minHeight: 48, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radii.sm, paddingHorizontal: spacing.sm },
-  backLabel: { color: colors.primaryDark, fontSize: 15, fontWeight: '800' },
+  column: { width: '100%', maxWidth: 760, alignSelf: 'center', gap: spacing.md },
+  back: {
+    minHeight: 48,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 14,
+  },
+  backLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
   pressed: { opacity: 0.72 },
-  title: { color: colors.ink, fontSize: 30, fontWeight: '900', letterSpacing: -0.6 },
-  section: { gap: spacing.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.lg },
+  title: { color: colors.ink, fontSize: 28, fontWeight: '900', letterSpacing: -0.6 },
+  card: {
+    gap: spacing.md,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+  },
   sectionCopy: { gap: spacing.xs },
   sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  sectionTitle: { color: colors.ink, fontSize: 20, fontWeight: '800' },
-  body: { maxWidth: 620, color: colors.muted, fontSize: 15, lineHeight: 22 },
+  iconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.full,
+    backgroundColor: colors.primaryTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },
+  body: { maxWidth: 620, color: colors.muted, fontSize: 14, lineHeight: 20 },
   options: { gap: spacing.sm },
-  option: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  optionSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
+  option: {
+    minHeight: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    backgroundColor: colors.canvas,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  optionSelected: { borderColor: colors.primary, backgroundColor: colors.white },
   radio: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.controlBorder, borderRadius: 11 },
   radioSelected: { borderColor: colors.primary },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
   optionCopy: { flex: 1, gap: 2 },
-  optionLabel: { color: colors.ink, fontSize: 17, fontWeight: '700' },
-  optionLabelSelected: { color: colors.primaryDark, fontWeight: '900' },
-  saved: { color: colors.primaryDark, fontSize: 13, fontWeight: '700' },
+  optionLabel: { color: colors.ink, fontSize: 16, fontWeight: '700' },
+  optionLabelSelected: { color: colors.primaryDark, fontWeight: '800' },
+  saved: { color: colors.primaryDark, fontSize: 12, fontWeight: '700' },
   error: { color: colors.error, fontSize: 14, fontWeight: '700' },
-  signOutButton: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radii.md, backgroundColor: colors.errorTint, padding: spacing.md },
+  signOutButton: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radii.md, backgroundColor: colors.errorTint, padding: spacing.md },
   signOutCopy: { flex: 1, gap: 2 },
-  signOutLabel: { color: colors.error, fontSize: 16, fontWeight: '800' },
-  signOutBody: { color: colors.error, fontSize: 13, lineHeight: 19 },
-  coverage: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingTop: spacing.sm },
+  signOutLabel: { color: colors.error, fontSize: 15, fontWeight: '800' },
+  signOutBody: { color: colors.error, fontSize: 13, lineHeight: 18 },
+  coverageCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.canvas,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: spacing.md,
+  },
   coverageCopy: { flex: 1, gap: spacing.xs },
-  coverageTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
+  coverageTitle: { color: colors.ink, fontSize: 14, fontWeight: '800' },
+  coverageBody: { color: colors.muted, fontSize: 13, lineHeight: 18 },
 });

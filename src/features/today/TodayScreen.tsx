@@ -99,7 +99,7 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
                 onPress={() => setView(option)}
                 style={({ pressed }) => [styles.viewOption, view === option && styles.viewOptionSelected, pressed && styles.pressed]}
               >
-                <AppIcon color={view === option ? colors.ink : colors.muted} name={option === 'today' ? 'calendar-days' : 'history'} size={18} />
+                <AppIcon color={view === option ? colors.ink : colors.muted} name={option === 'today' ? 'calendar-days' : 'history'} size={17} />
                 <Text style={[styles.viewOptionLabel, view === option && styles.viewOptionLabelSelected]}>
                   {t(option === 'today' ? 'today.title' : 'today.history')}
                 </Text>
@@ -109,8 +109,8 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
 
           {view === 'today' ? (
             <>
-              <View style={styles.dateRow}>
-                <AppIcon color={colors.muted} name="calendar-days" size={18} />
+              <View style={styles.datePill}>
+                <AppIcon color={colors.muted} name="calendar-days" size={15} />
                 <Text style={styles.date}>{formattedDate}</Text>
               </View>
               <View onLayout={(event) => { timelineOffset.current = event.nativeEvent.layout.y; }}>
@@ -141,14 +141,41 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   greeting: { marginTop: 2, color: colors.muted, fontSize: 14 },
   exitButton: { minHeight: 48, justifyContent: 'center', borderRadius: radii.sm, paddingHorizontal: spacing.sm },
   exitLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
-  dateRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  date: { color: colors.muted, fontSize: 14 },
-  viewSwitch: { flexDirection: 'row', gap: spacing.xs, borderRadius: radii.md, backgroundColor: colors.mist, padding: spacing.xs },
-  viewOption: { minHeight: 48, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: radii.sm, paddingHorizontal: spacing.sm },
-  viewOptionSelected: { backgroundColor: colors.white },
+  datePill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  date: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  viewSwitch: {
+    flexDirection: 'row',
+    borderRadius: radii.full,
+    backgroundColor: colors.mist,
+    padding: 4,
+  },
+  viewOption: {
+    minHeight: 48,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: radii.full,
+    paddingHorizontal: spacing.sm,
+  },
+  viewOptionSelected: {
+    backgroundColor: colors.white,
+  },
   viewOptionLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
   viewOptionLabelSelected: { color: colors.ink, fontWeight: '900' },
-  pressed: { opacity: 0.72 },
+  pressed: { opacity: 0.75 },
   stateScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl, backgroundColor: colors.canvas },
   stateTitle: { maxWidth: 420, color: colors.ink, fontSize: 24, fontWeight: '800', textAlign: 'center' },
   stateBody: { maxWidth: 420, color: colors.muted, fontSize: 15, lineHeight: 22, textAlign: 'center' },
