@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { AppIcon } from './AppIcon';
 import { errorMessage } from '../lib/api';
 import { radii, spacing, type AppColors } from '../theme/tokens';
 import { useThemedStyles } from '../theme/useTheme';
@@ -10,18 +11,27 @@ export function SyncNotice({ error, onRetry, updatedAt }: {
   onRetry: () => void;
   updatedAt: number;
 }) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
   const { localeTag, t } = useLocale();
   if (!error || !updatedAt) return null;
 
   const time = new Intl.DateTimeFormat(localeTag, { hour: 'numeric', minute: '2-digit' }).format(updatedAt);
   return (
-    <View accessibilityLiveRegion="polite" style={styles.notice}>
+    <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.notice}>
+      <View style={styles.iconWrap}>
+        <AppIcon color={colors.warning} name="cloud-off" size={17} />
+      </View>
       <View style={styles.copy}>
         <Text style={styles.title}>{t('sync.savedAt', { time })}</Text>
         <Text style={styles.body}>{errorMessage(error)}</Text>
       </View>
-      <Pressable accessibilityRole="button" onPress={onRetry} style={({ pressed }) => [styles.retry, pressed && styles.pressed]}>
+      <Pressable
+        accessibilityLabel={t('app.retry')}
+        accessibilityRole="button"
+        onPress={onRetry}
+        style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+      >
+        <AppIcon color={colors.warning} name="refresh-cw" size={15} />
         <Text style={styles.retryLabel}>{t('app.retry')}</Text>
       </Pressable>
     </View>
@@ -29,11 +39,59 @@ export function SyncNotice({ error, onRetry, updatedAt }: {
 }
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
-  notice: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, borderRadius: radii.md, backgroundColor: colors.warningTint, padding: spacing.md },
-  copy: { minWidth: 210, flex: 1, gap: spacing.xs },
-  title: { color: colors.warning, fontSize: 15, fontWeight: '800' },
-  body: { color: colors.muted, fontSize: 14, lineHeight: 20 },
-  retry: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.sm },
-  retryLabel: { color: colors.warning, fontSize: 15, fontWeight: '800' },
-  pressed: { opacity: 0.72 },
+  notice: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    backgroundColor: colors.warningTint,
+    padding: spacing.md,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  copy: {
+    minWidth: 180,
+    flex: 1,
+    gap: spacing.xs,
+  },
+  title: {
+    color: colors.warning,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  body: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  retry: {
+    minHeight: 48,
+    minWidth: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  retryLabel: {
+    color: colors.warning,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  pressed: {
+    opacity: 0.72,
+  },
 });

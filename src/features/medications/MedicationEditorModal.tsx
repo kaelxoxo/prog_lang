@@ -17,6 +17,7 @@ import {
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppIcon } from '../../components/AppIcon';
 import { errorMessage } from '../../lib/api';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
@@ -125,8 +126,8 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, multilin
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
-        accessibilityLabel={label}
         accessibilityHint={error}
+        accessibilityLabel={label}
         keyboardType={keyboardType}
         maxLength={multiline ? 1000 : 120}
         multiline={multiline}
@@ -149,7 +150,7 @@ function DateTimeField({ label, mode, value, onChange, minimumDate }: {
   onChange: (value: string) => void;
   minimumDate?: Date;
 }) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
   const [expanded, setExpanded] = useState(false);
   const dateValue = mode === 'time' ? timeAsDate(value) : dateAsDate(value);
 
@@ -179,8 +180,13 @@ function DateTimeField({ label, mode, value, onChange, minimumDate }: {
         onPress={open}
         style={({ pressed }) => [styles.pickerButton, pressed && styles.pickerButtonPressed]}
       >
-        <Text style={styles.pickerValue}>{mode === 'time' ? friendlyTime(value) : friendlyDate(value)}</Text>
-        <Text style={styles.pickerAction}>Change</Text>
+        <View style={styles.pickerLeft}>
+          <AppIcon color={colors.muted} name={mode === 'time' ? 'clock-3' : 'calendar-days'} size={16} />
+          <Text style={styles.pickerValue}>{mode === 'time' ? friendlyTime(value) : friendlyDate(value)}</Text>
+        </View>
+        <View style={styles.pickerActionPill}>
+          <Text style={styles.pickerAction}>Change</Text>
+        </View>
       </Pressable>
       {Platform.OS === 'ios' && expanded ? (
         <View style={styles.iosPicker}>
@@ -211,7 +217,7 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 }
 
 export function MedicationEditorModal({ draft, medication, onClose, onSave, patient, visible }: Props) {
-  const { styles } = useThemedStyles(createStyles);
+  const { colors, styles } = useThemedStyles(createStyles);
   const { width, fontScale } = useWindowDimensions();
   const stackFields = width < 620 || fontScale > 1.15;
   const [step, setStep] = useState<Step>('details');
@@ -489,23 +495,38 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
         <View style={styles.header}>
           <View style={styles.headerColumn}>
-            <View accessibilityLabel={`Medicine for ${patient.displayName}`} accessible style={styles.patientContext}>
-              <View style={styles.patientDot} />
-              <Text style={styles.patientContextText}>Medicine for <Text style={styles.patientContextName}>{patient.displayName}</Text></Text>
-            </View>
-            <View style={styles.titleRow}>
-              <Text accessibilityRole="header" style={styles.title}>
-                {step === 'details' ? 'Medicine details' : step === 'schedule' ? 'Set the schedule' : 'Check before confirming'}
-              </Text>
-              <Pressable accessibilityRole="button" onPress={requestClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}><Text style={styles.closeLabel}>Close</Text></Pressable>
-            </View>
-            <View accessibilityLabel={`Step ${step === 'details' ? 1 : step === 'schedule' ? 2 : 3} of 3`} accessible style={styles.progress}>
-              {(['details', 'schedule', 'review'] as Step[]).map((item, index) => (
-                <View key={item} style={styles.progressItem}>
-                  <View style={[styles.progressLine, (item === step || (step === 'review' && index < 2) || (step === 'schedule' && index === 0)) && styles.progressLineActive]} />
-                  <Text style={[styles.progressLabel, item === step && styles.progressLabelActive]}>{index + 1}. {item === 'review' ? 'Confirm' : item[0].toUpperCase() + item.slice(1)}</Text>
+            <View style={styles.headerTop}>
+              <View accessibilityLabel={`Medicine for ${patient.displayName}`} accessible style={styles.patientContext}>
+                <View style={styles.patientAvatar}>
+                  <AppIcon color={colors.primaryDark} name="user-round" size={14} />
                 </View>
-              ))}
+                <Text style={styles.patientContextText}>Medicine for <Text style={styles.patientContextName}>{patient.displayName}</Text></Text>
+              </View>
+              <Pressable
+                accessibilityLabel="Close"
+                accessibilityRole="button"
+                onPress={requestClose}
+                style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+              >
+                <AppIcon color={colors.ink} name="x" size={18} />
+              </Pressable>
+            </View>
+            <Text accessibilityRole="header" style={styles.title}>
+              {step === 'details' ? 'Medicine details' : step === 'schedule' ? 'Set the schedule' : 'Check before confirming'}
+            </Text>
+            <View accessibilityLabel={`Step ${step === 'details' ? 1 : step === 'schedule' ? 2 : 3} of 3`} accessible style={styles.progress}>
+              {(['details', 'schedule', 'review'] as Step[]).map((item, index) => {
+                const isActive = item === step;
+                const isCompleted = (step === 'review' && index < 2) || (step === 'schedule' && index === 0);
+                return (
+                  <View key={item} style={styles.progressItem}>
+                    <View style={[styles.progressLine, (isActive || isCompleted) && styles.progressLineActive]} />
+                    <Text style={[styles.progressLabel, isActive && styles.progressLabelActive]}>
+                      {index + 1}. {item === 'review' ? 'Confirm' : item === 'details' ? 'Details' : 'Schedule'}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
         </View>
@@ -526,16 +547,25 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               <Field label="Instructions exactly as written" multiline onChangeText={change(setOriginalInstructions)} placeholder="Three times daily after meals" value={originalInstructions} />
 
               <Pressable
+                accessibilityHint="Shows or hides generic name, brand, form, route, and care notes"
                 accessibilityRole="button"
                 accessibilityState={{ expanded: showOptional }}
                 onPress={() => setShowOptional((current) => !current)}
-                style={styles.disclosure}
+                style={({ pressed }) => [styles.disclosure, pressed && styles.pressed]}
               >
-                <View style={styles.disclosureCopy}>
-                  <Text style={styles.disclosureTitle}>More label and care details</Text>
-                  <Text style={styles.disclosureHint}>Generic or brand name, form, route, prescriber, reason, and notes</Text>
+                <View style={styles.disclosureLeft}>
+                  <View style={styles.disclosureIconWrap}>
+                    <AppIcon color={colors.primaryDark} name="sliders-horizontal" size={16} />
+                  </View>
+                  <View style={styles.disclosureCopy}>
+                    <Text style={styles.disclosureTitle}>More label and care details</Text>
+                    <Text style={styles.disclosureHint}>Generic or brand name, form, route, prescriber, reason, and notes</Text>
+                  </View>
                 </View>
-                <Text style={styles.disclosureAction}>{showOptional ? 'Hide' : 'Add'}</Text>
+                <View style={styles.disclosureActionPill}>
+                  <Text style={styles.disclosureAction}>{showOptional ? 'Hide' : 'Add'}</Text>
+                  <AppIcon color={colors.primaryDark} name={showOptional ? 'chevron-up' : 'chevron-down'} size={14} />
+                </View>
               </Pressable>
 
               {showOptional ? (
@@ -558,7 +588,10 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
 
               {draft?.timingClarification ? (
                 <View style={styles.clarificationBanner}>
-                  <Text style={styles.clarificationTitle}>Prescription Timing Notice</Text>
+                  <View style={styles.clarificationHeader}>
+                    <AppIcon color={colors.primaryDark} name="sparkles" size={16} />
+                    <Text style={styles.clarificationTitle}>Prescription timing notice</Text>
+                  </View>
                   <Text style={styles.clarificationText}>{draft.timingClarification}</Text>
                   <View style={styles.clarificationActions}>
                     {draft.suggestedScheduleKind === 'meal' ? (
@@ -574,8 +607,9 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                             setDirty(true);
                             setScheduleError(null);
                           }}
-                          style={styles.clarifyOptionButton}
+                          style={({ pressed }) => [styles.clarifyOptionButton, pressed && styles.pressed]}
                         >
+                          <AppIcon color={colors.primaryDark} name="clock-3" size={14} />
                           <Text style={styles.clarifyOptionText}>
                             Clarify to fixed clock time ({mealTimesFromMeals(MEALS.filter(({ key }) => enabledMeals[key]).map(({ key }) => key), Boolean(draft.timingClarification?.toLowerCase().includes('bedtime'))).map(friendlyTime).join(', ')})
                           </Text>
@@ -588,8 +622,9 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                             setDirty(true);
                             setScheduleError(null);
                           }}
-                          style={styles.clarifyOptionButton}
+                          style={({ pressed }) => [styles.clarifyOptionButton, pressed && styles.pressed]}
                         >
+                          <AppIcon color={colors.primaryDark} name="utensils" size={14} />
                           <Text style={styles.clarifyOptionText}>
                             Keep meal-based timing ({draft.mealRelation || 'after'} {draft.detectedMeals?.join(', ') || 'meals'})
                           </Text>
@@ -607,8 +642,9 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                             setDirty(true);
                             setScheduleError(null);
                           }}
-                          style={styles.clarifyOptionButton}
+                          style={({ pressed }) => [styles.clarifyOptionButton, pressed && styles.pressed]}
                         >
+                          <AppIcon color={colors.primaryDark} name="clock-3" size={14} />
                           <Text style={styles.clarifyOptionText}>
                             Clarify to fixed clock times ({calculateIntervalTimes(draft.intervalHours, parseInt(intervalStart.split(':')[0], 10) || 6).map(friendlyTime).join(', ')})
                           </Text>
@@ -621,8 +657,9 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                             setDirty(true);
                             setScheduleError(null);
                           }}
-                          style={styles.clarifyOptionButton}
+                          style={({ pressed }) => [styles.clarifyOptionButton, pressed && styles.pressed]}
                         >
+                          <AppIcon color={colors.primaryDark} name="timer" size={14} />
                           <Text style={styles.clarifyOptionText}>
                             Keep interval timing (every {draft.intervalHours} hours)
                           </Text>
@@ -634,38 +671,93 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               ) : null}
 
               <View accessibilityRole="radiogroup" style={styles.choiceGroup}>
-                {(['exact', 'interval', 'meal'] as ScheduleKind[]).map((kind) => (
-                  <Pressable
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: scheduleKind === kind }}
-                    key={kind}
-                    onPress={() => { setScheduleKind(kind); setDirty(true); setScheduleError(null); }}
-                    style={[styles.choice, scheduleKind === kind && styles.choiceSelected]}
-                  >
-                    <Text style={[styles.choiceLabel, scheduleKind === kind && styles.choiceLabelSelected]}>{scheduleLabel(kind)}</Text>
-                    <Text style={styles.choiceHint}>{kind === 'exact' ? 'Specific reminder times' : kind === 'interval' ? 'Repeat from a first time' : 'Breakfast, lunch, or dinner'}</Text>
-                  </Pressable>
-                ))}
+                {(['exact', 'interval', 'meal'] as ScheduleKind[]).map((kind) => {
+                  const selected = scheduleKind === kind;
+                  return (
+                    <Pressable
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: selected }}
+                      key={kind}
+                      onPress={() => { setScheduleKind(kind); setDirty(true); setScheduleError(null); }}
+                      style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
+                    >
+                      <View style={styles.choiceLeft}>
+                        <View style={[styles.choiceIconWrap, selected && styles.choiceIconWrapSelected]}>
+                          <AppIcon
+                            color={selected ? colors.primaryDark : colors.muted}
+                            name={kind === 'exact' ? 'clock-3' : kind === 'interval' ? 'timer' : 'utensils'}
+                            size={18}
+                          />
+                        </View>
+                        <View style={styles.choiceCopy}>
+                          <Text style={[styles.choiceLabel, selected && styles.choiceLabelSelected]}>{scheduleLabel(kind)}</Text>
+                          <Text style={styles.choiceHint}>
+                            {kind === 'exact' ? 'Specific reminder times' : kind === 'interval' ? 'Repeat from a first time' : 'Breakfast, lunch, or dinner'}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={[styles.radio, selected && styles.radioSelected]}>
+                        {selected ? <View style={styles.radioDot} /> : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
               </View>
 
               {scheduleKind === 'exact' ? (
                 <View style={styles.scheduleGroup}>
                   <Text style={styles.groupTitle}>Reminder times</Text>
                   {exactTimes.map((time, index) => (
-                    <View key={index} style={[styles.timeRow, stackFields && styles.fieldStack]}>
-                      <View style={styles.timeField}><DateTimeField label={`Time ${index + 1}`} mode="time" onChange={(value) => { setExactTimes((current) => current.map((item, itemIndex) => itemIndex === index ? value : item)); setDirty(true); }} value={time} /></View>
-                      {exactTimes.length > 1 ? <Pressable accessibilityLabel={`Remove time ${index + 1}`} accessibilityRole="button" onPress={() => { setExactTimes((current) => current.filter((_item, itemIndex) => itemIndex !== index)); setDirty(true); }} style={styles.removeButton}><Text style={styles.removeLabel}>Remove</Text></Pressable> : null}
+                    <View key={index} style={styles.timeRow}>
+                      <View style={styles.timeField}>
+                        <DateTimeField
+                          label={`Time ${index + 1}`}
+                          mode="time"
+                          onChange={(value) => {
+                            setExactTimes((current) => current.map((item, itemIndex) => itemIndex === index ? value : item));
+                            setDirty(true);
+                          }}
+                          value={time}
+                        />
+                      </View>
+                      {exactTimes.length > 1 ? (
+                        <Pressable
+                          accessibilityLabel={`Remove time ${index + 1}`}
+                          accessibilityRole="button"
+                          onPress={() => {
+                            setExactTimes((current) => current.filter((_item, itemIndex) => itemIndex !== index));
+                            setDirty(true);
+                          }}
+                          style={({ pressed }) => [styles.removeButton, pressed && styles.pressed]}
+                        >
+                          <AppIcon color={colors.error} name="trash-2" size={16} />
+                          <Text style={styles.removeLabel}>Remove</Text>
+                        </Pressable>
+                      ) : null}
                     </View>
                   ))}
-                  {exactTimes.length < 6 ? <Pressable accessibilityRole="button" onPress={() => { setExactTimes((current) => [...current, '12:00']); setDirty(true); }} style={styles.addTimeButton}><Text style={styles.addTimeLabel}>+ Add another time</Text></Pressable> : null}
+                  {exactTimes.length < 6 ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => { setExactTimes((current) => [...current, '12:00']); setDirty(true); }}
+                      style={({ pressed }) => [styles.addTimeButton, pressed && styles.pressed]}
+                    >
+                      <AppIcon color={colors.primaryDark} name="plus" size={16} />
+                      <Text style={styles.addTimeLabel}>Add another time</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               ) : null}
 
               {scheduleKind === 'interval' ? (
                 <View style={styles.scheduleGroup}>
+                  <Text style={styles.groupTitle}>Interval pattern</Text>
                   <Field error={scheduleError ?? undefined} keyboardType="number-pad" label="Repeat every how many hours?" onChangeText={change(setIntervalHours)} value={intervalHours} />
                   <DateTimeField label="First time" mode="time" onChange={change(setIntervalStart)} value={intervalStart} />
-                  <Text style={styles.inlineHelp}>Alaga will repeat from this first time. Check the pattern carefully on the next screen.</Text>
+                  <View style={styles.inlineHelpBox}>
+                    <AppIcon color={colors.muted} name="info" size={15} />
+                    <Text style={styles.inlineHelp}>Alaga will repeat from this first time. Check the pattern carefully on the next screen.</Text>
+                  </View>
                 </View>
               ) : null}
 
@@ -673,49 +765,79 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                 <View style={styles.scheduleGroup}>
                   <Text style={styles.groupTitle}>Relation to meals</Text>
                   <View accessibilityRole="radiogroup" style={styles.inlineChoices}>
-                    {(['after', 'before'] as const).map((relation) => (
-                      <Pressable accessibilityRole="radio" accessibilityState={{ checked: mealRelation === relation }} key={relation} onPress={() => { setMealRelation(relation); setDirty(true); }} style={[styles.pill, mealRelation === relation && styles.pillSelected]}>
-                        <Text style={[styles.pillLabel, mealRelation === relation && styles.pillLabelSelected]}>{relation === 'after' ? 'After meals' : 'Before meals'}</Text>
-                      </Pressable>
-                    ))}
+                    {(['after', 'before'] as const).map((relation) => {
+                      const selected = mealRelation === relation;
+                      return (
+                        <Pressable
+                          accessibilityRole="radio"
+                          accessibilityState={{ checked: selected }}
+                          key={relation}
+                          onPress={() => { setMealRelation(relation); setDirty(true); }}
+                          style={({ pressed }) => [styles.pill, selected && styles.pillSelected, pressed && styles.pressed]}
+                        >
+                          <Text style={[styles.pillLabel, selected && styles.pillLabelSelected]}>
+                            {relation === 'after' ? 'After meals' : 'Before meals'}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
                   </View>
 
                   <Text style={styles.groupTitle}>Meals to include</Text>
                   <View style={styles.mealChoices}>
-                    {MEALS.map(({ key, label }) => (
-                      <Pressable
-                        accessibilityLabel={`${label} meal schedule`}
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: enabledMeals[key] }}
-                        key={key}
-                        onPress={() => {
-                          setEnabledMeals((current) => ({ ...current, [key]: !current[key] }));
-                          setDirty(true);
-                        }}
-                        style={[styles.mealPill, enabledMeals[key] && styles.mealPillSelected]}
-                      >
-                        <Text style={[styles.mealPillText, enabledMeals[key] && styles.mealPillTextSelected]}>
-                          {enabledMeals[key] ? '✓ ' : ''}{label}
-                        </Text>
-                      </Pressable>
-                    ))}
+                    {MEALS.map(({ key, label }) => {
+                      const checked = enabledMeals[key];
+                      return (
+                        <Pressable
+                          accessibilityLabel={`${label} meal schedule`}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked }}
+                          key={key}
+                          onPress={() => {
+                            setEnabledMeals((current) => ({ ...current, [key]: !current[key] }));
+                            setDirty(true);
+                          }}
+                          style={({ pressed }) => [styles.mealPill, checked && styles.mealPillSelected, pressed && styles.pressed]}
+                        >
+                          {checked ? <AppIcon color={colors.primaryDark} name="check" size={15} /> : null}
+                          <Text style={[styles.mealPillText, checked && styles.mealPillTextSelected]}>{label}</Text>
+                        </Pressable>
+                      );
+                    })}
                   </View>
 
                   {MEALS.filter(({ key }) => enabledMeals[key]).map(({ key, label }) => (
                     <View key={key} style={styles.mealRow}>
                       <View style={styles.mealHeading}>
                         <Text style={styles.mealTitle}>{label}</Text>
-                        <Pressable accessibilityRole="button" accessibilityState={{ expanded: customMealWindows[key] }} onPress={() => setCustomMealWindows((current) => ({ ...current, [key]: !current[key] }))} style={styles.customizeButton}>
-                          <Text style={styles.customizeLabel}>{customMealWindows[key] ? 'Use suggested window' : 'Customize window'}</Text>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityState={{ expanded: customMealWindows[key] }}
+                          onPress={() => setCustomMealWindows((current) => ({ ...current, [key]: !current[key] }))}
+                          style={({ pressed }) => [styles.customizeButton, pressed && styles.pressed]}
+                        >
+                          <AppIcon color={colors.primaryDark} name={customMealWindows[key] ? 'sliders-horizontal' : 'clock-3'} size={13} />
+                          <Text style={styles.customizeLabel}>
+                            {customMealWindows[key] ? 'Use suggested window' : 'Customize window'}
+                          </Text>
                         </Pressable>
                       </View>
                       <DateTimeField label="Reminder" mode="time" onChange={(value) => updateMeal(key, 'time', value)} value={mealTimes[key].time} />
                       {customMealWindows[key] ? (
                         <View style={[styles.fieldRow, stackFields && styles.fieldStack]}>
-                          <View style={styles.fieldColumn}><DateTimeField label="Window starts" mode="time" onChange={(value) => updateMeal(key, 'windowStart', value)} value={mealTimes[key].windowStart} /></View>
-                          <View style={styles.fieldColumn}><DateTimeField label="Window ends" mode="time" onChange={(value) => updateMeal(key, 'windowEnd', value)} value={mealTimes[key].windowEnd} /></View>
+                          <View style={styles.fieldColumn}>
+                            <DateTimeField label="Window starts" mode="time" onChange={(value) => updateMeal(key, 'windowStart', value)} value={mealTimes[key].windowStart} />
+                          </View>
+                          <View style={styles.fieldColumn}>
+                            <DateTimeField label="Window ends" mode="time" onChange={(value) => updateMeal(key, 'windowEnd', value)} value={mealTimes[key].windowEnd} />
+                          </View>
                         </View>
-                      ) : <Text style={styles.inlineHelp}>Suggested window: {friendlyTime(mealTimes[key].windowStart)} to {friendlyTime(mealTimes[key].windowEnd)}</Text>}
+                      ) : (
+                        <View style={styles.inlineHelpBox}>
+                          <AppIcon color={colors.muted} name="info" size={14} />
+                          <Text style={styles.inlineHelp}>Suggested window: {friendlyTime(mealTimes[key].windowStart)} to {friendlyTime(mealTimes[key].windowEnd)}</Text>
+                        </View>
+                      )}
                     </View>
                   ))}
                 </View>
@@ -724,29 +846,68 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               <View style={styles.scheduleGroup}>
                 <Text style={styles.groupTitle}>Days</Text>
                 <View accessibilityRole="radiogroup" style={styles.inlineChoices}>
-                  <Pressable accessibilityRole="radio" accessibilityState={{ checked: everyDay }} onPress={() => { setEveryDay(true); setWeekdays(ALL_WEEKDAYS); setDirty(true); }} style={[styles.pill, everyDay && styles.pillSelected]}><Text style={[styles.pillLabel, everyDay && styles.pillLabelSelected]}>Every day</Text></Pressable>
-                  <Pressable accessibilityRole="radio" accessibilityState={{ checked: !everyDay }} onPress={() => { setEveryDay(false); setDirty(true); }} style={[styles.pill, !everyDay && styles.pillSelected]}><Text style={[styles.pillLabel, !everyDay && styles.pillLabelSelected]}>Choose days</Text></Pressable>
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: everyDay }}
+                    onPress={() => { setEveryDay(true); setWeekdays(ALL_WEEKDAYS); setDirty(true); }}
+                    style={({ pressed }) => [styles.pill, everyDay && styles.pillSelected, pressed && styles.pressed]}
+                  >
+                    <Text style={[styles.pillLabel, everyDay && styles.pillLabelSelected]}>Every day</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: !everyDay }}
+                    onPress={() => { setEveryDay(false); setDirty(true); }}
+                    style={({ pressed }) => [styles.pill, !everyDay && styles.pillSelected, pressed && styles.pressed]}
+                  >
+                    <Text style={[styles.pillLabel, !everyDay && styles.pillLabelSelected]}>Choose days</Text>
+                  </Pressable>
                 </View>
                 {!everyDay ? (
                   <View style={styles.weekdays}>
-                    {WEEKDAYS.map((label, weekday) => (
-                      <Pressable accessibilityLabel={label} accessibilityRole="checkbox" accessibilityState={{ checked: weekdays.includes(weekday) }} key={label} onPress={() => toggleWeekday(weekday)} style={[styles.weekday, weekdays.includes(weekday) && styles.weekdaySelected]}>
-                        <Text style={[styles.weekdayLabel, weekdays.includes(weekday) && styles.weekdayLabelSelected]}>{label.slice(0, 3)}</Text>
-                      </Pressable>
-                    ))}
+                    {WEEKDAYS.map((label, weekday) => {
+                      const selected = weekdays.includes(weekday);
+                      return (
+                        <Pressable
+                          accessibilityLabel={label}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: selected }}
+                          key={label}
+                          onPress={() => toggleWeekday(weekday)}
+                          style={({ pressed }) => [styles.weekday, selected && styles.weekdaySelected, pressed && styles.pressed]}
+                        >
+                          <Text style={[styles.weekdayLabel, selected && styles.weekdayLabelSelected]}>{label.slice(0, 3)}</Text>
+                        </Pressable>
+                      );
+                    })}
                   </View>
                 ) : null}
               </View>
 
               <View style={styles.scheduleGroup}>
                 <DateTimeField label="Starts" mode="date" onChange={change(setStartOn)} value={startOn} />
-                <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: endEnabled }} onPress={() => { setEndEnabled((current) => !current); setDirty(true); }} style={styles.checkRow}>
-                  <View style={[styles.checkbox, endEnabled && styles.checkboxChecked]}><Text style={styles.checkmark}>{endEnabled ? '✓' : ''}</Text></View>
+                <Pressable
+                  accessibilityLabel="This schedule has an end date"
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: endEnabled }}
+                  onPress={() => { setEndEnabled((current) => !current); setDirty(true); }}
+                  style={({ pressed }) => [styles.checkRow, pressed && styles.pressed]}
+                >
+                  <View style={[styles.checkbox, endEnabled && styles.checkboxChecked]}>
+                    {endEnabled ? <AppIcon color={colors.white} name="check" size={14} /> : null}
+                  </View>
                   <Text style={styles.checkLabel}>This schedule has an end date</Text>
                 </Pressable>
-                {endEnabled ? <DateTimeField label="Ends" minimumDate={dateAsDate(startOn)} mode="date" onChange={change(setEndOn)} value={endOn} /> : null}
+                {endEnabled ? (
+                  <DateTimeField label="Ends" minimumDate={dateAsDate(startOn)} mode="date" onChange={change(setEndOn)} value={endOn} />
+                ) : null}
               </View>
-              {scheduleError ? <View accessible accessibilityLiveRegion="assertive" ref={scheduleErrorRef} style={styles.errorBox}><Text style={styles.errorText}>{scheduleError}</Text></View> : null}
+              {scheduleError ? (
+                <View accessible accessibilityLiveRegion="assertive" accessibilityRole="alert" ref={scheduleErrorRef} style={styles.errorBox}>
+                  <AppIcon color={colors.error} name="alert-circle" size={16} />
+                  <Text style={styles.errorText}>{scheduleError}</Text>
+                </View>
+              ) : null}
             </>
           ) : null}
 
@@ -754,7 +915,18 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
             <>
               <Text style={styles.helper}>Compare every value below with the label or prescription. Only this confirmed version becomes active.</Text>
               <View style={styles.reviewSection}>
-                <View style={styles.reviewHeading}><Text style={styles.reviewTitle}>Medicine</Text><Pressable accessibilityRole="button" onPress={() => setStep('details')} style={styles.editSection}><Text style={styles.editSectionLabel}>Edit details</Text></Pressable></View>
+                <View style={styles.reviewHeading}>
+                  <View style={styles.reviewHeadingLeft}>
+                    <View style={styles.reviewIconWrap}>
+                      <AppIcon color={colors.primaryDark} name="pill" size={16} />
+                    </View>
+                    <Text accessibilityRole="header" style={styles.reviewTitle}>Medicine</Text>
+                  </View>
+                  <Pressable accessibilityRole="button" onPress={() => setStep('details')} style={({ pressed }) => [styles.editSection, pressed && styles.pressed]}>
+                    <AppIcon color={colors.primaryDark} name="pencil" size={13} />
+                    <Text style={styles.editSectionLabel}>Edit details</Text>
+                  </Pressable>
+                </View>
                 <ReviewRow label="Name" value={displayName} />
                 <ReviewRow label="Generic name" value={genericName} />
                 <ReviewRow label="Brand name" value={brandName} />
@@ -764,11 +936,27 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                 <ReviewRow label="Route" value={route} />
                 <ReviewRow label="Prescriber" value={prescriber} />
                 <ReviewRow label="Reason" value={reason} />
-                {(!strengthValue || !medicineForm || !route) ? <View style={styles.warning}><Text style={styles.warningText}>Strength, form, or route is not provided. Confirm only if you checked the source and this is intentional.</Text></View> : null}
+                {(!strengthValue || !medicineForm || !route) ? (
+                  <View accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.warning}>
+                    <AppIcon color={colors.warning} name="alert-triangle" size={16} />
+                    <Text style={styles.warningText}>Strength, form, or route is not provided. Confirm only if you checked the source and this is intentional.</Text>
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.reviewSection}>
-                <View style={styles.reviewHeading}><Text style={styles.reviewTitle}>Schedule</Text><Pressable accessibilityRole="button" onPress={() => setStep('schedule')} style={styles.editSection}><Text style={styles.editSectionLabel}>Edit schedule</Text></Pressable></View>
+                <View style={styles.reviewHeading}>
+                  <View style={styles.reviewHeadingLeft}>
+                    <View style={styles.reviewIconWrap}>
+                      <AppIcon color={colors.primaryDark} name="calendar-days" size={16} />
+                    </View>
+                    <Text accessibilityRole="header" style={styles.reviewTitle}>Schedule</Text>
+                  </View>
+                  <Pressable accessibilityRole="button" onPress={() => setStep('schedule')} style={({ pressed }) => [styles.editSection, pressed && styles.pressed]}>
+                    <AppIcon color={colors.primaryDark} name="pencil" size={13} />
+                    <Text style={styles.editSectionLabel}>Edit schedule</Text>
+                  </Pressable>
+                </View>
                 <ReviewRow label="Pattern" value={scheduleLabel(scheduleKind)} />
                 <ReviewRow label="Timing" value={scheduleSummary} />
                 {scheduleKind === 'meal' ? MEALS.filter(({ key }) => enabledMeals[key]).map(({ key, label }) => <ReviewRow key={key} label={`${label} window`} value={`${friendlyTime(mealTimes[key].windowStart)} to ${friendlyTime(mealTimes[key].windowEnd)}, reminder ${friendlyTime(mealTimes[key].time)}`} />) : null}
@@ -778,25 +966,59 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               </View>
 
               <View style={styles.reviewSection}>
-                <View style={styles.reviewHeading}><Text style={styles.reviewTitle}>Source wording and notes</Text><Pressable accessibilityRole="button" onPress={() => setStep('details')} style={styles.editSection}><Text style={styles.editSectionLabel}>Edit</Text></Pressable></View>
+                <View style={styles.reviewHeading}>
+                  <View style={styles.reviewHeadingLeft}>
+                    <View style={styles.reviewIconWrap}>
+                      <AppIcon color={colors.primaryDark} name="file-text" size={16} />
+                    </View>
+                    <Text accessibilityRole="header" style={styles.reviewTitle}>Source wording and notes</Text>
+                  </View>
+                  <Pressable accessibilityLabel="Edit source instructions and notes" accessibilityRole="button" onPress={() => setStep('details')} style={({ pressed }) => [styles.editSection, pressed && styles.pressed]}>
+                    <AppIcon color={colors.primaryDark} name="pencil" size={13} />
+                    <Text style={styles.editSectionLabel}>Edit</Text>
+                  </Pressable>
+                </View>
                 <ReviewRow label="Instructions as written" value={originalInstructions} />
                 <ReviewRow label="Care notes" value={notes} />
               </View>
 
               <View style={styles.confirmationNote}>
-                <View style={styles.confirmationDot} />
+                <AppIcon color={colors.successDark} name="shield-check" size={20} />
                 <Text style={styles.confirmationText}>You are confirming this medicine for <Text style={styles.confirmationName}>{patient.displayName}</Text>.</Text>
               </View>
             </>
           ) : null}
 
-          {serverError ? <View accessibilityLiveRegion="assertive" style={styles.errorBox}><Text style={styles.errorText}>{serverError}</Text></View> : null}
+          {serverError ? (
+            <View accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.errorBox}>
+              <AppIcon color={colors.error} name="alert-circle" size={16} />
+              <Text style={styles.errorText}>{serverError}</Text>
+            </View>
+          ) : null}
         </ScrollView>
 
         <View style={[styles.actions, stackFields && styles.actionsStack]}>
-          {step !== 'details' ? <Pressable accessibilityRole="button" disabled={isSaving} onPress={() => { setServerError(null); setStep(step === 'review' ? 'schedule' : 'details'); }} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}><Text style={styles.secondaryLabel}>Back</Text></Pressable> : null}
-          <Pressable accessibilityRole="button" disabled={isSaving} onPress={goForward} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed, isSaving && styles.disabled]}>
-            <Text style={styles.primaryLabel}>{step === 'review' ? (isSaving ? 'Confirming...' : `Confirm for ${patient.displayName}`) : 'Continue'}</Text>
+          {step !== 'details' ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={isSaving}
+              onPress={() => { setServerError(null); setStep(step === 'review' ? 'schedule' : 'details'); }}
+              style={({ pressed }) => [styles.secondaryButton, stackFields && styles.secondaryButtonStacked, pressed && styles.pressed]}
+            >
+              <AppIcon color={colors.primaryDark} name="arrow-left" size={16} />
+              <Text style={styles.secondaryLabel}>Back</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            disabled={isSaving}
+            onPress={goForward}
+            style={({ pressed }) => [styles.primaryButton, stackFields && styles.primaryButtonStacked, pressed && styles.primaryPressed, isSaving && styles.disabled]}
+          >
+            <Text style={styles.primaryLabel}>
+              {step === 'review' ? (isSaving ? 'Confirming…' : `Confirm for ${patient.displayName}`) : 'Continue'}
+            </Text>
+            <AppIcon color={colors.white} name={step === 'review' ? 'check' : 'arrow-right'} size={17} />
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -809,14 +1031,13 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.canvas },
   header: { borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: colors.white, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   headerColumn: { width: '100%', maxWidth: 720, alignSelf: 'center', gap: spacing.sm },
-  patientContext: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  patientDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.sun },
-  patientContextText: { flex: 1, color: colors.muted, fontSize: 14 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  patientContext: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  patientAvatar: { width: 24, height: 24, borderRadius: radii.full, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center' },
+  patientContextText: { flex: 1, color: colors.muted, fontSize: 13 },
   patientContextName: { color: colors.ink, fontWeight: '800' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  title: { flex: 1, color: colors.ink, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
-  closeButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.sm },
-  closeLabel: { color: colors.muted, fontSize: 15, fontWeight: '700' },
+  title: { color: colors.ink, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
+  closeButton: { width: 48, height: 48, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   progress: { flexDirection: 'row', gap: spacing.sm },
   progressItem: { flex: 1, gap: 5 },
   progressLine: { height: 3, borderRadius: 2, backgroundColor: colors.line },
@@ -824,96 +1045,112 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   progressLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   progressLabelActive: { color: colors.primaryDark, fontWeight: '800' },
   content: { width: '100%', maxWidth: 720, alignSelf: 'center', gap: spacing.lg, padding: spacing.lg, paddingBottom: spacing.xxl },
-  helper: { maxWidth: 620, color: colors.muted, fontSize: 16, lineHeight: 24 },
-  field: { flex: 1, gap: spacing.sm },
+  helper: { maxWidth: 620, color: colors.muted, fontSize: 15, lineHeight: 22 },
+  field: { flex: 1, gap: spacing.xs },
   label: { color: colors.ink, fontSize: 14, fontWeight: '700' },
-  input: { minHeight: 54, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, color: colors.ink, fontSize: 17, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  input: { minHeight: 54, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, color: colors.ink, fontSize: 16, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   inputError: { borderColor: colors.error },
   multilineInput: { minHeight: 96, textAlignVertical: 'top' },
-  fieldError: { color: colors.error, fontSize: 13, lineHeight: 19 },
+  fieldError: { color: colors.error, fontSize: 13, lineHeight: 18 },
   fieldRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   fieldStack: { flexDirection: 'column' },
   fieldColumn: { flex: 1, width: '100%' },
-  disclosure: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.md },
-  disclosureCopy: { flex: 1, gap: 3 },
-  disclosureTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  disclosureHint: { color: colors.muted, fontSize: 13, lineHeight: 19 },
-  disclosureAction: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  disclosure: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: radii.md, backgroundColor: colors.white, padding: spacing.md },
+  disclosureLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  disclosureIconWrap: { width: 32, height: 32, borderRadius: radii.full, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center' },
+  disclosureCopy: { flex: 1, gap: 2 },
+  disclosureTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  disclosureHint: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  disclosureActionPill: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 12 },
+  disclosureAction: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
   optionalFields: { gap: spacing.lg },
-  clarificationBanner: { gap: spacing.xs, borderRadius: radii.md, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primaryTint, padding: spacing.md },
+  clarificationBanner: { gap: spacing.xs, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primaryTint, padding: spacing.md },
+  clarificationHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   clarificationTitle: { color: colors.primaryDark, fontSize: 14, fontWeight: '900' },
   clarificationText: { color: colors.ink, fontSize: 14, lineHeight: 21 },
   clarificationActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
-  clarifyOptionButton: { minHeight: 44, justifyContent: 'center', borderRadius: radii.sm, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
-  clarifyOptionText: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
+  clarifyOptionButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radii.md, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  clarifyOptionText: { flex: 1, color: colors.primaryDark, fontSize: 13, fontWeight: '800', lineHeight: 18 },
   choiceGroup: { gap: spacing.sm },
-  choice: { gap: 4, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, padding: spacing.md },
+  choice: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, padding: spacing.md },
   choiceSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
-  choiceLabel: { color: colors.ink, fontSize: 17, fontWeight: '800' },
+  choiceLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  choiceIconWrap: { width: 36, height: 36, borderRadius: radii.full, backgroundColor: colors.mist, alignItems: 'center', justifyContent: 'center' },
+  choiceIconWrapSelected: { backgroundColor: colors.white },
+  choiceCopy: { flex: 1, gap: 2 },
+  choiceLabel: { color: colors.ink, fontSize: 16, fontWeight: '800' },
   choiceLabelSelected: { color: colors.primaryDark },
-  choiceHint: { color: colors.muted, fontSize: 14 },
+  choiceHint: { color: colors.muted, fontSize: 13 },
+  radio: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.controlBorder, borderRadius: 11 },
+  radioSelected: { borderColor: colors.primary },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
   scheduleGroup: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
   groupTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },
   pickerButton: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, paddingHorizontal: spacing.md },
   pickerButtonPressed: { backgroundColor: colors.mist },
-  pickerValue: { flex: 1, color: colors.ink, fontSize: 17, fontWeight: '700' },
-  pickerAction: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  pickerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  pickerValue: { flex: 1, color: colors.ink, fontSize: 16, fontWeight: '700' },
+  pickerActionPill: { minHeight: 36, justifyContent: 'center', borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 12 },
+  pickerAction: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
   iosPicker: { borderRadius: radii.md, backgroundColor: colors.white, paddingBottom: spacing.sm },
   pickerDone: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   pickerDoneLabel: { color: colors.primaryDark, fontSize: 16, fontWeight: '800' },
   timeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
   timeField: { flex: 1, width: '100%' },
-  removeButton: { minHeight: 54, justifyContent: 'center', paddingHorizontal: spacing.sm },
-  removeLabel: { color: colors.error, fontSize: 14, fontWeight: '700' },
-  addTimeButton: { minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center' },
-  addTimeLabel: { color: colors.primaryDark, fontSize: 15, fontWeight: '800' },
-  inlineHelp: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  removeButton: { minHeight: 48, minWidth: 48, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 12 },
+  removeLabel: { color: colors.error, fontSize: 13, fontWeight: '700' },
+  addTimeButton: { minHeight: 48, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 16 },
+  addTimeLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  inlineHelpBox: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 },
+  inlineHelp: { flex: 1, color: colors.muted, fontSize: 13, lineHeight: 18 },
   inlineChoices: { flexDirection: 'row', gap: spacing.sm },
   pill: { minHeight: 48, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.white, paddingHorizontal: spacing.sm },
   pillSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
   pillLabel: { color: colors.muted, fontSize: 14, fontWeight: '700', textAlign: 'center' },
   pillLabelSelected: { color: colors.primaryDark },
   mealChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  mealPill: { minHeight: 48, minWidth: 96, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.white, paddingHorizontal: spacing.md },
+  mealPill: { minHeight: 48, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.white, paddingHorizontal: 12 },
   mealPillSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
   mealPillText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
   mealPillTextSelected: { color: colors.primaryDark, fontWeight: '900' },
   mealRow: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
   mealHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   mealTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
-  customizeButton: { minHeight: 48, justifyContent: 'center' },
+  customizeButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 12 },
   customizeLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
   weekdays: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  weekday: { minWidth: 84, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.white, paddingHorizontal: spacing.sm },
+  weekday: { minWidth: 48, flexGrow: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.white, paddingHorizontal: spacing.sm },
   weekdaySelected: { borderColor: colors.ink, backgroundColor: colors.ink },
   weekdayLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
   weekdayLabelSelected: { color: colors.white },
   checkRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   checkbox: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 6, backgroundColor: colors.white },
-  checkboxChecked: { borderColor: colors.ink, backgroundColor: colors.ink },
-  checkmark: { color: colors.white, fontSize: 15, fontWeight: '900' },
+  checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary },
   checkLabel: { flex: 1, color: colors.ink, fontSize: 15, fontWeight: '700' },
   reviewSection: { gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
   reviewHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.xs },
-  reviewTitle: { flex: 1, color: colors.ink, fontSize: 21, fontWeight: '800' },
-  editSection: { minHeight: 48, justifyContent: 'center' },
-  editSectionLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  reviewHeadingLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  reviewIconWrap: { width: 28, height: 28, borderRadius: radii.full, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center' },
+  reviewTitle: { color: colors.ink, fontSize: 20, fontWeight: '800' },
+  editSection: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 12 },
+  editSectionLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
   reviewRow: { gap: 2, paddingVertical: 6 },
   reviewRowLabel: { color: colors.muted, fontSize: 14, lineHeight: 21 },
   reviewRowValue: { flex: 1, color: colors.ink, fontSize: 15, fontWeight: '600', lineHeight: 22 },
-  warning: { borderRadius: radii.sm, backgroundColor: colors.warningTint, padding: spacing.md },
-  warningText: { color: colors.warning, fontSize: 14, lineHeight: 21 },
-  confirmationNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radii.md, backgroundColor: colors.successTint, padding: spacing.md },
-  confirmationDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.success },
-  confirmationText: { flex: 1, color: colors.successDark, fontSize: 15, lineHeight: 22 },
+  warning: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.warningTint, padding: spacing.md },
+  warningText: { flex: 1, color: colors.warning, fontSize: 13, lineHeight: 19 },
+  confirmationNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.successTint, padding: spacing.md },
+  confirmationText: { flex: 1, color: colors.successDark, fontSize: 14, lineHeight: 21 },
   confirmationName: { fontWeight: '900' },
-  errorBox: { borderRadius: radii.sm, backgroundColor: colors.errorTint, padding: spacing.md },
-  errorText: { color: colors.error, fontSize: 14, lineHeight: 20 },
+  errorBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.errorTint, padding: spacing.md },
+  errorText: { flex: 1, color: colors.error, fontSize: 14, lineHeight: 20 },
   actions: { flexDirection: 'row', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.white, padding: spacing.md },
-  actionsStack: { flexDirection: 'column' },
-  secondaryButton: { minHeight: 54, flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md },
+  actionsStack: { flexDirection: 'column-reverse' },
+  secondaryButton: { minHeight: 54, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
+  secondaryButtonStacked: { flex: 0, width: '100%' },
   secondaryLabel: { color: colors.primaryDark, fontSize: 16, fontWeight: '800' },
-  primaryButton: { minHeight: 54, flex: 2, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
+  primaryButton: { minHeight: 54, flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radii.md, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
+  primaryButtonStacked: { flex: 0, width: '100%' },
   primaryPressed: { backgroundColor: colors.primaryDark },
   primaryLabel: { color: colors.white, fontSize: 16, fontWeight: '800', textAlign: 'center' },
   disabled: { opacity: 0.55 },

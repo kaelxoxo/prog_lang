@@ -57,16 +57,20 @@ Today's goal is to finish Alaga's Android validation and portfolio handoff using
     - Deterministic synthetic reset: safety guard enforcement (`--confirm-synthetic-reset` required), verified deterministic entity and dose seeding (Maya, Paolo, Lola Rosa, 2 medications, 3 schedules, 5 dose events), and repeatable idempotency (`server/tests/synthetic-reset.test.ts`).
 - UI/UX Revamp & Independent QA Verification — Complete:
   - Harmonized the modern health & wellness UI reference (Dribbble shot `27500977`) with Alaga's kitchen-table care log identity per `DESIGN.md`, `PRODUCT.md`, `impeccable`, `taste-skill`, and `ponytail`.
-  - Modernized `HomeScreen`, `TodayScreen`, `DoseTimeline`, `MedicationSection`, `MedicationPhotoImport`, `HistoryPanel`, `SettingsScreen`, `ReminderControl`, `PatientSwitcher`, `CreatePatientModal`, `AuthScreen`, and `MainTabs`.
-  - Enforced strict flat tonal surface layering with 0 drop-shadows or elevation (`Shadow Strategy: none`), crisp 1px borders, and high-contrast semantic tokens.
+  - Full screen and modal coverage across the entire application:
+    - Primary flows: `HomeScreen`, `TodayScreen`, `DoseTimeline`, `MedicationSection`, `MedicationPhotoImport`, `HistoryPanel`, `CareHeader`, `PatientSwitcher`, `CreatePatientModal`, `SettingsScreen`, `ReminderControl`, `AuthScreen`, and `MainTabs`.
+    - Medicine editing and circle management: `MedicationEditorModal` (multi-step form with meal windows, intervals, weekday wrapping, and review cards), `MedicinesScreen` (tab container with modern retry, sign out, and person creation), `CareCircleSection` (caregiver member list, role toggles, pending invitations, and invite generation), `InvitationInbox` (pending invite cards, accept/decline actions, and localized retry), and shared notices (`SyncNotice`, `SyntheticDataNotice`).
+  - Enforced strict flat tonal surface layering with 0 drop-shadows or elevation (`Shadow Strategy: none`), crisp 1px borders, and high-contrast semantic tokens (`colors.canvas`, `colors.white`, `colors.line`).
   - Enforced Read-It-Once sentence case typography with 0 uppercase transforms (`textTransform: 'uppercase'` strictly prohibited; uppercase only for 2-letter avatar initials).
-  - Remedied 9 touch targets to guarantee 48dp minimum hit targets across all interactive controls (`minHeight: 48`, `minWidth: 48`, or `hitSlop={12}` on 24dp clear search buttons).
+  - Hardened accessibility and touch targets across all screens:
+    - Guaranteed minimum 48dp hit targets on every button, tab, pill, input, and checkbox (including `minWidth: 48` on weekday pills to prevent sub-48dp rendering on 356–383dp viewports).
+    - Enforced full `accessibilityRole` and `accessibilityLiveRegion` attributes (`alert`, `header`, `button`, `radio`, `checkbox`).
   - Maintained 100% 1:1 dictionary parity across 175 keys in English and Filipino (`translations.ts`).
   - Passed all 4 automated gates: `typecheck` (0 errors), `test:server` (52/52 pass), `expo-doctor` (21/21 checks pass), and `export:android` (0 forbidden push imports).
 
 ### Current stop point
 
-Milestones 0, 1, 2, 3, and the Comprehensive UI/UX Revamp are 100% completed, hardened against concurrency races, audited by independent QA, and verified through all test gates. 52 of 52 server integration and pure-logic tests pass cleanly, typecheck passes with 0 errors, Expo Doctor passes 21 of 21 checks, and Android export is verified with zero forbidden notification imports. Ready for Milestone 4 (backend robustness).
+Milestones 0, 1, 2, 3, and the Complete Application-Wide UI/UX Revamp across all screens are 100% completed, hardened against concurrency races, audited by independent QA, and verified through all test gates. 52 of 52 server integration and pure-logic tests pass cleanly, typecheck passes with 0 errors, Expo Doctor passes 21 of 21 checks, and Android export is verified with zero forbidden notification imports. Ready for Milestone 4 (backend robustness).
 
 ## Project boundary
 
