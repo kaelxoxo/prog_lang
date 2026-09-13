@@ -144,11 +144,15 @@ export function AssistantFAB({
 const createStyles = (colors: AppColors) =>
   StyleSheet.create({
     fabContainer: {
-      alignItems: 'flex-end',
+      alignItems: 'center',
       bottom: 76,
+      elevation: 12,
+      height: 64,
+      justifyContent: 'center',
       position: 'absolute',
       right: spacing.md,
-      zIndex: 90,
+      width: 64,
+      zIndex: 999,
     },
     fabButton: {
       alignItems: 'center',
@@ -156,6 +160,7 @@ const createStyles = (colors: AppColors) =>
       borderColor: colors.line,
       borderRadius: radii.full,
       borderWidth: 1.5,
+      elevation: 6,
       height: 56,
       justifyContent: 'center',
       minHeight: 48,
