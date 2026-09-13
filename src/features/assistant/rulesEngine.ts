@@ -313,12 +313,24 @@ export function isAddMedicineIntent(text: string): boolean {
   if (/\b(how\s+to|paano|pa'no)\b/i.test(trimmed)) {
     return false;
   }
-  return (
+  if (
     /\b(add|dagdag(?:\s+ng)?|idagdag|magdagdag(?:\s+ng)?)\b/i.test(trimmed) ||
     /\b(needs\s+to\s+take|kailangang?\s+uminom|should\s+take|must\s+take|has\s+to\s+take|painumin\s+ng|ipainom\s+ang)\b/i.test(trimmed) ||
     /\b(new\s+medicine|bagong\s+gamot)\b/i.test(trimmed) ||
     /^\+\s*[a-zA-Z]/i.test(trimmed)
-  );
+  ) {
+    return true;
+  }
+
+  // Recognize direct medicine dosage or schedule statements without explicit "add" trigger
+  const dose = extractStrengthAndDose(trimmed);
+  const schedule = extractScheduleDetails(trimmed);
+  const name = extractMedicineName(trimmed);
+  if (name && (dose.strengthValue !== null || schedule !== null)) {
+    return true;
+  }
+
+  return false;
 }
 
 const DIAGNOSIS_PATTERNS = [
@@ -489,8 +501,21 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
         answer,
         actionableDose: null,
         medicationDraft: null,
-        pendingDraft: null,
-        expression: 'idle',
+        pendingDraft: {
+          id: generateDraftId(),
+          displayName: '',
+          strengthValue: null,
+          strengthUnit: 'mg',
+          doseQuantity: 1,
+          doseUnit: 'tablet',
+          medicineForm: 'tablet',
+          scheduleKind: 'exact',
+          times: [],
+          intervalHours: null,
+          weekdays: [0, 1, 2, 3, 4, 5, 6],
+          route: 'Oral',
+        },
+        expression: 'thinking',
         suggestedQuickReplies: defaultQuickReplies(locale),
         source: 'local_rules',
       };

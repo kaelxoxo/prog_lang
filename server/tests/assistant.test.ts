@@ -399,6 +399,63 @@ test('Tier 1 Local Rules: parses "Lola needs to take Losartan 50mg every night a
   assert.deepEqual(result.medicationDraft.times, ['21:00']);
 });
 
+test('Tier 1 Local Rules: parses direct statement without "add" keyword "Metformin 500mg daily at 8:00 AM"', () => {
+  const now = new Date('2026-09-12T07:00:00+08:00');
+  const context: LocalEvaluationContext = {
+    query: 'Metformin 500mg daily at 8:00 AM',
+    locale: 'en',
+    patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
+    medications: [],
+    timeline: [],
+    now,
+  };
+
+  const result = evaluateLocalQuery(context);
+  assert.equal(result.handled, true);
+  assert.equal(result.source, 'local_rules');
+  assert.ok(result.medicationDraft);
+  assert.equal(result.medicationDraft.displayName, 'Metformin');
+  assert.equal(result.medicationDraft.strengthValue, 500);
+  assert.equal(result.medicationDraft.strengthUnit, 'mg');
+  assert.deepEqual(result.medicationDraft.times, ['08:00']);
+  assert.match(result.answer || '', /Here is the draft for Metformin/);
+});
+
+test('Tier 1 Local Rules: "+ Add medicine" chip initializes pending draft, followed by direct input', () => {
+  const now = new Date('2026-09-12T07:00:00+08:00');
+  // Turn 1: user taps "+ Add medicine" chip
+  const turn1 = evaluateLocalQuery({
+    query: '+ Add medicine',
+    locale: 'en',
+    patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
+    medications: [],
+    timeline: [],
+    now,
+  });
+
+  assert.equal(turn1.handled, true);
+  assert.equal(turn1.medicationDraft, null);
+  assert.ok(turn1.pendingDraft);
+  assert.match(turn1.answer || '', /What medicine would you like to add for Lola Rosa/);
+
+  // Turn 2: user responds with medicine details
+  const turn2 = evaluateLocalQuery({
+    query: 'Metformin 500mg daily at 8:00 AM',
+    locale: 'en',
+    patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
+    medications: [],
+    timeline: [],
+    now,
+    pendingDraftState: turn1.pendingDraft,
+  });
+
+  assert.equal(turn2.handled, true);
+  assert.ok(turn2.medicationDraft);
+  assert.equal(turn2.medicationDraft.displayName, 'Metformin');
+  assert.equal(turn2.medicationDraft.strengthValue, 500);
+  assert.deepEqual(turn2.medicationDraft.times, ['08:00']);
+});
+
 test('Tier 1 Local Rules: multi-turn flow asks for missing time, then completes draft with time response', () => {
   const now = new Date('2026-09-12T07:00:00+08:00');
   // Turn 1: user provides med and strength but no time
