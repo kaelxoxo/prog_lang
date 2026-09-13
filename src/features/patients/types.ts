@@ -5,5 +5,6 @@ export type Patient = {
   todayMessage: string;
   role: 'owner' | 'caregiver';
   canManageMedications: boolean;
+  primaryCareManagerName?: string;
   createdAt: string;
 };

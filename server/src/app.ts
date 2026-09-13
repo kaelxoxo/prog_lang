@@ -31,6 +31,7 @@ type PatientRow = {
   display_name: string;
   role: 'owner' | 'caregiver';
   can_manage_medications: boolean;
+  primary_care_manager_name?: string | null;
   created_at: Date;
 };
 
@@ -476,13 +477,16 @@ function accountJson(account: AccountRow) {
   };
 }
 
-function patientJson(patient: PatientRow) {
+function patientJson(patient: PatientRow, account?: AccountRow) {
+  const primaryCareManagerName = patient.primary_care_manager_name
+    ?? (patient.role === 'owner' && account ? account.display_name : undefined);
   return {
     id: patient.id,
     displayName: patient.display_name,
     role: patient.role,
     canManageMedications: patient.role === 'owner' || patient.can_manage_medications,
     relationshipLabel: patient.role === 'owner' ? 'Primary care manager' : 'Care circle member',
+    primaryCareManagerName,
     todayMessage: 'Review confirmed medicines and keep their schedules up to date.',
     createdAt: patient.created_at,
   };
@@ -749,7 +753,8 @@ export function createAppServer(
         const patients = await inAuthenticatedTransaction(pool, request, async (client, account) => {
           const result = await client.query<PatientRow>(
             `SELECT patient.id, patient.display_name, membership.role,
-                    membership.can_manage_medications, patient.created_at
+                    membership.can_manage_medications, patient.created_at,
+                    app_api.patient_primary_care_manager(patient.id) AS primary_care_manager_name
              FROM public.patients AS patient
              JOIN public.patient_members AS membership
                ON membership.patient_id = patient.id
@@ -759,7 +764,7 @@ export function createAppServer(
              ORDER BY patient.created_at, patient.id`,
             [account.id],
           );
-          return result.rows.map(patientJson);
+          return result.rows.map((row) => patientJson(row, account));
         });
         sendJson(response, 200, { patients });
         return;
@@ -772,12 +777,12 @@ export function createAppServer(
           'Patient name',
           80,
         );
-        const patient = await inAuthenticatedTransaction(pool, request, async (client) => {
+        const patient = await inAuthenticatedTransaction(pool, request, async (client, account) => {
           const result = await client.query<PatientRow>(
             'SELECT * FROM app_api.create_patient_profile($1)',
             [displayName],
           );
-          return patientJson(result.rows[0]);
+          return patientJson(result.rows[0], account);
         });
         sendJson(response, 201, { patient });
         return;
@@ -1206,7 +1211,8 @@ export function createAppServer(
 
           const patientResult = await client.query<PatientRow>(
             `SELECT patient.id, patient.display_name, membership.role,
-                    membership.can_manage_medications, patient.created_at
+                    membership.can_manage_medications, patient.created_at,
+                    app_api.patient_primary_care_manager(patient.id) AS primary_care_manager_name
              FROM public.patients AS patient
              JOIN public.patient_members AS membership
                ON membership.patient_id = patient.id
@@ -1246,6 +1252,8 @@ export function createAppServer(
               id: patient.id,
               displayName: patient.display_name,
               role: patient.role,
+              canManageMedications: patient.role === 'owner' || patient.can_manage_medications,
+              primaryCareManagerName: patient.primary_care_manager_name || (patient.role === 'owner' ? account.display_name : undefined),
             },
             caregiver: {
               id: account.id,

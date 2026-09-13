@@ -21,6 +21,30 @@ export interface AssistantActionableDose {
   status: DoseStatus;
 }
 
+export interface AssistantMedicationDraft {
+  id: string;
+  displayName: string;
+  genericName?: string;
+  brandName?: string;
+  strengthValue: number | null;
+  strengthUnit: string;
+  doseQuantity: number;
+  doseUnit: string;
+  medicineForm: string;
+  scheduleKind: 'exact' | 'interval' | 'meal';
+  times: string[];
+  intervalHours?: number | null;
+  weekdays: number[];
+  mealName?: 'breakfast' | 'lunch' | 'dinner';
+  mealRelation?: 'before' | 'after';
+  route?: string;
+  notes?: string;
+  originalInstructions?: string;
+  isDuplicate?: boolean;
+  duplicateMedicationName?: string;
+  confirmed?: boolean;
+}
+
 export type AssistantResponseSource = 'local_rules' | 'gemini' | 'fallback';
 
 export interface AssistantQueryResponse {
@@ -28,6 +52,7 @@ export interface AssistantQueryResponse {
   source: AssistantResponseSource;
   model: string;
   actionableDose?: AssistantActionableDose | null;
+  medicationDraft?: AssistantMedicationDraft | null;
   suggestedQuickReplies: string[];
 }
 
@@ -94,12 +119,17 @@ export interface LocalEvaluationContext {
   medications: AssistantMedicationContext[];
   timeline: AssistantDoseContext[];
   now: Date;
+  canManageMedications?: boolean;
+  primaryCareManagerName?: string;
+  pendingDraftState?: AssistantMedicationDraft | null;
 }
 
 export interface LocalEvaluationResult {
   handled: boolean;
   answer?: string;
   actionableDose?: AssistantActionableDose | null;
+  medicationDraft?: AssistantMedicationDraft | null;
+  pendingDraft?: AssistantMedicationDraft | null;
   expression?: MascotExpression;
   suggestedQuickReplies?: string[];
   source?: 'local_rules';
@@ -111,6 +141,8 @@ export interface AssistantChatMessage {
   text: string;
   timestamp: string;
   actionableDose?: AssistantActionableDose | null;
+  medicationDraft?: AssistantMedicationDraft | null;
+  canViewInSchedule?: boolean;
   source?: AssistantResponseSource;
 }
 

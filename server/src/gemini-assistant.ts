@@ -10,6 +10,30 @@ export interface AssistantActionableDose {
   status: 'not_recorded' | 'taken' | 'skipped' | 'snoozed';
 }
 
+export interface AssistantMedicationDraft {
+  id: string;
+  displayName: string;
+  genericName?: string;
+  brandName?: string;
+  strengthValue: number | null;
+  strengthUnit: string;
+  doseQuantity: number;
+  doseUnit: string;
+  medicineForm: string;
+  scheduleKind: 'exact' | 'interval' | 'meal';
+  times: string[];
+  intervalHours?: number | null;
+  weekdays: number[];
+  mealName?: 'breakfast' | 'lunch' | 'dinner';
+  mealRelation?: 'before' | 'after';
+  route?: string;
+  notes?: string;
+  originalInstructions?: string;
+  isDuplicate?: boolean;
+  duplicateMedicationName?: string;
+  confirmed?: boolean;
+}
+
 export interface AssistantQueryParams {
   query: string;
   locale: 'en' | 'fil';
@@ -19,6 +43,8 @@ export interface AssistantQueryParams {
     id: string;
     displayName: string;
     role?: string;
+    canManageMedications?: boolean;
+    primaryCareManagerName?: string;
   };
   caregiver: {
     id: string;
@@ -65,13 +91,97 @@ export interface AssistantQueryParams {
   fetchFn?: typeof fetch;
 }
 
+import {
+  extractMedicineName,
+  extractScheduleDetails,
+  extractStrengthAndDose,
+  isAddMedicineIntent,
+} from '../../src/features/assistant/rulesEngine';
+
 export interface AssistantQueryResponse {
   answer: string;
   source: 'local_rules' | 'gemini' | 'fallback';
   model: string;
   actionableDose?: AssistantActionableDose | null;
+  medicationDraft?: AssistantMedicationDraft | null;
   suggestedQuickReplies: string[];
 }
+
+const proposeMedicationDraftTool = {
+  functionDeclarations: [
+    {
+      name: 'propose_medication_draft',
+      description: 'Proposes an attributable medication draft card when the caregiver wants to add a medicine to the schedule.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          displayName: {
+            type: 'STRING',
+            description: 'Name of the medicine verbatim as mentioned (e.g. Metformin, Paracetamol, Losartan)',
+          },
+          genericName: {
+            type: 'STRING',
+            description: 'Generic name if available',
+          },
+          brandName: {
+            type: 'STRING',
+            description: 'Brand name if available',
+          },
+          strengthValue: {
+            type: 'NUMBER',
+            description: 'Numeric dosage strength (e.g. 500, 50, 10)',
+          },
+          strengthUnit: {
+            type: 'STRING',
+            description: 'Strength dosage unit (e.g. mg, ml, mcg)',
+          },
+          doseQuantity: {
+            type: 'NUMBER',
+            description: 'Number of units to take per dose (default 1)',
+          },
+          doseUnit: {
+            type: 'STRING',
+            description: 'Unit of dose (e.g. tablet, capsule, ml, drops)',
+          },
+          medicineForm: {
+            type: 'STRING',
+            description: 'Form of medicine (e.g. tablet, capsule, syrup, drops)',
+          },
+          scheduleKind: {
+            type: 'STRING',
+            enum: ['exact', 'interval', 'meal'],
+            description: 'Schedule kind: exact fixed times, interval, or around meals',
+          },
+          exactTimes: {
+            type: 'ARRAY',
+            items: { type: 'STRING' },
+            description: '24-hour format HH:mm times list (e.g. ["08:00"], ["08:00", "20:00"])',
+          },
+          intervalHours: {
+            type: 'NUMBER',
+            description: 'Interval in hours if scheduleKind is interval (e.g. 6, 8)',
+          },
+          mealName: {
+            type: 'STRING',
+            enum: ['breakfast', 'lunch', 'dinner'],
+            description: 'Meal name if meal schedule',
+          },
+          mealRelation: {
+            type: 'STRING',
+            enum: ['before', 'after'],
+            description: 'Meal relation (before or after)',
+          },
+          weekdays: {
+            type: 'ARRAY',
+            items: { type: 'INTEGER' },
+            description: 'Days of week 0-6 (0=Sunday ... 6=Saturday). Default [0, 1, 2, 3, 4, 5, 6].',
+          },
+        },
+        required: ['displayName'],
+      },
+    },
+  ],
+};
 
 const DIAGNOSIS_PATTERNS = [
   /\b(diagnos|symptom|chest pain|dizzy|dizziness|nausea|fever|vomit|vomiting|shortness of breath|rash|bleeding)\b/i,
@@ -155,7 +265,10 @@ CRITICAL MEDICAL SAFETY RULES:
    - EN: "For any adjustments to medicines, dosage changes, or health concerns, please consult ${patientName}'s doctor or healthcare provider directly."
    - FIL: "Para sa anumang pagbabago sa gamot, dosage, o medikal na kalagayan, mangyaring sumangguni agad sa doktor o healthcare provider ni ${patientName}."
 4. PRESERVE PHARMACEUTICAL & PATIENT NAMES: Never translate or modify pharmaceutical brand names, generic active ingredients, dosage strengths, or patient names.
-5. ACTIONABLE DOSE IDENTIFICATION: If the user query is about an unrecorded dose scheduled for today, mention the medication and time clearly so the app can present an attributable recording card.`;
+5. ACTIONABLE DOSE IDENTIFICATION: If the user query is about an unrecorded dose scheduled for today, mention the medication and time clearly so the app can present an attributable recording card.
+6. ADDING MEDICINES VIA PROPOSE_MEDICATION_DRAFT:
+   - If the caregiver asks to add a medicine with adequate details (medicine name, dose/strength, and schedule time), call the 'propose_medication_draft' function tool.
+   - If required details (such as dosage strength or scheduled time) are missing, do not guess; ask a concise follow-up question (e.g. "What time should ${patientName} take this?").`;
 }
 
 export function findActionableDose(
@@ -190,8 +303,8 @@ export function findActionableDose(
 
 export function suggestedRepliesFor(locale: 'en' | 'fil'): string[] {
   return locale === 'fil'
-    ? ['Ano ang susunod na gamot?', 'Buod ng araw na ito', 'Tulong sa reseta']
-    : ["What's due next?", "Today's summary", 'Help with prescription'];
+    ? ['+ Magdagdag ng gamot', 'Ano ang susunod na gamot?', 'Buod ng araw na ito']
+    : ['+ Add medicine', "What's due next?", "Today's summary"];
 }
 
 export async function queryGeminiAssistant(params: AssistantQueryParams): Promise<AssistantQueryResponse> {
@@ -208,6 +321,29 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
       source: 'local_rules',
       model: 'safety_guardrail',
       actionableDose: null,
+      medicationDraft: null,
+      suggestedQuickReplies,
+    };
+  }
+
+  // 2. Role-based permission check for Add Medicine intent
+  const isAddIntent = isAddMedicineIntent(params.query);
+  if (isAddIntent && params.patient.canManageMedications === false) {
+    const managerName = params.patient.primaryCareManagerName;
+    const answer = locale === 'fil'
+      ? (managerName
+        ? `Tanging ang mga tagapamahala ng pangangalaga ang maaaring magdagdag ng bagong gamot para kay ${patientName}. Mangyaring makipag-ugnayan kay ${managerName}.`
+        : `Tanging ang mga tagapamahala ng pangangalaga ang maaaring magdagdag ng bagong gamot para kay ${patientName}. Mangyaring makipag-ugnayan sa pangunahing tagapamahala ng pangangalaga.`)
+      : (managerName
+        ? `Only primary care managers can add new medicines for ${patientName}. Please coordinate with ${managerName}.`
+        : `Only primary care managers can add new medicines for ${patientName}. Please coordinate with the primary care manager.`);
+
+    return {
+      answer,
+      source: 'local_rules',
+      model: 'permission_guardrail',
+      actionableDose: null,
+      medicationDraft: null,
       suggestedQuickReplies,
     };
   }
@@ -215,8 +351,108 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
   const apiKey = params.apiKey || process.env.GEMINI_API_KEY || '';
   const fetchImpl = params.fetchFn || globalThis.fetch;
 
-  // 2. Deterministic Fallback if API key missing
-  if (!apiKey) {
+  // 3. Fallback handler when API key missing or on network failure
+  const handleFallback = (): AssistantQueryResponse => {
+    if (isAddIntent) {
+      const name = extractMedicineName(params.query);
+      if (!name) {
+        const answer = locale === 'fil'
+          ? `Anong gamot ang nais mong idagdag para kay ${patientName}?`
+          : `What medicine would you like to add for ${patientName}?`;
+        return {
+          answer,
+          source: 'fallback',
+          model: 'fallback',
+          actionableDose: null,
+          medicationDraft: null,
+          suggestedQuickReplies,
+        };
+      }
+
+      const schedule = extractScheduleDetails(params.query);
+      const dose = extractStrengthAndDose(params.query);
+
+      const hasTimes = (schedule?.times && schedule.times.length > 0) || Boolean(schedule?.intervalHours);
+      const hasStrength = dose.strengthValue !== null;
+
+      if (!hasTimes || !hasStrength) {
+        let answer = '';
+        if (!hasTimes && !hasStrength) {
+          answer = locale === 'fil'
+            ? `Anong oras at dosage dapat inumin ni ${patientName} ang ${name}?`
+            : `What time and dosage should ${patientName} take for ${name}?`;
+        } else if (!hasTimes) {
+          const strengthPart = dose.strengthValue ? ` ${dose.strengthValue}${dose.strengthUnit}` : '';
+          answer = locale === 'fil'
+            ? `Anong oras dapat inumin ni ${patientName} ang ${name}${strengthPart}?`
+            : `What time should ${patientName} take ${name}${strengthPart}?`;
+        } else {
+          answer = locale === 'fil'
+            ? `Ano ang dosage o lakas para sa ${name} (hal., 500mg, 1 tableta)?`
+            : `What is the dosage or strength for ${name} (e.g., 500mg, 1 tablet)?`;
+        }
+
+        return {
+          answer,
+          source: 'fallback',
+          model: 'fallback',
+          actionableDose: null,
+          medicationDraft: null,
+          suggestedQuickReplies,
+        };
+      }
+
+      // Complete draft in fallback
+      const medLower = name.toLowerCase();
+      const duplicate = params.medications.find((m) => {
+        const mName = m.displayName.toLowerCase();
+        const generic = m.genericName?.toLowerCase();
+        const brand = m.brandName?.toLowerCase();
+        return (
+          mName === medLower ||
+          mName.includes(medLower) ||
+          medLower.includes(mName) ||
+          generic === medLower ||
+          brand === medLower
+        );
+      });
+
+      const draft: AssistantMedicationDraft = {
+        id: 'draft-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7),
+        displayName: name,
+        strengthValue: dose.strengthValue,
+        strengthUnit: dose.strengthUnit || 'mg',
+        doseQuantity: dose.doseQuantity,
+        doseUnit: dose.doseUnit,
+        medicineForm: dose.medicineForm,
+        scheduleKind: schedule?.kind || 'exact',
+        times: schedule?.times || ['08:00'],
+        intervalHours: schedule?.intervalHours ?? null,
+        mealName: schedule?.mealName,
+        mealRelation: schedule?.mealRelation,
+        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        isDuplicate: Boolean(duplicate),
+        duplicateMedicationName: duplicate?.displayName,
+      };
+
+      const answer = duplicate
+        ? (locale === 'fil'
+          ? `Inihanda ko ang draft para sa ${name}. Paalala: Ang ${duplicate.displayName} ay nasa listahan na ng aktibong gamot ni ${patientName}.`
+          : `I prepared a draft for ${name}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`)
+        : (locale === 'fil'
+          ? `Narito ang draft para sa ${name}. Pakisuri at kumpirmahin.`
+          : `Here is the draft for ${name}. Please review and confirm.`);
+
+      return {
+        answer,
+        source: 'fallback',
+        model: 'fallback',
+        actionableDose: null,
+        medicationDraft: draft,
+        suggestedQuickReplies,
+      };
+    }
+
     const fallbackAnswer = locale === 'fil'
       ? `Kasalukuyang hindi maabot ang aking serbisyo, ngunit maaari mong suriin at itala ang mga nakaiskedyul na gamot ni ${patientName} sa Today tab.`
       : `I'm having trouble connecting to my AI care service right now, but you can always review and record ${patientName}'s scheduled medicines in the Today tab.`;
@@ -226,11 +462,16 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
       source: 'fallback',
       model: 'fallback',
       actionableDose: findActionableDose(params.timeline, params.query, fallbackAnswer),
+      medicationDraft: null,
       suggestedQuickReplies,
     };
+  };
+
+  if (!apiKey) {
+    return handleFallback();
   }
 
-  // 3. Construct Gemini REST payload
+  // 4. Construct Gemini REST payload with function calling tools
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
   const context = buildAssistantContext(params);
   const systemInstructionText = buildSystemInstruction(caregiverName, patientName);
@@ -246,9 +487,10 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
     systemInstruction: {
       parts: [{ text: systemInstructionText }],
     },
+    tools: [proposeMedicationDraftTool],
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: 300,
+      maxOutputTokens: 400,
     },
   };
 
@@ -270,12 +512,118 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
     const data = (await response.json()) as {
       candidates?: Array<{
         content?: {
-          parts?: Array<{ text?: string }>;
+          parts?: Array<{
+            text?: string;
+            functionCall?: {
+              name: string;
+              args: Record<string, unknown>;
+            };
+          }>;
         };
       }>;
     };
 
-    const textPayload = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const candidateContent = data.candidates?.[0]?.content;
+    const parts = candidateContent?.parts || [];
+
+    const functionCallPart = parts.find((p) => p.functionCall && p.functionCall.name === 'propose_medication_draft');
+    const textPart = parts.find((p) => p.text);
+    const textPayload = textPart?.text?.trim();
+
+    if (functionCallPart && functionCallPart.functionCall) {
+      const args = (functionCallPart.functionCall.args || {}) as Record<string, unknown>;
+      const displayName = typeof args.displayName === 'string' && args.displayName ? args.displayName.trim() : 'Medicine';
+      const strengthVal =
+        typeof args.strengthValue === 'number'
+          ? args.strengthValue
+          : parseFloat(String(args.strengthValue)) || null;
+      const strengthUnit =
+        typeof args.strengthUnit === 'string' && args.strengthUnit
+          ? args.strengthUnit.trim().toLowerCase()
+          : strengthVal !== null
+          ? 'mg'
+          : '';
+      const doseQuantity =
+        typeof args.doseQuantity === 'number'
+          ? args.doseQuantity
+          : parseFloat(String(args.doseQuantity)) || 1;
+      const doseUnit =
+        typeof args.doseUnit === 'string' && args.doseUnit ? args.doseUnit.trim().toLowerCase() : 'tablet';
+      const medicineForm =
+        typeof args.medicineForm === 'string' && args.medicineForm ? args.medicineForm.trim().toLowerCase() : 'tablet';
+      const scheduleKind =
+        args.scheduleKind === 'interval' || args.scheduleKind === 'meal' ? args.scheduleKind : 'exact';
+
+      let times: string[] = Array.isArray(args.exactTimes)
+        ? (args.exactTimes as string[]).map((t) => String(t).trim()).filter(Boolean)
+        : [];
+      if (times.length === 0) {
+        times = ['08:00'];
+      }
+
+      const intervalHours = typeof args.intervalHours === 'number' ? args.intervalHours : null;
+      const weekdays = Array.isArray(args.weekdays) ? (args.weekdays as number[]) : [0, 1, 2, 3, 4, 5, 6];
+
+      // Check duplicate against params.medications
+      const medLower = displayName.toLowerCase();
+      const duplicate = params.medications.find((m) => {
+        const name = m.displayName.toLowerCase();
+        const generic = m.genericName?.toLowerCase();
+        const brand = m.brandName?.toLowerCase();
+        return (
+          name === medLower ||
+          name.includes(medLower) ||
+          medLower.includes(name) ||
+          generic === medLower ||
+          brand === medLower
+        );
+      });
+
+      const draft: AssistantMedicationDraft = {
+        id: 'draft-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7),
+        displayName,
+        genericName: typeof args.genericName === 'string' ? args.genericName : undefined,
+        brandName: typeof args.brandName === 'string' ? args.brandName : undefined,
+        strengthValue: strengthVal,
+        strengthUnit,
+        doseQuantity,
+        doseUnit,
+        medicineForm,
+        scheduleKind,
+        times,
+        intervalHours,
+        weekdays,
+        mealName:
+          args.mealName === 'breakfast' || args.mealName === 'lunch' || args.mealName === 'dinner'
+            ? args.mealName
+            : undefined,
+        mealRelation:
+          args.mealRelation === 'before' || args.mealRelation === 'after' ? args.mealRelation : undefined,
+        isDuplicate: Boolean(duplicate),
+        duplicateMedicationName: duplicate?.displayName,
+      };
+
+      let answer = textPayload || '';
+      if (!answer) {
+        answer = duplicate
+          ? locale === 'fil'
+            ? `Inihanda ko ang draft para sa ${displayName}. Paalala: Ang ${duplicate.displayName} ay nasa listahan na ng aktibong gamot ni ${patientName}.`
+            : `I prepared a draft for ${displayName}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`
+          : locale === 'fil'
+          ? `Narito ang draft para sa ${displayName}. Pakisuri at kumpirmahin.`
+          : `Here is the draft for ${displayName}. Please review and confirm.`;
+      }
+
+      return {
+        answer,
+        source: 'gemini',
+        model: 'gemini-2.5-flash',
+        actionableDose: null,
+        medicationDraft: draft,
+        suggestedQuickReplies,
+      };
+    }
+
     if (!textPayload) {
       throw new Error('Gemini API returned empty candidate text');
     }
@@ -285,20 +633,11 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
       source: 'gemini',
       model: 'gemini-2.5-flash',
       actionableDose: findActionableDose(params.timeline, params.query, textPayload),
+      medicationDraft: null,
       suggestedQuickReplies,
     };
   } catch (_err) {
-    const fallbackAnswer = locale === 'fil'
-      ? `Kasalukuyang hindi maabot ang aking serbisyo, ngunit maaari mong suriin at itala ang mga nakaiskedyul na gamot ni ${patientName} sa Today tab.`
-      : `I'm having trouble connecting to my AI care service right now, but you can always review and record ${patientName}'s scheduled medicines in the Today tab.`;
-
-    return {
-      answer: fallbackAnswer,
-      source: 'fallback',
-      model: 'fallback',
-      actionableDose: findActionableDose(params.timeline, params.query, fallbackAnswer),
-      suggestedQuickReplies,
-    };
+    return handleFallback();
   } finally {
     clearTimeout(timeoutId);
   }

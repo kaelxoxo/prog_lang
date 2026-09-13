@@ -2,6 +2,7 @@ import {
   type AssistantActionableDose,
   type AssistantDoseContext,
   type AssistantLocale,
+  type AssistantMedicationDraft,
   type LocalEvaluationContext,
   type LocalEvaluationResult,
   toActionableDose,
@@ -34,8 +35,290 @@ function getDoseEffectiveTime(dose: AssistantDoseContext): number {
 
 function defaultQuickReplies(locale: AssistantLocale): string[] {
   return locale === 'fil'
-    ? ['Ano ang susunod na gamot?', 'Buod ng araw na ito', 'Tulong sa reseta']
-    : ["What's due next?", "Today's summary", 'Help with prescription'];
+    ? ['+ Magdagdag ng gamot', 'Ano ang susunod na gamot?', 'Buod ng araw na ito']
+    : ['+ Add medicine', "What's due next?", "Today's summary"];
+}
+
+function generateDraftId(): string {
+  return 'draft-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 7);
+}
+
+export function parseTimeTo24h(hour: number, minute: number, meridiemOrPeriod?: string): string {
+  let h = hour;
+  const m = minute;
+  const period = meridiemOrPeriod ? meridiemOrPeriod.toLowerCase().trim() : '';
+
+  if (period === 'pm' || period === 'gabi' || period === 'hapon') {
+    if (h < 12) h += 12;
+  } else if (period === 'am' || period === 'umaga' || period === 'madaling araw') {
+    if (h === 12) h = 0;
+  }
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+export function extractExactTimes(text: string): string[] {
+  const times: string[] = [];
+
+  // Match Filipino 'alas 8 ng umaga', 'alas-8 ng gabi', 'alas 9'
+  const tagalogTimeRegex = /\balas[- ]?(\d{1,2})(?::(\d{2}))?\s*(?:ng\s+(umaga|hapon|gabi|madaling\s*araw))?\b/gi;
+  let match: RegExpExecArray | null;
+  while ((match = tagalogTimeRegex.exec(text)) !== null) {
+    const h = parseInt(match[1], 10);
+    const m = match[2] ? parseInt(match[2], 10) : 0;
+    const period = match[3] || (h <= 6 || h === 12 ? 'hapon' : h >= 7 && h <= 11 ? 'umaga' : undefined);
+    times.push(parseTimeTo24h(h, m, period));
+  }
+
+  // Match 'every night at 9pm', 'night at 9', 'at 9pm'
+  const nightMatch = text.match(/(?:every\s+night|gabi)\s+(?:at\s+|nang\s+)?(\d{1,2})(?::(\d{2}))?\s*(pm|am)?/i);
+  if (nightMatch && times.length === 0) {
+    const h = parseInt(nightMatch[1], 10);
+    const m = nightMatch[2] ? parseInt(nightMatch[2], 10) : 0;
+    times.push(parseTimeTo24h(h, m, 'pm'));
+  }
+
+  // Standard AM/PM: e.g. '8:00 AM', '8am', '9pm'
+  const standardTimeRegex = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/gi;
+  while ((match = standardTimeRegex.exec(text)) !== null) {
+    const h = parseInt(match[1], 10);
+    const m = match[2] ? parseInt(match[2], 10) : 0;
+    const t = parseTimeTo24h(h, m, match[3]);
+    if (!times.includes(t)) times.push(t);
+  }
+
+  // 24h format: e.g. 08:00, 20:00, 21:00
+  const militaryTimeRegex = /\b([01]?\d|2[0-3]):([0-5]\d)\b/g;
+  while ((match = militaryTimeRegex.exec(text)) !== null) {
+    const t = `${String(parseInt(match[1], 10)).padStart(2, '0')}:${match[2]}`;
+    if (!times.includes(t)) times.push(t);
+  }
+
+  times.sort();
+  return times;
+}
+
+export function extractScheduleDetails(text: string): {
+  kind: 'exact' | 'interval' | 'meal';
+  times: string[];
+  intervalHours?: number;
+  mealName?: 'breakfast' | 'lunch' | 'dinner';
+  mealRelation?: 'before' | 'after';
+} | null {
+  // 1. Interval patterns (e.g. bawat 6 na oras, every 8 hours, kada 8 oras, q6h)
+  const intervalMatch =
+    text.match(/(?:every|bawat|kada|tuwing)\s*(\d+)\s*(?:na\s+)?(?:hours?|oras|hrs?|h)\b/i) ||
+    text.match(/\bq(\d+)h\b/i);
+  if (intervalMatch) {
+    const hours = parseInt(intervalMatch[1], 10);
+    if (hours > 0 && hours <= 24) {
+      let startTime = '08:00';
+      const exactTimes = extractExactTimes(text);
+      if (exactTimes.length > 0) {
+        startTime = exactTimes[0];
+      }
+      return {
+        kind: 'interval',
+        times: [startTime],
+        intervalHours: hours,
+      };
+    }
+  }
+
+  // 2. Meal patterns
+  const mealMatch = text.match(
+    /(?:before|bago\s+mag[- ]?|bago\s+)(breakfast|almusal)|(?:after|pagkatapos\s+ng\s+|with|kasabay\s+ng\s+)(breakfast|almusal)|(?:before|bago\s+mag[- ]?|bago\s+)(lunch|tanghalian)|(?:after|pagkatapos\s+ng\s+|with|kasabay\s+ng\s+)(lunch|tanghalian)|(?:before|bago\s+mag[- ]?|bago\s+)(dinner|hapunan)|(?:after|pagkatapos\s+ng\s+|with|kasabay\s+ng\s+)(dinner|hapunan)/i,
+  );
+  if (mealMatch) {
+    const lower = mealMatch[0].toLowerCase();
+    const isBefore = lower.includes('before') || lower.includes('bago');
+    const meal =
+      lower.includes('breakfast') || lower.includes('almusal')
+        ? 'breakfast'
+        : lower.includes('lunch') || lower.includes('tanghalian')
+        ? 'lunch'
+        : 'dinner';
+    const time = meal === 'breakfast' ? '08:00' : meal === 'lunch' ? '12:00' : '18:00';
+    return {
+      kind: 'meal',
+      times: [time],
+      mealName: meal,
+      mealRelation: isBefore ? 'before' : 'after',
+    };
+  }
+
+  // 3. Exact times
+  const times = extractExactTimes(text);
+  if (times.length > 0) {
+    return {
+      kind: 'exact',
+      times,
+    };
+  }
+
+  return null;
+}
+
+export function extractStrengthAndDose(text: string): {
+  strengthValue: number | null;
+  strengthUnit: string | null;
+  doseQuantity: number;
+  doseUnit: string;
+  medicineForm: string;
+} {
+  // 1. Strength (e.g. 500mg, 50 mg, 10mg, 5ml)
+  let strengthValue: number | null = null;
+  let strengthUnit: string | null = null;
+  const strengthMatch = text.match(/\b(\d+(?:\.\d+)?)\s*(mg|mcg|g|ml|iu|meq)\b/i);
+  if (strengthMatch) {
+    strengthValue = parseFloat(strengthMatch[1]);
+    strengthUnit = strengthMatch[2].toLowerCase();
+  }
+
+  // 2. Quantity & unit (e.g. 1 tablet, 2 capsules, isang tableta, 1 tab, 1 cap, 5ml, 2 drops, 2 puffs, 1 spray, 1 patch, 1 sachet)
+  let doseQuantity = 1;
+  let doseUnit = 'tablet';
+  let medicineForm = 'tablet';
+
+  const doseMatch = text.match(
+    /\b(\d+(?:\.\d+)?|\bisa\b|\bisang\b|\bdalawa\b|\bdalawang\b|\btatlo\b|\btatlong\b|\bapat\b|\bapat\s+na\b|\bone\b|\btwo\b|\bthree\b|\bfour\b|\bhalf\b|\bkalahati\b)\s*(tablet|tableta|tab|capsule|kapsula|cap|drop|patak|puff|spray|patch|sachet|vial|ampoule|ml)s?\b/i,
+  );
+  if (doseMatch) {
+    const rawQty = doseMatch[1].toLowerCase().trim();
+    if (rawQty === 'isa' || rawQty === 'isang' || rawQty === 'one') doseQuantity = 1;
+    else if (rawQty === 'dalawa' || rawQty === 'dalawang' || rawQty === 'two') doseQuantity = 2;
+    else if (rawQty === 'tatlo' || rawQty === 'tatlong' || rawQty === 'three') doseQuantity = 3;
+    else if (rawQty === 'apat' || rawQty === 'apat na' || rawQty === 'four') doseQuantity = 4;
+    else if (rawQty === 'half' || rawQty === 'kalahati') doseQuantity = 0.5;
+    else doseQuantity = parseFloat(rawQty) || 1;
+
+    const rawUnit = doseMatch[2].toLowerCase();
+    if (rawUnit === 'tab' || rawUnit === 'tableta' || rawUnit === 'tablet') {
+      doseUnit = 'tablet';
+      medicineForm = 'tablet';
+    } else if (rawUnit === 'cap' || rawUnit === 'kapsula' || rawUnit === 'capsule') {
+      doseUnit = 'capsule';
+      medicineForm = 'capsule';
+    } else if (rawUnit === 'drop' || rawUnit === 'patak') {
+      doseUnit = 'drops';
+      medicineForm = 'drops';
+    } else if (rawUnit === 'puff') {
+      doseUnit = 'puffs';
+      medicineForm = 'inhaler';
+    } else if (rawUnit === 'spray') {
+      doseUnit = 'sprays';
+      medicineForm = 'spray';
+    } else if (rawUnit === 'patch') {
+      doseUnit = 'patch';
+      medicineForm = 'patch';
+    } else if (rawUnit === 'sachet') {
+      doseUnit = 'sachet';
+      medicineForm = 'powder';
+    } else if (rawUnit === 'vial' || rawUnit === 'ampoule') {
+      doseUnit = rawUnit;
+      medicineForm = 'injection';
+    } else if (rawUnit === 'ml') {
+      doseUnit = 'ml';
+      medicineForm = 'syrup';
+    } else {
+      doseUnit = rawUnit;
+      medicineForm = rawUnit;
+    }
+  } else {
+    // Check for form mention (e.g. tablet, capsule, syrup, drops, inhaler, spray, patch)
+    const formMatch = text.match(/\b(tablet|tableta|capsule|kapsula|syrup|sirup|drops|patak|inhaler|puff|spray|patch|suspension)\b/i);
+    if (formMatch) {
+      const form = formMatch[1].toLowerCase();
+      if (form === 'capsule' || form === 'kapsula') {
+        medicineForm = 'capsule';
+        doseUnit = 'capsule';
+      } else if (form === 'syrup' || form === 'sirup' || form === 'suspension') {
+        medicineForm = 'syrup';
+        doseUnit = 'ml';
+      } else if (form === 'drops' || form === 'patak') {
+        medicineForm = 'drops';
+        doseUnit = 'drops';
+      } else if (form === 'inhaler' || form === 'puff') {
+        medicineForm = 'inhaler';
+        doseUnit = 'puffs';
+      } else if (form === 'spray') {
+        medicineForm = 'spray';
+        doseUnit = 'sprays';
+      } else if (form === 'patch') {
+        medicineForm = 'patch';
+        doseUnit = 'patch';
+      } else {
+        medicineForm = 'tablet';
+        doseUnit = 'tablet';
+      }
+    }
+  }
+
+  return {
+    strengthValue,
+    strengthUnit,
+    doseQuantity,
+    doseUnit,
+    medicineForm,
+  };
+}
+
+export function extractMedicineName(text: string): string | null {
+  const trimmed = text.trim();
+
+  // Strip leading triggers/prefixes
+  let stripped = trimmed
+    .replace(
+      /^(?:\+?\s*(?:add|dagdag(?:\s+ng)?|idagdag|magdagdag(?:\s+ng)?)|(?:lola|lolo|nanay|tatay|patient)?\s*(?:needs\s+to\s+take|kailangang?\s+uminom(?:\s+ng)?|should\s+take|must\s+take|has\s+to\s+take|painumin\s+ng|ipainom\s+ang|mag-?take\s+ng|inumin\s+ang|take))\s*/i,
+      '',
+    )
+    .trim();
+
+  if (!stripped) return null;
+
+  // If stripped starts with dose/quantity (e.g. "500mg of", "500 mg na", "1 tablet of", "1 tab ng", "2 capsules of")
+  const leadingDoseMatch = stripped.match(
+    /^(?:(?:\d+(?:\.\d+)?|\b(?:isa|isang|dalawa|dalawang|tatlo|tatlong|apat|apat\s+na|one|two|three|four)\b)\s*(?:mg|mcg|g|ml|iu|meq|tablet|capsule|tableta|kapsula|tab|cap|drop|patak|puff|spray|sachet|patch)s?)\s*(?:of|na|ng)?\s+/i,
+  );
+  if (leadingDoseMatch) {
+    stripped = stripped.slice(leadingDoseMatch[0].length).trim();
+  }
+
+  // Find boundaries where dosage, frequency, or schedule starts
+  const boundaryMatch = stripped.match(
+    /(?:^|\s+)(?:(\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|iu|meq|tablet|capsule|tableta|kapsula|tab|cap|drop|patak|puff|spray|sachet|patch)s?)|(?:once|twice|thrice|\d+\s*times)\s+(?:daily|a\s+day|sa\s+isang\s+araw)|(?:every|bawat|kada|tuwing)|(?:at\s+(?:\d|night|bedtime|noon))|alas[- ]?\d|sa\s+(?:ganap\s+na\s+)?\d|nang\s+\d|sa\s+(?:gabi|umaga|tanghali|hapon)|in\s+(?:the\s+)?(?:morning|evening|afternoon|night)|(?:before|after|bago|pagkatapos)|(?:night|gabi|morning|umaga|bedtime)\b)/i,
+  );
+
+  let rawName = stripped;
+  if (boundaryMatch && boundaryMatch.index !== undefined) {
+    rawName = stripped.slice(0, boundaryMatch.index).trim();
+  }
+
+  rawName = rawName.replace(/\b(?:at|sa|in|ng|na|on|for)\s*$/i, '').trim();
+  rawName = rawName.replace(/^[,.\s]+|[,.\s]+$/g, '');
+
+  if (/^(?:a\s+)?(?:new\s+)?(?:medicine|medication|gamot|reseta)$/i.test(rawName)) {
+    return null;
+  }
+
+  if (!rawName) return null;
+
+  return rawName.charAt(0).toUpperCase() + rawName.slice(1);
+}
+
+export function isAddMedicineIntent(text: string): boolean {
+  const trimmed = text.trim();
+  if (/^\+?\s*(add\s+(a\s+)?(new\s+)?medicine|magdagdag\s+(ng\s+)?gamot|dagdag\s+(ng\s+)?gamot)$/i.test(trimmed)) {
+    return true;
+  }
+  if (/\b(how\s+to|paano|pa'no)\b/i.test(trimmed)) {
+    return false;
+  }
+  return (
+    /\b(add|dagdag(?:\s+ng)?|idagdag|magdagdag(?:\s+ng)?)\b/i.test(trimmed) ||
+    /\b(needs\s+to\s+take|kailangang?\s+uminom|should\s+take|must\s+take|has\s+to\s+take|painumin\s+ng|ipainom\s+ang)\b/i.test(trimmed) ||
+    /\b(new\s+medicine|bagong\s+gamot)\b/i.test(trimmed) ||
+    /^\+\s*[a-zA-Z]/i.test(trimmed)
+  );
 }
 
 const DIAGNOSIS_PATTERNS = [
@@ -98,14 +381,12 @@ const STATUS_PATTERNS = [
 
 const PRESCRIPTION_PATTERNS = [
   /help with prescription/i,
-  /add (a )?(new )?medicine/i,
   /how to add/i,
   /new prescription/i,
   /scan prescription/i,
   /\bprescription\b/i,
   /tulong sa reseta/i,
   /paano magdagdag/i,
-  /magdagdag ng gamot/i,
   /bagong reseta/i,
   /\breseta\b/i,
 ];
@@ -128,6 +409,262 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
       handled: true,
       answer,
       actionableDose: null,
+      expression: 'idle',
+      suggestedQuickReplies: defaultQuickReplies(locale),
+      source: 'local_rules',
+    };
+  }
+
+  // 2. Add Medicine Intent & Multi-Turn Clarification Flow
+  const hasPendingDraft = Boolean(context.pendingDraftState);
+  const isAddIntent = isAddMedicineIntent(trimmed);
+
+  // Check cancellation intent when draft is pending
+  const isCancelIntent = /^(?:cancel|itigil|ihinto|wag\s+na\s+lang|huwag\s+na\s+lang|ayaw\s+na|stop)$/i.test(trimmed);
+  if (hasPendingDraft && isCancelIntent) {
+    const answer = locale === 'fil'
+      ? `Kinansela ko ang pagdagdag ng gamot para kay ${patientName}.`
+      : `I cancelled adding the medicine for ${patientName}.`;
+
+    return {
+      handled: true,
+      answer,
+      actionableDose: null,
+      medicationDraft: null,
+      pendingDraft: null,
+      expression: 'idle',
+      suggestedQuickReplies: defaultQuickReplies(locale),
+      source: 'local_rules',
+    };
+  }
+
+  // If user enters another primary intent while having a pending draft, let other intent take over unless it's an answer to the clarification
+  const isOtherIntent =
+    NEXT_DOSE_PATTERNS.some((p) => p.test(trimmed)) ||
+    SUMMARY_PATTERNS.some((p) => p.test(trimmed)) ||
+    STATUS_PATTERNS.some((p) => p.test(trimmed)) ||
+    PRESCRIPTION_PATTERNS.some((p) => p.test(trimmed));
+
+  if ((hasPendingDraft && !isOtherIntent) || isAddIntent) {
+    // Check role permissions: only care managers (owner or canManageMedications) can add medicines
+    const canManage =
+      context.canManageMedications ??
+      (typeof context.patient?.canManageMedications === 'boolean'
+        ? context.patient.canManageMedications
+        : context.patient?.role === 'owner' || context.patient?.role === 'manager');
+
+    if (!canManage) {
+      const managerName = context.primaryCareManagerName ?? (context.patient?.primaryCareManagerName as string | undefined);
+      const answer = locale === 'fil'
+        ? (managerName
+          ? `Tanging ang mga tagapamahala ng pangangalaga ang maaaring magdagdag ng bagong gamot para kay ${patientName}. Mangyaring makipag-ugnayan kay ${managerName}.`
+          : `Tanging ang mga tagapamahala ng pangangalaga ang maaaring magdagdag ng bagong gamot para kay ${patientName}. Mangyaring makipag-ugnayan sa pangunahing tagapamahala ng pangangalaga.`)
+        : (managerName
+          ? `Only primary care managers can add new medicines for ${patientName}. Please coordinate with ${managerName}.`
+          : `Only primary care managers can add new medicines for ${patientName}. Please coordinate with the primary care manager.`);
+
+      return {
+        handled: true,
+        answer,
+        actionableDose: null,
+        medicationDraft: null,
+        pendingDraft: null,
+        expression: 'idle',
+        suggestedQuickReplies: defaultQuickReplies(locale),
+        source: 'local_rules',
+      };
+    }
+
+    // Prompt-only (e.g. "+ Add medicine", "Add medicine", "Magdagdag ng gamot")
+    const isPromptOnly = /^\+?\s*(add\s+(a\s+)?(new\s+)?medicine|magdagdag\s+(ng\s+)?gamot|dagdag\s+(ng\s+)?gamot)$/i.test(
+      trimmed,
+    );
+    if (isPromptOnly && !hasPendingDraft) {
+      const answer = locale === 'fil'
+        ? `Anong gamot ang nais mong idagdag para kay ${patientName}?`
+        : `What medicine would you like to add for ${patientName}?`;
+
+      return {
+        handled: true,
+        answer,
+        actionableDose: null,
+        medicationDraft: null,
+        pendingDraft: null,
+        expression: 'idle',
+        suggestedQuickReplies: defaultQuickReplies(locale),
+        source: 'local_rules',
+      };
+    }
+
+    let draftToProcess: AssistantMedicationDraft;
+
+    const detectedNewName = extractMedicineName(trimmed);
+    const isNewMedicineSpecified = Boolean(
+      detectedNewName &&
+      (!hasPendingDraft || isAddIntent || (context.pendingDraftState?.displayName && detectedNewName.toLowerCase() !== context.pendingDraftState.displayName.toLowerCase()))
+    );
+
+    if (hasPendingDraft && context.pendingDraftState && !isNewMedicineSpecified) {
+      const base = { ...context.pendingDraftState };
+      const extractedSchedule = extractScheduleDetails(trimmed);
+      const extractedDose = extractStrengthAndDose(trimmed);
+
+      if (extractedSchedule) {
+        base.scheduleKind = extractedSchedule.kind;
+        base.times = extractedSchedule.times;
+        base.intervalHours = extractedSchedule.intervalHours ?? null;
+        base.mealName = extractedSchedule.mealName;
+        base.mealRelation = extractedSchedule.mealRelation;
+      }
+
+      if (extractedDose.strengthValue !== null) {
+        base.strengthValue = extractedDose.strengthValue;
+        base.strengthUnit = extractedDose.strengthUnit || 'mg';
+      }
+      if (extractedDose.doseQuantity) {
+        base.doseQuantity = extractedDose.doseQuantity;
+        base.doseUnit = extractedDose.doseUnit;
+        base.medicineForm = extractedDose.medicineForm;
+      }
+
+      if (!base.displayName) {
+        const name = extractMedicineName(trimmed);
+        if (name) base.displayName = name;
+      }
+
+      draftToProcess = base;
+    } else {
+      const displayName = detectedNewName || extractMedicineName(trimmed);
+      if (!displayName) {
+        const answer = locale === 'fil'
+          ? `Anong gamot ang nais mong idagdag para kay ${patientName}?`
+          : `What medicine would you like to add for ${patientName}?`;
+
+        return {
+          handled: true,
+          answer,
+          actionableDose: null,
+          medicationDraft: null,
+          pendingDraft: null,
+          expression: 'idle',
+          suggestedQuickReplies: defaultQuickReplies(locale),
+          source: 'local_rules',
+        };
+      }
+
+      const scheduleDetails = extractScheduleDetails(trimmed);
+      const doseDetails = extractStrengthAndDose(trimmed);
+
+      draftToProcess = {
+        id: generateDraftId(),
+        displayName,
+        strengthValue: doseDetails.strengthValue,
+        strengthUnit: doseDetails.strengthUnit || 'mg',
+        doseQuantity: doseDetails.doseQuantity,
+        doseUnit: doseDetails.doseUnit,
+        medicineForm: doseDetails.medicineForm,
+        scheduleKind: scheduleDetails?.kind || 'exact',
+        times: scheduleDetails?.times || [],
+        intervalHours: scheduleDetails?.intervalHours ?? null,
+        mealName: scheduleDetails?.mealName,
+        mealRelation: scheduleDetails?.mealRelation,
+        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        route: 'Oral',
+      };
+    }
+
+    // Evaluate completeness
+    const hasTimes = draftToProcess.times.length > 0 || Boolean(draftToProcess.intervalHours);
+    const hasStrength = draftToProcess.strengthValue !== null;
+
+    if (!hasTimes && !hasStrength) {
+      const answer = locale === 'fil'
+        ? `Anong oras at dosage dapat inumin ni ${patientName} ang ${draftToProcess.displayName}?`
+        : `What time and dosage should ${patientName} take for ${draftToProcess.displayName}?`;
+
+      return {
+        handled: true,
+        answer,
+        actionableDose: null,
+        medicationDraft: null,
+        pendingDraft: draftToProcess,
+        expression: 'thinking',
+        suggestedQuickReplies: defaultQuickReplies(locale),
+        source: 'local_rules',
+      };
+    }
+
+    if (!hasTimes) {
+      const strengthPart = draftToProcess.strengthValue
+        ? ` ${draftToProcess.strengthValue}${draftToProcess.strengthUnit}`
+        : '';
+      const answer = locale === 'fil'
+        ? `Anong oras dapat inumin ni ${patientName} ang ${draftToProcess.displayName}${strengthPart}?`
+        : `What time should ${patientName} take ${draftToProcess.displayName}${strengthPart}?`;
+
+      return {
+        handled: true,
+        answer,
+        actionableDose: null,
+        medicationDraft: null,
+        pendingDraft: draftToProcess,
+        expression: 'thinking',
+        suggestedQuickReplies: defaultQuickReplies(locale),
+        source: 'local_rules',
+      };
+    }
+
+    if (!hasStrength) {
+      const answer = locale === 'fil'
+        ? `Ano ang dosage o lakas para sa ${draftToProcess.displayName} (hal., 500mg, 1 tableta)?`
+        : `What is the dosage or strength for ${draftToProcess.displayName} (e.g., 500mg, 1 tablet)?`;
+
+      return {
+        handled: true,
+        answer,
+        actionableDose: null,
+        medicationDraft: null,
+        pendingDraft: draftToProcess,
+        expression: 'thinking',
+        suggestedQuickReplies: defaultQuickReplies(locale),
+        source: 'local_rules',
+      };
+    }
+
+    // Draft is complete! Check for duplicate in patient's active medications
+    const medLower = draftToProcess.displayName.toLowerCase();
+    const duplicate = medications.find((m) => {
+      const name = m.displayName.toLowerCase();
+      const generic = m.genericName?.toLowerCase();
+      const brand = m.brandName?.toLowerCase();
+      return (
+        name === medLower ||
+        name.includes(medLower) ||
+        medLower.includes(name) ||
+        generic === medLower ||
+        brand === medLower
+      );
+    });
+
+    if (duplicate) {
+      draftToProcess.isDuplicate = true;
+      draftToProcess.duplicateMedicationName = duplicate.displayName;
+    }
+
+    const answer = duplicate
+      ? locale === 'fil'
+        ? `Inihanda ko ang draft para sa ${draftToProcess.displayName}. Paalala: Ang ${duplicate.displayName} ay nasa listahan na ng aktibong gamot ni ${patientName}.`
+        : `I prepared a draft for ${draftToProcess.displayName}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`
+      : locale === 'fil'
+      ? `Narito ang draft para sa ${draftToProcess.displayName}. Pakisuri at kumpirmahin.`
+      : `Here is the draft for ${draftToProcess.displayName}. Please review and confirm.`;
+
+    return {
+      handled: true,
+      answer,
+      actionableDose: null,
+      medicationDraft: draftToProcess,
+      pendingDraft: null,
       expression: 'idle',
       suggestedQuickReplies: defaultQuickReplies(locale),
       source: 'local_rules',

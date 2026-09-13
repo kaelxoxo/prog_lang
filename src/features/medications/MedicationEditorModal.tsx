@@ -290,7 +290,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
       const suggestedKind = draft?.suggestedScheduleKind ?? 'exact';
       setScheduleKind(suggestedKind);
       setIntervalHours(draft?.intervalHours ? String(draft.intervalHours) : '8');
-      setIntervalStart('06:00');
+      setIntervalStart(draft?.exactTimes?.[0] || '06:00');
       setMealRelation(draft?.mealRelation ?? 'after');
       const isBedtime = Boolean(draft?.timingClarification?.toLowerCase().includes('bedtime'));
       const initialMealTimes = emptyMealTimes();

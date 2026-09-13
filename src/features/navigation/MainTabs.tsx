@@ -200,6 +200,10 @@ export function MainTabs({ onOpenWelcomeStory }: Props = {}) {
               setTab('today');
               setFocusedOccurrenceId(occurrenceId);
             }}
+            onNavigateToMedicines={() => {
+              setAssistantVisible(false);
+              setTab('medicines');
+            }}
             patient={activePatient}
             timeline={timelineQuery.data?.timeline}
             visible={isAssistantVisible}
