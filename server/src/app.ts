@@ -6,6 +6,11 @@ import type { Pool, PoolClient } from 'pg';
 import { serverConfig } from './config';
 import { databasePool } from './database';
 import { historyForRange, timelineForDate, timelineForRange, validatedLocalDate } from './doses';
+import {
+  queryGeminiAssistant,
+  type AssistantQueryParams,
+  type AssistantQueryResponse,
+} from './gemini-assistant';
 import { recognizeMedicationImage, type MedicationOcrDraft, type PhotoSourceKind } from './ocr';
 
 const SESSION_LENGTH_MS = 30 * 24 * 60 * 60 * 1000;
@@ -671,9 +676,13 @@ export function createAppServer(
       image: Buffer,
       sourceKind: PhotoSourceKind,
     ) => Promise<MedicationOcrDraft | { drafts: MedicationOcrDraft[] } | MedicationOcrDraft[]>;
+    queryAssistant?: (
+      params: AssistantQueryParams,
+    ) => Promise<AssistantQueryResponse>;
   } = {},
 ) {
   const recognizeImage = dependencies.recognizeImage || recognizeMedicationImage;
+  const queryAssistant = dependencies.queryAssistant || queryGeminiAssistant;
   return createServer(async (request, response) => {
     if (request.method === 'OPTIONS') {
       response.writeHead(204, responseHeaders());
@@ -1149,6 +1158,106 @@ export function createAppServer(
           await client.query('SELECT app_api.restore_medication($1, $2)', [patientId, medicationId]);
         });
         sendJson(response, 200, { ok: true });
+        return;
+      }
+
+      const assistantQueryPath = url.pathname.match(
+        /^\/patients\/([0-9a-f-]{36})\/assistant\/query$/i,
+      );
+      const isApiAssistantQuery = url.pathname === '/api/assistant/query';
+
+      if (request.method === 'POST' && (assistantQueryPath || isApiAssistantQuery)) {
+        const body = await readJson(request);
+        const input = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
+        const queryText = textField(input.query, 'Assistant query', 500);
+        const rawLocale = input.locale;
+        const locale = rawLocale === 'fil' ? 'fil' : 'en';
+        const currentLocalTime = typeof input.currentLocalTime === 'string' ? input.currentLocalTime : undefined;
+        let todayDate = typeof input.todayDate === 'string' && input.todayDate ? validatedLocalDate(input.todayDate) : undefined;
+
+        let targetPatientId = assistantQueryPath
+          ? assistantQueryPath[1]
+          : (typeof input.patientId === 'string' && input.patientId ? input.patientId : null);
+
+        const responsePayload = await inAuthenticatedTransaction(pool, request, async (client, account) => {
+          if (!targetPatientId) {
+            const queryParamPatientId = url.searchParams.get('patientId');
+            if (queryParamPatientId && UUID_PATTERN.test(queryParamPatientId)) {
+              targetPatientId = queryParamPatientId;
+            } else {
+              const patientList = await client.query<{ id: string }>(
+                `SELECT patient_id AS id
+                 FROM public.patient_members
+                 WHERE account_id = $1 AND revoked_at IS NULL
+                 LIMIT 2`,
+                [account.id],
+              );
+              if (patientList.rows.length === 1) {
+                targetPatientId = patientList.rows[0].id;
+              } else {
+                throw new HttpError(400, 'Patient ID is required.');
+              }
+            }
+          }
+
+          if (!UUID_PATTERN.test(targetPatientId)) {
+            throw new HttpError(400, 'Patient ID is invalid.');
+          }
+
+          const patientResult = await client.query<PatientRow>(
+            `SELECT patient.id, patient.display_name, membership.role,
+                    membership.can_manage_medications, patient.created_at
+             FROM public.patients AS patient
+             JOIN public.patient_members AS membership
+               ON membership.patient_id = patient.id
+              AND membership.account_id = $1
+              AND membership.revoked_at IS NULL
+             WHERE patient.id = $2
+               AND patient.archived_at IS NULL`,
+            [account.id, targetPatientId],
+          );
+
+          const patient = patientResult.rows[0];
+          if (!patient) {
+            throw new HttpError(404, 'Patient was not found or access is denied.');
+          }
+
+          if (!todayDate) {
+            const manilaNow = new Date();
+            const parts = new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Asia/Manila',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            }).formatToParts(manilaNow);
+            const dateObj = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+            todayDate = `${dateObj.year}-${dateObj.month}-${dateObj.day}`;
+          }
+
+          const medications = await medicationsFor(client, targetPatientId, false);
+          const timeline = await timelineForDate(client, targetPatientId, todayDate);
+
+          return queryAssistant({
+            query: queryText,
+            locale,
+            currentLocalTime,
+            todayDate,
+            patient: {
+              id: patient.id,
+              displayName: patient.display_name,
+              role: patient.role,
+            },
+            caregiver: {
+              id: account.id,
+              displayName: account.display_name,
+              email: account.email,
+            },
+            medications,
+            timeline,
+          });
+        });
+
+        sendJson(response, 200, responsePayload);
         return;
       }
 

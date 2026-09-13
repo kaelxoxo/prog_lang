@@ -1,18 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Linking, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
 
 import { AppIcon } from '../../components/AppIcon';
+import { apiRequest } from '../../lib/api';
+import { useCurrentTime } from '../../lib/useCurrentTime';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
+import { AskBantayBottomSheet } from '../assistant/AskBantayBottomSheet';
+import { AssistantFAB } from '../assistant/AssistantFAB';
 import { useAuth } from '../auth/AuthProvider';
 import { HomeScreen } from '../home/HomeScreen';
+import { type Medication } from '../medications/types';
 import { MedicinesScreen } from '../medications/MedicinesScreen';
 import { usePatient } from '../patients/PatientProvider';
 import { subscribeToReminderRoutes, type ReminderRoute } from '../reminders/notifications';
 import { useLocale } from '../settings/LocaleProvider';
 import { SettingsScreen } from '../settings/SettingsScreen';
 import { TodayScreen } from '../today/TodayScreen';
+import { manilaDate, type TimelineResponse } from '../today/types';
 
 type Tab = 'home' | 'today' | 'medicines';
 type Screen = Tab | 'settings';
@@ -45,15 +52,30 @@ type Props = {
 export function MainTabs({ onOpenWelcomeStory }: Props = {}) {
   const { styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
-  const { session, signOut } = useAuth();
+  const { session, signOut, token } = useAuth();
   const [tab, setTab] = useState<Screen>('home');
   const [pendingRoute, setPendingRoute] = useState<ReminderRoute | null>(null);
   const [focusedOccurrenceId, setFocusedOccurrenceId] = useState<string | null>(null);
+  const [isAssistantVisible, setAssistantVisible] = useState(false);
   const previousPatientId = useRef<string | undefined>(undefined);
   const settingsOrigin = useRef<Tab>('home');
   const { fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { activePatient, selectPatient } = usePatient();
+  const now = useCurrentTime();
+  const date = manilaDate(now);
+
+  const timelineQuery = useQuery({
+    queryKey: ['today', activePatient?.id, date],
+    enabled: Boolean(activePatient),
+    queryFn: () => apiRequest<TimelineResponse>(`/patients/${activePatient!.id}/today?date=${date}`, { token }),
+  });
+
+  const medicationsQuery = useQuery({
+    queryKey: ['medications', activePatient?.id],
+    enabled: Boolean(activePatient),
+    queryFn: () => apiRequest<{ medications: Medication[] }>(`/patients/${activePatient!.id}/medications`, { token }),
+  });
 
   const openReminder = (route: ReminderRoute) => {
     setPendingRoute(route);
@@ -87,12 +109,17 @@ export function MainTabs({ onOpenWelcomeStory }: Props = {}) {
     } else if (!pendingRoute && previousPatientId.current && previousPatientId.current !== activePatient?.id) {
       setTab('home');
       setFocusedOccurrenceId(null);
+      setAssistantVisible(false);
     }
     previousPatientId.current = activePatient?.id;
   }, [activePatient?.id, pendingRoute]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isAssistantVisible) {
+        setAssistantVisible(false);
+        return true;
+      }
       if (tab === 'settings') {
         setTab(settingsOrigin.current);
         return true;
@@ -103,7 +130,7 @@ export function MainTabs({ onOpenWelcomeStory }: Props = {}) {
       return true;
     });
     return () => subscription.remove();
-  }, [tab]);
+  }, [isAssistantVisible, tab]);
 
   if (!activePatient) return <TodayScreen onOpenMedicines={() => setTab('medicines')} onOpenSettings={openSettings} />;
 
@@ -158,6 +185,26 @@ export function MainTabs({ onOpenWelcomeStory }: Props = {}) {
             <Text style={[styles.label, tab === 'medicines' && styles.labelSelected]}>{t('nav.medicines')}</Text>
           </Pressable>
         </View>
+      ) : null}
+      {tab !== 'settings' && activePatient ? (
+        <>
+          <AssistantFAB
+            onPress={() => setAssistantVisible(true)}
+            timeline={timelineQuery.data?.timeline}
+          />
+          <AskBantayBottomSheet
+            medications={medicationsQuery.data?.medications}
+            onClose={() => setAssistantVisible(false)}
+            onNavigateToToday={(occurrenceId) => {
+              setAssistantVisible(false);
+              setTab('today');
+              setFocusedOccurrenceId(occurrenceId);
+            }}
+            patient={activePatient}
+            timeline={timelineQuery.data?.timeline}
+            visible={isAssistantVisible}
+          />
+        </>
       ) : null}
     </View>
   );

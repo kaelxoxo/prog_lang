@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { resolveApiUrl } from './apiUrl';
+import type { AssistantQueryRequest, AssistantQueryResponse } from '../features/assistant/types';
 
 const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 const usesAutomaticDevelopmentApi = __DEV__ && (!configuredApiUrl || configuredApiUrl.toLowerCase() === 'auto');
@@ -84,3 +85,16 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 export function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Something went wrong. Try again.';
 }
+
+export async function queryAssistant(
+  patientId: string,
+  request: AssistantQueryRequest,
+  token?: string | null,
+): Promise<AssistantQueryResponse> {
+  return apiRequest<AssistantQueryResponse>(`/patients/${encodeURIComponent(patientId)}/assistant/query`, {
+    method: 'POST',
+    body: request,
+    token,
+  });
+}
+

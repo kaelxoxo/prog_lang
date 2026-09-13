@@ -1,0 +1,1026 @@
+{
+  "results": {
+    "summary": {
+      "totalAssets": 4,
+      "totalFrames": 16,
+      "perimeterViolations": 0,
+      "haloViolations": 0,
+      "clippingViolations": 0
+    },
+    "assetDetails": [
+      {
+        "name": "mascot.png",
+        "format": "png",
+        "pages": 1,
+        "frames": [
+          {
+            "frame": 0,
+            "dimensions": {
+              "width": 512,
+              "height": 512
+            },
+            "perimeterCount": 2044,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 128,
+              "maxX": 383,
+              "minY": 70,
+              "maxY": 459
+            },
+            "margin": {
+              "left": 128,
+              "right": 128,
+              "top": 70,
+              "bottom": 52
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 184202,
+              "semiAlphaCount": 1897,
+              "fullAlphaCount": 76045
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 1250,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 1250,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 1250,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 1250,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 1250,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "mascot-welcome.gif",
+        "format": "gif",
+        "pages": 5,
+        "frames": [
+          {
+            "frame": 0,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 91,
+              "maxX": 295,
+              "minY": 49,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 91,
+              "right": 64,
+              "top": 49,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 90488,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 39112
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 919,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 919,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 919,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 919,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 919,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 1,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 91,
+              "maxX": 295,
+              "minY": 49,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 91,
+              "right": 64,
+              "top": 49,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 90488,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 39112
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 919,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 919,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 919,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 919,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 919,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 2,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 91,
+              "maxX": 311,
+              "minY": 45,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 91,
+              "right": 48,
+              "top": 45,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 89475,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 40125
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 981,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 981,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 981,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 981,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 981,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 3,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 91,
+              "maxX": 316,
+              "minY": 42,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 91,
+              "right": 43,
+              "top": 42,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 89054,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 40546
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 1008,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 1008,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 1008,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 1008,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 1008,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 4,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 91,
+              "maxX": 295,
+              "minY": 49,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 91,
+              "right": 64,
+              "top": 49,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 90452,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 39148
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 921,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 921,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 921,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 921,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 921,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "mascot-medicine.gif",
+        "format": "gif",
+        "pages": 5,
+        "frames": [
+          {
+            "frame": 0,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 91,
+              "maxX": 268,
+              "minY": 49,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 91,
+              "right": 91,
+              "top": 49,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 92932,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 36668
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 1,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 92,
+              "maxX": 270,
+              "minY": 52,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 92,
+              "right": 89,
+              "top": 52,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 93365,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 36235
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 836,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 836,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 836,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 836,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 836,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 2,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 92,
+              "maxX": 270,
+              "minY": 55,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 92,
+              "right": 89,
+              "top": 55,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 93742,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 35858
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 827,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 827,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 827,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 827,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 827,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 3,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 91,
+              "maxX": 269,
+              "minY": 49,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 91,
+              "right": 90,
+              "top": 49,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 93096,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 36504
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 850,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 850,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 850,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 850,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 850,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 4,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 91,
+              "maxX": 268,
+              "minY": 49,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 91,
+              "right": 91,
+              "top": 49,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 92932,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 36668
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "mascot-heart.gif",
+        "format": "gif",
+        "pages": 5,
+        "frames": [
+          {
+            "frame": 0,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 91,
+              "maxX": 268,
+              "minY": 49,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 91,
+              "right": 91,
+              "top": 49,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 93024,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 36576
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 1,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 91,
+              "maxX": 268,
+              "minY": 49,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 91,
+              "right": 91,
+              "top": 49,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 93024,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 36576
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 848,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 2,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 89,
+              "maxX": 267,
+              "minY": 49,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 89,
+              "right": 92,
+              "top": 49,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 93093,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 36507
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 854,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 854,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 854,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 854,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 854,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 3,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 88,
+              "maxX": 266,
+              "minY": 50,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 88,
+              "right": 93,
+              "top": 50,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 93156,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 36444
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 860,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 860,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 860,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 860,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 860,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          },
+          {
+            "frame": 4,
+            "dimensions": {
+              "width": 360,
+              "height": 360
+            },
+            "perimeterCount": 1436,
+            "nonZeroPerimeterCount": 0,
+            "maxPerimeterAlpha": 0,
+            "boundingBox": {
+              "minX": 90,
+              "maxX": 267,
+              "minY": 50,
+              "maxY": 323
+            },
+            "margin": {
+              "left": 90,
+              "right": 92,
+              "top": 50,
+              "bottom": 36
+            },
+            "alphaProfile": {
+              "zeroAlphaCount": 93159,
+              "semiAlphaCount": 0,
+              "fullAlphaCount": 36441
+            },
+            "backgroundTests": [
+              {
+                "bg": "Light Canvas (#F6F1E7)",
+                "edgePixelCount": 846,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Dark Canvas (#17211F)",
+                "edgePixelCount": 846,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure Black (#000000)",
+                "edgePixelCount": 846,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Pure White (#FFFFFF)",
+                "edgePixelCount": 846,
+                "suspiciousHaloPixels": 0
+              },
+              {
+                "bg": "Alaga Evergreen (#233A35)",
+                "edgePixelCount": 846,
+                "suspiciousHaloPixels": 0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "groundShadowAnalysis": {
+      "lightCanvas": {
+        "hex": "#F6F1E7",
+        "rgb": [
+          246,
+          241,
+          231
+        ],
+        "bgAlpha": 0.22,
+        "states": [
+          {
+            "state": "Resting Baseline (Z=0, Squash=1.0)",
+            "viewOpacity": "0.2600",
+            "effectiveAlpha": "0.0572",
+            "compositedRgb": [
+              232,
+              227,
+              218
+            ],
+            "colorDiff": "23.69",
+            "contrastRatio": "1.135"
+          },
+          {
+            "state": "Float Apex (Z=10, Squash=1.0)",
+            "viewOpacity": "0.1800",
+            "effectiveAlpha": "0.0396",
+            "compositedRgb": [
+              236,
+              231,
+              222
+            ],
+            "colorDiff": "16.76",
+            "contrastRatio": "1.094"
+          },
+          {
+            "state": "Hop Takeoff Apex (Z=30, Squash=1.08)",
+            "viewOpacity": "0.0760",
+            "effectiveAlpha": "0.0167",
+            "compositedRgb": [
+              242,
+              237,
+              227
+            ],
+            "colorDiff": "6.93",
+            "contrastRatio": "1.036"
+          },
+          {
+            "state": "Landing Impact Squash (Z=0, Squash=0.88)",
+            "viewOpacity": "0.3250",
+            "effectiveAlpha": "0.0715",
+            "compositedRgb": [
+              228,
+              224,
+              214
+            ],
+            "colorDiff": "30.03",
+            "contrastRatio": "1.171"
+          }
+        ]
+      },
+      "darkCanvas": {
+        "hex": "#17211F",
+        "rgb": [
+          23,
+          33,
+          31
+        ],
+        "bgAlpha": 0.45,
+        "states": [
+          {
+            "state": "Resting Baseline (Z=0, Squash=1.0)",
+            "viewOpacity": "0.2600",
+            "effectiveAlpha": "0.1170",
+            "compositedRgb": [
+              20,
+              29,
+              27
+            ],
+            "colorDiff": "6.40",
+            "contrastRatio": "1.043"
+          },
+          {
+            "state": "Float Apex (Z=10, Squash=1.0)",
+            "viewOpacity": "0.1800",
+            "effectiveAlpha": "0.0810",
+            "compositedRgb": [
+              21,
+              30,
+              28
+            ],
+            "colorDiff": "4.69",
+            "contrastRatio": "1.032"
+          },
+          {
+            "state": "Hop Takeoff Apex (Z=30, Squash=1.08)",
+            "viewOpacity": "0.0760",
+            "effectiveAlpha": "0.0342",
+            "compositedRgb": [
+              22,
+              32,
+              30
+            ],
+            "colorDiff": "1.73",
+            "contrastRatio": "1.011"
+          },
+          {
+            "state": "Landing Impact Squash (Z=0, Squash=0.88)",
+            "viewOpacity": "0.3250",
+            "effectiveAlpha": "0.1463",
+            "compositedRgb": [
+              20,
+              28,
+              26
+            ],
+            "colorDiff": "7.68",
+            "contrastRatio": "1.052"
+          }
+        ]
+      }
+    }
+  },
+  "verdict": "APPROVE"
+}
