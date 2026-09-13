@@ -37,7 +37,7 @@ const server = createAppServer(databasePool, {
     return {
       answer: `Mocked response for ${params.query}`,
       source: 'gemini',
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       actionableDose: params.timeline.length > 0 ? {
         occurrenceId: params.timeline[0].id,
         medicationName: params.timeline[0].medicationName,
@@ -897,7 +897,7 @@ test('Gemini Assistant: valid API response parses candidates and attaches action
 
   const response = await queryGeminiAssistant(params);
   assert.equal(response.source, 'gemini');
-  assert.equal(response.model, 'gemini-2.5-flash');
+  assert.equal(response.model, 'gemini-3.6-flash');
   assert.match(response.answer, /Amlodipine scheduled for tonight/);
   assert.equal(response.actionableDose?.occurrenceId, 'occ-evening');
 });

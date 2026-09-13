@@ -545,14 +545,14 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
       const mockResponse: AssistantQueryResponse = {
         answer: 'Take Amlodipine with or without food as instructed by your doctor.',
         source: 'gemini',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         actionableDose: null,
         suggestedQuickReplies: ["Today's summary"],
       };
 
       assert.equal(typeof mockResponse.answer, 'string');
       assert.ok(['local_rules', 'gemini', 'fallback'].includes(mockResponse.source));
-      assert.equal(mockResponse.model, 'gemini-2.5-flash');
+      assert.equal(mockResponse.model, 'gemini-3.6-flash');
       assert.ok(Array.isArray(mockResponse.suggestedQuickReplies));
     });
 

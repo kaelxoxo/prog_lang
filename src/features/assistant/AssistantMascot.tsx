@@ -348,6 +348,7 @@ export function AssistantMascot({
 
   return (
     <View
+      pointerEvents={onPress ? 'auto' : 'none'}
       style={[
         styles.stage,
         {
@@ -421,25 +422,40 @@ export function AssistantMascot({
           },
         ]}
       >
-        <Pressable
-          accessibilityHint="Tap to make Bantay playfully hop"
-          accessibilityLabel={accessibleLabelText}
-          accessibilityRole={onPress ? 'button' : 'image'}
-          hitSlop={8}
-          onPress={handlePress}
-          style={styles.pressableTarget}
-        >
-          <Image
-            accessibilityIgnoresInvertColors
-            accessible={false}
-            fadeDuration={0}
-            importantForAccessibility="no"
-            key={`assistant-mascot-${expression}-${reduceMotion ? 'static' : 'animated'}`}
-            resizeMode="contain"
-            source={assetSource}
-            style={{ height: size, width: size }}
-          />
-        </Pressable>
+        {onPress ? (
+          <Pressable
+            accessibilityHint="Tap to make Bantay playfully hop"
+            accessibilityLabel={accessibleLabelText}
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={handlePress}
+            style={styles.pressableTarget}
+          >
+            <Image
+              accessibilityIgnoresInvertColors
+              accessible={false}
+              fadeDuration={0}
+              importantForAccessibility="no"
+              key={`assistant-mascot-${expression}-${reduceMotion ? 'static' : 'animated'}`}
+              resizeMode="contain"
+              source={assetSource}
+              style={{ height: size, width: size }}
+            />
+          </Pressable>
+        ) : (
+          <View pointerEvents="none" style={styles.pressableTarget}>
+            <Image
+              accessibilityIgnoresInvertColors
+              accessible={false}
+              fadeDuration={0}
+              importantForAccessibility="no"
+              key={`assistant-mascot-${expression}-${reduceMotion ? 'static' : 'animated'}`}
+              resizeMode="contain"
+              source={assetSource}
+              style={{ height: size, width: size }}
+            />
+          </View>
+        )}
 
         {/* Thinking Sparkle Overlay (Top-Right of Head) */}
         {!reduceMotion ? (

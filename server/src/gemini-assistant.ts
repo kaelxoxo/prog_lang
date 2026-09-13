@@ -348,7 +348,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
     };
   }
 
-  const apiKey = params.apiKey || process.env.GEMINI_API_KEY || '';
+  const apiKey = params.apiKey !== undefined ? params.apiKey : (process.env.GEMINI_API_KEY || '');
   const fetchImpl = params.fetchFn || globalThis.fetch;
 
   // 3. Fallback handler when API key missing or on network failure
@@ -472,7 +472,8 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
   }
 
   // 4. Construct Gemini REST payload with function calling tools
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const context = buildAssistantContext(params);
   const systemInstructionText = buildSystemInstruction(caregiverName, patientName);
   const userPrompt = `Locale: ${locale}\nContext:\n${JSON.stringify(context, null, 2)}\n\nCaregiver Question: ${params.query}`;
@@ -617,7 +618,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
       return {
         answer,
         source: 'gemini',
-        model: 'gemini-2.5-flash',
+        model,
         actionableDose: null,
         medicationDraft: draft,
         suggestedQuickReplies,
@@ -631,7 +632,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
     return {
       answer: textPayload,
       source: 'gemini',
-      model: 'gemini-2.5-flash',
+      model,
       actionableDose: findActionableDose(params.timeline, params.query, textPayload),
       medicationDraft: null,
       suggestedQuickReplies,

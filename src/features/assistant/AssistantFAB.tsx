@@ -81,63 +81,59 @@ export function AssistantFAB({
     : t('assistant.fabLabel');
 
   return (
-    <View
-      pointerEvents="box-none"
-      style={[
+    <Pressable
+      accessibilityHint={t('assistant.fabA11yHint')}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      hitSlop={16}
+      onPress={onPress}
+      style={({ pressed }) => [
         styles.fabContainer,
         {
           bottom: Math.max(insets.bottom, 8) + 62,
         },
+        pressed && styles.fabPressed,
         style,
       ]}
+      testID={testID}
     >
-      <Pressable
-        accessibilityHint={t('assistant.fabA11yHint')}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityRole="button"
-        hitSlop={8}
-        onPress={onPress}
-        style={({ pressed }) => [styles.fabButton, pressed && styles.fabPressed]}
-        testID={testID}
-      >
-        <AssistantMascot
-          expression={expression}
-          size={46}
-        />
+      <AssistantMascot
+        expression={expression}
+        size={46}
+      />
 
-        {/* Soft Status Beacon Dot */}
-        {hasActionableDose ? (
-          <View style={styles.beaconAnchor}>
-            <Animated.View
-              style={[
-                styles.beaconHalo,
-                {
-                  opacity: pulseAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.2, 0.6],
-                  }),
-                  transform: [
-                    {
-                      scale: pulseAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.9, 1.4],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-            <View style={styles.beaconDot}>
-              {pendingCount > 1 ? (
-                <Text style={styles.beaconCountText}>
-                  {pendingCount > 9 ? '9+' : pendingCount}
-                </Text>
-              ) : null}
-            </View>
+      {/* Soft Status Beacon Dot */}
+      {hasActionableDose ? (
+        <View style={styles.beaconAnchor}>
+          <Animated.View
+            style={[
+              styles.beaconHalo,
+              {
+                opacity: pulseAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.2, 0.6],
+                }),
+                transform: [
+                  {
+                    scale: pulseAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.9, 1.4],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+          <View style={styles.beaconDot}>
+            {pendingCount > 1 ? (
+              <Text style={styles.beaconCountText}>
+                {pendingCount > 9 ? '9+' : pendingCount}
+              </Text>
+            ) : null}
           </View>
-        ) : null}
-      </Pressable>
-    </View>
+        </View>
+      ) : null}
+    </Pressable>
   );
 }
 
@@ -145,28 +141,20 @@ const createStyles = (colors: AppColors) =>
   StyleSheet.create({
     fabContainer: {
       alignItems: 'center',
-      bottom: 76,
-      elevation: 12,
-      height: 64,
-      justifyContent: 'center',
-      position: 'absolute',
-      right: spacing.md,
-      width: 64,
-      zIndex: 999,
-    },
-    fabButton: {
-      alignItems: 'center',
       backgroundColor: colors.white,
       borderColor: colors.line,
       borderRadius: radii.full,
       borderWidth: 1.5,
-      elevation: 6,
+      bottom: 76,
+      elevation: 20,
       height: 56,
       justifyContent: 'center',
       minHeight: 48,
       minWidth: 48,
-      position: 'relative',
+      position: 'absolute',
+      right: spacing.md,
       width: 56,
+      zIndex: 9999,
     },
     fabPressed: {
       opacity: 0.88,
