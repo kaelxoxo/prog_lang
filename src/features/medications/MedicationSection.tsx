@@ -1,5 +1,19 @@
-import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  Alert,
+  Animated,
+  type GestureResponderEvent,
+  Pressable,
+  type PressableProps,
+  type StyleProp,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AppIcon } from '../../components/AppIcon';
@@ -35,6 +49,74 @@ function scheduleSummary(schedules: MedicationSchedule[], locale: string, t: Tra
   if (first.kind === 'interval') return t('medicine.intervalSchedule', { hours: first.intervalHours ?? '', time: friendlyTime(first.timeOfDay, locale), days });
   if (first.kind === 'meal') return t('medicine.mealSchedule', { relation: t(first.mealRelation === 'after' ? 'medicine.after' : 'medicine.before'), days });
   return t('medicine.exactSchedule', { times: schedules.map((schedule) => friendlyTime(schedule.timeOfDay, locale)).join(', '), days });
+}
+
+/** Emil Kowalski scale: 0.98 spring pressable with reduced-motion awareness */
+type PressableScaleProps = PressableProps & {
+  children: React.ReactNode;
+  targetScale?: number;
+  containerStyle?: StyleProp<ViewStyle>;
+};
+
+function PressableScale({
+  children,
+  targetScale = 0.98,
+  style,
+  onPressIn,
+  onPressOut,
+  disabled,
+  ...rest
+}: PressableScaleProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const reduceMotion = useRef(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      reduceMotion.current = enabled;
+    });
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
+      reduceMotion.current = enabled;
+    });
+    return () => sub.remove();
+  }, []);
+
+  const handlePressIn = (event: GestureResponderEvent) => {
+    if (!disabled && !reduceMotion.current) {
+      Animated.spring(scale, {
+        toValue: targetScale,
+        friction: 7,
+        tension: 140,
+        useNativeDriver: true,
+      }).start();
+    }
+    onPressIn?.(event);
+  };
+
+  const handlePressOut = (event: GestureResponderEvent) => {
+    if (!disabled && !reduceMotion.current) {
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 7,
+        tension: 140,
+        useNativeDriver: true,
+      }).start();
+    }
+    onPressOut?.(event);
+  };
+
+  return (
+    <Pressable
+      disabled={disabled}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={style}
+      {...rest}
+    >
+      <Animated.View style={{ transform: [{ scale }] }}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
 }
 
 export function MedicationSection({ patient }: Props) {
@@ -152,16 +234,24 @@ export function MedicationSection({ patient }: Props) {
 
   return (
     <View style={styles.section}>
+      {/* Editorial Header Row: Title & Subtitle + 48dp "+ Add Medicine" CTA */}
       <View style={[styles.headingRow, largeText && styles.headingRowLarge]}>
         <View style={styles.headingCopy}>
           <Text accessibilityRole="header" style={styles.title}>{t('medicine.title')}</Text>
           <Text style={styles.subtitle}>{t('medicine.subtitle', { patient: patient.displayName })}</Text>
         </View>
         {patient.canManageMedications ? (
-          <Pressable accessibilityLabel={t('medicine.add')} accessibilityRole="button" onPress={openCreate} style={({ pressed }) => [styles.addButton, largeText && styles.addButtonLarge, pressed && styles.addButtonPressed]}>
-            <AppIcon color={colors.white} name="plus" size={18} />
-            <Text style={styles.addButtonLabel}>{t('medicine.add')}</Text>
-          </Pressable>
+          <PressableScale
+            accessibilityLabel={t('medicine.add')}
+            accessibilityRole="button"
+            onPress={openCreate}
+            style={[styles.addButton, largeText && styles.addButtonLarge]}
+          >
+            <View style={styles.addButtonInner}>
+              <AppIcon color={colors.white} name="plus" size={18} />
+              <Text style={styles.addButtonLabel}>{t('medicine.add')}</Text>
+            </View>
+          </PressableScale>
         ) : null}
       </View>
 
@@ -172,14 +262,20 @@ export function MedicationSection({ patient }: Props) {
           <View style={styles.noticeDot} />
           <Text style={styles.noticeText}>{notice.message}</Text>
           {notice.canUndo && notice.medicationId ? (
-            <Pressable accessibilityRole="button" disabled={restoreMutation.isPending} onPress={() => restoreMutation.mutate(notice.medicationId!)} style={({ pressed }) => [styles.undoButton, pressed && styles.pressed]}>
+            <PressableScale
+              accessibilityRole="button"
+              disabled={restoreMutation.isPending}
+              onPress={() => restoreMutation.mutate(notice.medicationId!)}
+              style={styles.undoButton}
+            >
               <Text style={styles.undoLabel}>{t(restoreMutation.isPending ? 'medicine.restoring' : 'medicine.undo')}</Text>
-            </Pressable>
+            </PressableScale>
           ) : null}
         </View>
       ) : null}
 
-      {medications.length > 6 ? (
+      {/* Styled Search / Filter Input */}
+      {medications.length > 2 ? (
         <View style={styles.searchContainer}>
           <AppIcon color={colors.muted} name="search" size={18} />
           <TextInput
@@ -191,9 +287,14 @@ export function MedicationSection({ patient }: Props) {
             value={search}
           />
           {search ? (
-            <Pressable accessibilityLabel={t('app.clearSearch')} accessibilityRole="button" hitSlop={12} onPress={() => setSearch('')} style={styles.clearSearchButton}>
+            <PressableScale
+              accessibilityLabel={t('app.clearSearch')}
+              accessibilityRole="button"
+              onPress={() => setSearch('')}
+              style={styles.clearSearchButton}
+            >
               <AppIcon color={colors.muted} name="x" size={16} />
-            </Pressable>
+            </PressableScale>
           ) : null}
         </View>
       ) : null}
@@ -203,7 +304,9 @@ export function MedicationSection({ patient }: Props) {
       ) : medicationQuery.error && !medicationQuery.data ? (
         <View style={styles.errorBox}>
           <Text accessibilityLiveRegion="assertive" style={styles.errorText}>{errorMessage(medicationQuery.error)}</Text>
-          <Pressable accessibilityRole="button" onPress={() => void medicationQuery.refetch()} style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}><Text style={styles.retryLabel}>{t('app.retry')}</Text></Pressable>
+          <PressableScale accessibilityRole="button" onPress={() => void medicationQuery.refetch()} style={styles.retryButton}>
+            <Text style={styles.retryLabel}>{t('app.retry')}</Text>
+          </PressableScale>
         </View>
       ) : medications.length === 0 ? (
         <View style={styles.emptyCard}>
@@ -218,68 +321,94 @@ export function MedicationSection({ patient }: Props) {
       ) : (
         <>
         <SyncNotice error={medicationQuery.error} onRetry={() => void medicationQuery.refetch()} updatedAt={medicationQuery.dataUpdatedAt} />
+
+        {/* Streamlined Medication Cards (No card-inside-card clutter, no redundant subheaders) */}
         <View style={styles.list}>
           {visibleMedications.map((medication) => (
-            <View key={medication.id} style={[styles.medicineCard, highlightedId === medication.id && styles.medicineCardHighlighted]}>
-              <View
-                accessibilityLabel={`${t('medicine.confirmed')}, ${medication.displayName}, ${medication.doseQuantity} ${medication.doseUnit}${medication.strengthValue ? `, ${medication.strengthValue} ${medication.strengthUnit}` : ''}, ${t('medicine.schedule')}: ${scheduleSummary(medication.schedules, localeTag, t)}`}
-                accessible
-                style={styles.summaryBlock}
-              >
-                <View style={styles.cardHeader}>
-                  <View style={styles.confirmedBadge}>
-                    <AppIcon color={colors.successDark} name="circle-check-big" size={14} />
-                    <Text style={styles.confirmedLabel}>{t('medicine.confirmed')}</Text>
-                  </View>
-                  <View style={styles.doseChip}>
-                    <Text style={styles.doseChipText}>
-                      {medication.doseQuantity} {medication.doseUnit}{medication.strengthValue ? ` • ${medication.strengthValue} ${medication.strengthUnit}` : ''}
-                    </Text>
-                  </View>
+            <PressableScale
+              accessibilityLabel={`${t('medicine.confirmed')}, ${medication.displayName}, ${medication.doseQuantity} ${medication.doseUnit}${medication.strengthValue ? `, ${medication.strengthValue} ${medication.strengthUnit}` : ''}, ${t('medicine.schedule')}: ${scheduleSummary(medication.schedules, localeTag, t)}`}
+              accessibilityRole="button"
+              disabled={!patient.canManageMedications}
+              key={medication.id}
+              onPress={() => patient.canManageMedications && openEdit(medication)}
+              style={[
+                styles.medicineCard,
+                highlightedId === medication.id && styles.medicineCardHighlighted,
+              ]}
+            >
+              <View style={styles.cardHeader}>
+                <View style={styles.nameBlock}>
+                  <Text numberOfLines={1} style={styles.medicineName}>{medication.displayName}</Text>
+                  <Text numberOfLines={1} style={styles.doseStrength}>
+                    {medication.doseQuantity} {medication.doseUnit}
+                    {medication.strengthValue ? ` · ${medication.strengthValue} ${medication.strengthUnit}` : ''}
+                    {medication.medicineForm ? ` · ${medication.medicineForm}` : ''}
+                  </Text>
                 </View>
-                <Text style={styles.medicineName}>{medication.displayName}</Text>
-                <View style={styles.scheduleSummary}>
-                  <View style={styles.scheduleIconWrap}>
-                    <AppIcon color={colors.primaryDark} name="calendar-days" size={15} />
-                  </View>
-                  <View style={styles.scheduleCopyWrap}>
-                    <Text style={styles.scheduleTitle}>{t('medicine.schedule')}</Text>
-                    <Text style={styles.scheduleValue}>{scheduleSummary(medication.schedules, localeTag, t)}</Text>
-                  </View>
+                <View style={styles.confirmedBadge}>
+                  <AppIcon color={colors.successDark} name="circle-check-big" size={13} />
+                  <Text style={styles.confirmedLabel}>{t('medicine.confirmed')}</Text>
                 </View>
-                {(!medication.strengthValue || !medication.medicineForm || !medication.route) ? (
-                  <View style={styles.missingDetailBox}>
-                    <AppIcon color={colors.warning} name="alert-circle" size={15} />
-                    <Text style={styles.missingDetail}>{t('medicine.missingDetails')}</Text>
-                  </View>
-                ) : null}
               </View>
-              {patient.canManageMedications ? (
-                <View style={[styles.rowActions, largeText && styles.rowActionsLarge]}>
-                  <Pressable accessibilityLabel={`${t('medicine.reviewEdit')}: ${medication.displayName}`} accessibilityRole="button" onPress={() => openEdit(medication)} style={({ pressed }) => [styles.editButton, largeText && styles.rowActionLarge, pressed && styles.pressed]}>
-                    <AppIcon color={colors.ink} name="pencil" size={16} />
-                    <Text style={styles.editLabel}>{t('medicine.reviewEdit')}</Text>
-                  </Pressable>
-                  <Pressable accessibilityLabel={t('medicine.archiveTitle', { medicine: medication.displayName })} accessibilityRole="button" disabled={archiveMutation.isPending} onPress={() => confirmArchive(medication)} style={({ pressed }) => [styles.archiveButton, largeText && styles.rowActionLarge, pressed && styles.pressed]}>
-                    <AppIcon color={colors.error} name="archive" size={16} />
-                    <Text style={styles.archiveLabel}>{t(archiveMutation.isPending && archiveMutation.variables?.id === medication.id ? 'medicine.archiving' : 'medicine.archive')}</Text>
-                  </Pressable>
+
+              {/* Sleek Scheduled Times Pill (No nested card-inside-card clutter, no redundant "Schedule" subheader) */}
+              <View style={styles.schedulePill}>
+                <AppIcon color={colors.primaryDark} name="calendar-days" size={14} />
+                <Text numberOfLines={1} style={styles.schedulePillText}>
+                  {scheduleSummary(medication.schedules, localeTag, t)}
+                </Text>
+              </View>
+
+              {(!medication.strengthValue || !medication.medicineForm || !medication.route) ? (
+                <View style={styles.missingDetailBox}>
+                  <AppIcon color={colors.warning} name="alert-circle" size={14} />
+                  <Text style={styles.missingDetail}>{t('medicine.missingDetails')}</Text>
                 </View>
               ) : null}
-            </View>
+
+              {/* Action Buttons: Review & Edit and Archive (min 48dp touch targets) */}
+              {patient.canManageMedications ? (
+                <View style={[styles.rowActions, largeText && styles.rowActionsLarge]}>
+                  <PressableScale
+                    accessibilityLabel={`${t('medicine.reviewEdit')}: ${medication.displayName}`}
+                    accessibilityRole="button"
+                    onPress={() => openEdit(medication)}
+                    style={[styles.editButton, largeText && styles.rowActionLarge]}
+                  >
+                    <View style={styles.actionInner}>
+                      <AppIcon color={colors.ink} name="pencil" size={15} />
+                      <Text style={styles.editLabel}>{t('medicine.reviewEdit')}</Text>
+                    </View>
+                  </PressableScale>
+                  <PressableScale
+                    accessibilityLabel={t('medicine.archiveTitle', { medicine: medication.displayName })}
+                    accessibilityRole="button"
+                    disabled={archiveMutation.isPending}
+                    onPress={() => confirmArchive(medication)}
+                    style={[styles.archiveButton, largeText && styles.rowActionLarge]}
+                  >
+                    <View style={styles.actionInner}>
+                      <AppIcon color={colors.error} name="archive" size={15} />
+                      <Text style={styles.archiveLabel}>{t(archiveMutation.isPending && archiveMutation.variables?.id === medication.id ? 'medicine.archiving' : 'medicine.archive')}</Text>
+                    </View>
+                  </PressableScale>
+                </View>
+              ) : null}
+            </PressableScale>
           ))}
           {!visibleMedications.length ? <Text style={styles.noResults}>{t('medicine.noResults')}</Text> : null}
         </View>
         </>
       )}
 
+      {/* Archived Medications Section */}
       {archivedMedications.length ? (
         <View style={styles.archivedCard}>
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityState={{ expanded: showArchived }}
             onPress={() => setShowArchived((current) => !current)}
-            style={({ pressed }) => [styles.archivedToggle, largeText && styles.archivedToggleLarge, pressed && styles.pressed]}
+            style={[styles.archivedToggle, largeText && styles.archivedToggleLarge]}
           >
             <View style={styles.archivedHeading}>
               <View style={styles.archivedTitleRow}>
@@ -292,7 +421,7 @@ export function MedicationSection({ patient }: Props) {
               <Text style={styles.archivedToggleLabel}>{t(showArchived ? 'medicine.hide' : 'medicine.show')}</Text>
               <AppIcon color={colors.primaryDark} name={showArchived ? 'chevron-up' : 'chevron-down'} size={15} />
             </View>
-          </Pressable>
+          </PressableScale>
           {showArchived ? (
             <View style={styles.archivedList}>
               {archivedMedications.map((medication) => (
@@ -303,9 +432,14 @@ export function MedicationSection({ patient }: Props) {
                     <Text style={styles.archivedNote}>{t('medicine.archivedNote')}</Text>
                   </View>
                   {patient.canManageMedications ? (
-                    <Pressable accessibilityRole="button" disabled={restoreMutation.isPending} onPress={() => restoreMutation.mutate(medication.id)} style={({ pressed }) => [styles.restoreButton, pressed && styles.pressed]}>
+                    <PressableScale
+                      accessibilityRole="button"
+                      disabled={restoreMutation.isPending}
+                      onPress={() => restoreMutation.mutate(medication.id)}
+                      style={styles.restoreButton}
+                    >
                       <Text style={styles.restoreLabel}>{t(restoreMutation.isPending && restoreMutation.variables === medication.id ? 'medicine.restoring' : 'medicine.restore')}</Text>
-                    </Pressable>
+                    </PressableScale>
                   ) : null}
                 </View>
               ))}
@@ -317,9 +451,9 @@ export function MedicationSection({ patient }: Props) {
       {archivedQuery.error ? (
         <View style={styles.errorBox}>
           <Text accessibilityLiveRegion="assertive" style={styles.errorText}>{t('medicine.archivedLoadError')} {errorMessage(archivedQuery.error)}</Text>
-          <Pressable accessibilityRole="button" onPress={() => void archivedQuery.refetch()} style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}>
+          <PressableScale accessibilityRole="button" onPress={() => void archivedQuery.refetch()} style={styles.retryButton}>
             <Text style={styles.retryLabel}>{t('app.retry')}</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       ) : null}
 
@@ -342,19 +476,32 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   headingRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   headingRowLarge: { flexDirection: 'column', alignItems: 'stretch' },
   headingCopy: { flex: 1, gap: 2 },
-  title: { color: colors.ink, fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
+  title: { color: colors.ink, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 },
   subtitle: { color: colors.muted, fontSize: 14 },
-  addButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radii.full, backgroundColor: colors.primary, paddingHorizontal: spacing.md },
+  addButton: {
+    minHeight: 48,
+    borderRadius: radii.full,
+    backgroundColor: colors.primary,
+  },
+  addButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
   addButtonLarge: { width: '100%' },
-  addButtonPressed: { backgroundColor: colors.primaryDark },
   addButtonLabel: { color: colors.white, fontSize: 14, fontWeight: '800' },
   notice: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radii.md, backgroundColor: colors.successTint, padding: spacing.md },
   noticeDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success },
   noticeText: { flex: 1, color: colors.successDark, fontSize: 14, fontWeight: '600', lineHeight: 20 },
   undoButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.sm },
   undoLabel: { color: colors.successDark, fontSize: 14, fontWeight: '900' },
+
+  // Styled search bar
   searchContainer: {
-    minHeight: 50,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -365,13 +512,15 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   searchInput: { flex: 1, minHeight: 48, color: colors.ink, fontSize: 15 },
-  clearSearchButton: { padding: 4 },
+  clearSearchButton: { minHeight: 48, minWidth: 48, alignItems: 'center', justifyContent: 'center' },
+
   stateRow: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.lg },
   stateText: { color: colors.muted, fontSize: 15 },
   errorBox: { gap: spacing.sm, borderRadius: radii.md, backgroundColor: colors.errorTint, padding: spacing.md },
   errorText: { color: colors.error, fontSize: 14, lineHeight: 20 },
   retryButton: { minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center' },
   retryLabel: { color: colors.error, fontSize: 14, fontWeight: '800' },
+
   emptyCard: {
     gap: spacing.md,
     borderRadius: radii.lg,
@@ -384,59 +533,56 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   emptyCopy: { flex: 1, gap: spacing.xs },
   emptyTitle: { color: colors.ink, fontSize: 19, fontWeight: '900' },
   emptyBody: { maxWidth: 520, color: colors.muted, fontSize: 14, lineHeight: 21 },
-  list: { gap: spacing.sm },
+
+  // Streamlined medication card
+  list: { gap: spacing.md },
   medicineCard: {
-    gap: spacing.md,
+    gap: 12,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: radii.lg,
     backgroundColor: colors.white,
     padding: 16,
   },
-  summaryBlock: { gap: 10 },
-  medicineCardHighlighted: { borderColor: colors.success, backgroundColor: colors.successTint },
-  cardHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
+  medicineCardHighlighted: {
+    borderColor: colors.success,
+    backgroundColor: colors.successTint,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  nameBlock: { flex: 1, gap: 2 },
+  medicineName: { color: colors.ink, fontSize: 19, fontWeight: '800', letterSpacing: -0.3 },
+  doseStrength: { color: colors.muted, fontSize: 14, fontWeight: '600' },
   confirmedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     borderRadius: radii.full,
     backgroundColor: colors.successTint,
     borderWidth: 1,
-    borderColor: colors.success,
-    paddingHorizontal: 10,
+    borderColor: colors.successBorder,
+    paddingHorizontal: 9,
     paddingVertical: 3,
   },
   confirmedLabel: { color: colors.successDark, fontSize: 12, fontWeight: '800' },
-  doseChip: {
-    borderRadius: radii.full,
-    backgroundColor: colors.canvas,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  doseChipText: { color: colors.ink, fontSize: 12, fontWeight: '700' },
-  medicineName: { color: colors.ink, fontSize: 20, fontWeight: '900', letterSpacing: -0.3 },
-  scheduleSummary: {
+
+  // Streamlined scheduled times pill (no card-inside-card clutter)
+  schedulePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.canvas,
-    borderRadius: radii.md,
-    padding: 10,
-  },
-  scheduleIconWrap: {
-    width: 30,
-    height: 30,
+    gap: 6,
     borderRadius: radii.full,
-    backgroundColor: colors.primaryTint,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.mist,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
   },
-  scheduleCopyWrap: { flex: 1, gap: 1 },
-  scheduleTitle: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  scheduleValue: { color: colors.ink, fontSize: 13, fontWeight: '700', lineHeight: 18 },
+  schedulePillText: { color: colors.ink, fontSize: 13, fontWeight: '700' },
+
   missingDetailBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -447,16 +593,28 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     paddingVertical: 6,
   },
   missingDetail: { flex: 1, color: colors.warning, fontSize: 12, fontWeight: '600' },
-  rowActions: { flexDirection: 'row', gap: spacing.sm, paddingTop: 4, borderTopWidth: 1, borderTopColor: colors.line },
+
+  // 48dp action buttons
+  rowActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
   rowActionsLarge: { flexDirection: 'column' },
   rowActionLarge: { width: '100%', flex: 0 },
-  editButton: {
-    minHeight: 48,
-    flex: 1,
+  actionInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+  },
+  editButton: {
+    minHeight: 48,
+    flex: 1,
     borderWidth: 1,
     borderColor: colors.controlBorder,
     borderRadius: radii.full,
@@ -465,16 +623,13 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   editLabel: { color: colors.ink, fontSize: 13, fontWeight: '800' },
   archiveButton: {
     minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
     borderRadius: radii.full,
+    backgroundColor: colors.mist,
   },
   archiveLabel: { color: colors.error, fontSize: 13, fontWeight: '700' },
   inlineError: { color: colors.error, fontSize: 13, lineHeight: 19 },
   noResults: { color: colors.muted, fontSize: 15, lineHeight: 22, paddingVertical: spacing.xl, textAlign: 'center' },
+
   archivedCard: {
     borderRadius: radii.lg,
     borderWidth: 1,
@@ -507,5 +662,4 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   archivedNote: { color: colors.muted, fontSize: 12, lineHeight: 17 },
   restoreButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.full, paddingHorizontal: spacing.md, backgroundColor: colors.canvas },
   restoreLabel: { color: colors.ink, fontSize: 13, fontWeight: '800' },
-  pressed: { opacity: 0.72 },
 });

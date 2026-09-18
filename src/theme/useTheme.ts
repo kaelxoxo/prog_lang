@@ -8,6 +8,13 @@ export function useAppColors() {
   return scheme === 'dark' ? darkColors : lightColors;
 }
 
+export function useTheme() {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+  const colors = isDark ? darkColors : lightColors;
+  return { scheme, isDark, colors };
+}
+
 export function useThemedStyles<T>(factory: (colors: AppColors) => T) {
   const colors = useAppColors();
   const styles = useMemo(() => factory(colors), [colors, factory]);

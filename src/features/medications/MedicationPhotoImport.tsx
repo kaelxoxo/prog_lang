@@ -15,15 +15,17 @@ const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 type SourceKind = MedicationOcrDraft['sourceKind'];
 
 export function MedicationPhotoImport({
+  initialExpanded = false,
   onReview,
   patient,
 }: {
+  initialExpanded?: boolean;
   onReview: (draft: MedicationOcrDraft) => void;
   patient: Patient;
 }) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { token } = useAuth();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initialExpanded);
   const [sourceKind, setSourceKind] = useState<SourceKind>('timetable_photo');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<MedicationOcrDraft[]>([]);

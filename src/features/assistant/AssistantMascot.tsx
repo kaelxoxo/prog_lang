@@ -19,36 +19,49 @@ import { useThemedStyles } from '../../theme/useTheme';
 export type MascotExpression = 'idle' | 'thinking' | 'celebration';
 
 export interface AssistantMascotProps {
+  accessible?: boolean;
   expression: MascotExpression;
   size?: number;
   accessibilityLabel?: string;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  variant?: 'full' | 'bust';
 }
 
 const IDLE_ASSET: ImageSourcePropType = require('../../../assets/mascot-welcome.gif');
 const CELEBRATION_ASSET: ImageSourcePropType = require('../../../assets/mascot-heart.gif');
 const STATIC_ASSET: ImageSourcePropType = require('../../../assets/mascot.png');
+const BUST_RESTING_ASSET: ImageSourcePropType = require('../../../assets/mascot-bantay-bust.png');
+const BUST_WAVE_ASSET: ImageSourcePropType = require('../../../assets/mascot-bantay-bust-wave.png');
 
 export function AssistantMascot({
+  accessible = true,
   expression,
   size = 64,
   accessibilityLabel,
   onPress,
   style,
   testID,
+  variant = 'full',
 }: AssistantMascotProps) {
   const { colors, styles } = useThemedStyles(createStyles);
   const [reduceMotion, setReduceMotion] = useState(false);
 
-  // Animation values
+  // Common & Full animation values
   const floatAnim = useRef(new Animated.Value(0)).current;
   const hopAnim = useRef(new Animated.Value(0)).current;
   const squashAnim = useRef(new Animated.Value(1)).current;
   const thinkingAnim = useRef(new Animated.Value(expression === 'thinking' ? 1 : 0)).current;
   const celebrationAnim = useRef(new Animated.Value(expression === 'celebration' ? 1 : 0)).current;
   const sparklePulse = useRef(new Animated.Value(0)).current;
+
+  // Bust animation values (Emil Kowalski craft standards)
+  const bustEntranceAnim = useRef(new Animated.Value(0)).current;
+  const bustWaveCrossfade = useRef(new Animated.Value(1)).current;
+  const bustPressScale = useRef(new Animated.Value(1)).current;
+  const bustHopAnim = useRef(new Animated.Value(0)).current;
+  const bustPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track system reduceMotion setting
   useEffect(() => {
@@ -64,6 +77,9 @@ export function AssistantMascot({
     return () => {
       isMounted = false;
       sub.remove();
+      if (bustPressTimerRef.current) {
+        clearTimeout(bustPressTimerRef.current);
+      }
     };
   }, []);
 
@@ -129,7 +145,38 @@ export function AssistantMascot({
     };
   }, [sparklePulse, reduceMotion]);
 
-  // Spring hop with volume-conserving squash-and-stretch
+  // Bust entrance choreography: sub-300ms spring entrance + welcoming wave settling to calm resting
+  useEffect(() => {
+    if (variant !== 'bust') return;
+
+    if (reduceMotion) {
+      bustEntranceAnim.setValue(1);
+      bustWaveCrossfade.setValue(expression === 'celebration' ? 1 : 0);
+      return;
+    }
+
+    // Phase 1: Smooth sub-300ms spring entrance (translateY: 14 -> 0, scale: 0.95 -> 1.0)
+    Animated.spring(bustEntranceAnim, {
+      toValue: 1,
+      tension: 130,
+      friction: 9,
+      useNativeDriver: true,
+    }).start();
+
+    // Phase 2: Welcoming wave settles smoothly after ~1200ms into calm resting pose
+    const timer = setTimeout(() => {
+      Animated.timing(bustWaveCrossfade, {
+        duration: 250,
+        easing: Easing.bezier(0.23, 1, 0.32, 1),
+        toValue: expression === 'celebration' ? 1 : 0,
+        useNativeDriver: true,
+      }).start();
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [variant, reduceMotion, expression, bustEntranceAnim, bustWaveCrossfade]);
+
+  // Spring hop with volume-conserving squash-and-stretch (Full Variant)
   const triggerSpringHop = (distance: number = 18) => {
     if (reduceMotion) return;
 
@@ -220,17 +267,248 @@ export function AssistantMascot({
       useNativeDriver: true,
     }).start();
 
-    if (expression === 'celebration') {
+    if (expression === 'celebration' && variant === 'full') {
       triggerSpringHop(Math.max(14, Math.round(size * 0.25)));
     }
-  }, [expression, reduceMotion, celebrationAnim, size]);
+  }, [expression, reduceMotion, celebrationAnim, size, variant]);
 
-  const handlePress = () => {
+  // Press handlers for full variant
+  const handleFullPress = () => {
     if (onPress) {
       onPress();
     }
     triggerSpringHop(Math.max(14, Math.round(size * 0.28)));
   };
+
+  // Press handlers for bust variant (tactile scale 0.96 on pressIn, spring hop on pressOut)
+  const handleBustPressIn = () => {
+    if (reduceMotion) return;
+    Animated.timing(bustPressScale, {
+      duration: 120,
+      easing: Easing.out(Easing.quad),
+      toValue: 0.96,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleBustPressOut = () => {
+    if (reduceMotion) return;
+    Animated.spring(bustPressScale, {
+      tension: 140,
+      friction: 7,
+      toValue: 1.0,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleBustPress = () => {
+    if (!reduceMotion) {
+      // Responsive greeting wave flip + hop
+      bustWaveCrossfade.setValue(1);
+      Animated.sequence([
+        Animated.timing(bustHopAnim, {
+          duration: 160,
+          easing: Easing.bezier(0.23, 1, 0.32, 1),
+          toValue: -8,
+          useNativeDriver: true,
+        }),
+        Animated.spring(bustHopAnim, {
+          friction: 6,
+          tension: 120,
+          toValue: 0,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Settle back to resting after 1600ms
+      if (bustPressTimerRef.current) {
+        clearTimeout(bustPressTimerRef.current);
+      }
+      bustPressTimerRef.current = setTimeout(() => {
+        Animated.timing(bustWaveCrossfade, {
+          duration: 220,
+          easing: Easing.bezier(0.23, 1, 0.32, 1),
+          toValue: expression === 'celebration' ? 1 : 0,
+          useNativeDriver: true,
+        }).start();
+      }, 1600);
+    }
+
+    onPress?.();
+  };
+
+  // Accessibility label
+  const defaultLabel =
+    expression === 'thinking'
+      ? 'Bantay is thinking...'
+      : expression === 'celebration'
+        ? 'Bantay celebrating all care tasks completed'
+        : 'Bantay, Alaga care companion';
+
+  const accessibleLabelText = accessibilityLabel || defaultLabel;
+
+  // Proportional sparkle sizes
+  const sparkleSize = Math.max(14, Math.round(size * 0.26));
+  const smallSparkleSize = Math.max(12, Math.round(size * 0.2));
+
+  // -------------------------------------------------------------
+  // VARIANT: BUST (Naturally peeking illustrated bust for banners)
+  // -------------------------------------------------------------
+  if (variant === 'bust') {
+    // 3.0s sinusoidal breathing float (1.5dp displacement)
+    const bustFloat = floatAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, -1.5],
+    });
+
+    const bustEntranceY = bustEntranceAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [14, 0],
+    });
+
+    const bustEntranceScale = bustEntranceAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.95, 1.0],
+    });
+
+    const bustOpacity = bustEntranceAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 1],
+    });
+
+    return (
+      <Animated.View
+        pointerEvents={onPress ? 'auto' : 'none'}
+        style={[
+          styles.bustContainer,
+          {
+            height: size,
+            width: size,
+            opacity: reduceMotion ? 1 : bustOpacity,
+            transform: [
+              {
+                translateY: reduceMotion
+                  ? 0
+                  : Animated.add(bustEntranceY, Animated.add(bustFloat, bustHopAnim)),
+              },
+              {
+                scale: reduceMotion
+                  ? 1
+                  : Animated.multiply(bustEntranceScale, bustPressScale),
+              },
+            ],
+          },
+          style,
+        ]}
+        testID={testID}
+      >
+        <Pressable
+          accessibilityHint={accessible ? 'Tap to interact with Bantay' : undefined}
+          accessibilityLabel={accessible ? accessibleLabelText : undefined}
+          accessibilityRole={accessible ? 'button' : undefined}
+          accessible={accessible}
+          hitSlop={8}
+          importantForAccessibility={accessible ? 'auto' : 'no-hide-descendants'}
+          onPress={onPress ? handleBustPress : undefined}
+          onPressIn={onPress ? handleBustPressIn : undefined}
+          onPressOut={onPress ? handleBustPressOut : undefined}
+          style={[styles.bustPressable, { height: size, width: size }]}
+        >
+          {/* Base Layer: Calm Resting Bust */}
+          <Animated.Image
+            accessibilityIgnoresInvertColors
+            accessible={false}
+            fadeDuration={0}
+            importantForAccessibility="no"
+            resizeMode="contain"
+            source={BUST_RESTING_ASSET}
+            style={[
+              styles.bustImage,
+              {
+                height: size,
+                width: size,
+                opacity: reduceMotion ? 1 : Animated.subtract(1, bustWaveCrossfade),
+              },
+            ]}
+          />
+
+          {/* Top Layer: Welcoming Waving Bust */}
+          {!reduceMotion ? (
+            <Animated.Image
+              accessibilityIgnoresInvertColors
+              accessible={false}
+              fadeDuration={0}
+              importantForAccessibility="no"
+              resizeMode="contain"
+              source={BUST_WAVE_ASSET}
+              style={[
+                styles.bustImage,
+                {
+                  height: size,
+                  width: size,
+                  opacity: bustWaveCrossfade,
+                },
+              ]}
+            />
+          ) : null}
+
+          {/* Thinking Sparkle Overlay */}
+          {expression === 'thinking' && !reduceMotion ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.thinkingSparkleBadge,
+                {
+                  opacity: thinkingAnim,
+                  right: -Math.round(size * 0.04),
+                  top: -Math.round(size * 0.04),
+                  transform: [
+                    {
+                      scale: sparklePulse.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.85, 1.15],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <AppIcon color={colors.sun} name="sparkles" size={sparkleSize} />
+            </Animated.View>
+          ) : null}
+
+          {/* Celebration Sparkles */}
+          {expression === 'celebration' && !reduceMotion ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.celebrationSparkleTopRight,
+                {
+                  opacity: celebrationAnim,
+                  right: -Math.round(size * 0.05),
+                  top: -Math.round(size * 0.02),
+                  transform: [
+                    {
+                      scale: sparklePulse.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.9, 1.2],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <AppIcon color={colors.sun} name="sparkles" size={sparkleSize} />
+            </Animated.View>
+          ) : null}
+        </Pressable>
+      </Animated.View>
+    );
+  }
+
+  // -------------------------------------------------------------
+  // VARIANT: FULL (Free-standing full body mascot for onboarding)
+  // -------------------------------------------------------------
 
   // Vertical movement: breathing float (-3 to +3) combined with spring hop
   const floatTranslateY = floatAnim.interpolate({
@@ -321,30 +599,16 @@ export function AssistantMascot({
     extrapolate: 'clamp',
   });
 
-  // Asset selection
-  let assetSource: ImageSourcePropType;
+  // Asset selection for full variant
+  let fullAssetSource: ImageSourcePropType;
   if (reduceMotion) {
-    assetSource = STATIC_ASSET;
+    fullAssetSource = STATIC_ASSET;
   } else if (expression === 'celebration') {
-    assetSource = CELEBRATION_ASSET;
+    fullAssetSource = CELEBRATION_ASSET;
   } else {
     // Both idle and thinking use welcome gif (thinking overlays tilt & sparkle aura)
-    assetSource = IDLE_ASSET;
+    fullAssetSource = IDLE_ASSET;
   }
-
-  // Accessibility label
-  const defaultLabel =
-    expression === 'thinking'
-      ? 'Bantay is thinking...'
-      : expression === 'celebration'
-        ? 'Bantay celebrating all care tasks completed'
-        : 'Bantay, Alaga care companion';
-
-  const accessibleLabelText = accessibilityLabel || defaultLabel;
-
-  // Proportional sparkle sizes
-  const sparkleSize = Math.max(14, Math.round(size * 0.26));
-  const smallSparkleSize = Math.max(12, Math.round(size * 0.2));
 
   return (
     <View
@@ -424,11 +688,13 @@ export function AssistantMascot({
       >
         {onPress ? (
           <Pressable
-            accessibilityHint="Tap to make Bantay playfully hop"
-            accessibilityLabel={accessibleLabelText}
-            accessibilityRole="button"
+            accessibilityHint={accessible ? 'Tap to make Bantay playfully hop' : undefined}
+            accessibilityLabel={accessible ? accessibleLabelText : undefined}
+            accessibilityRole={accessible ? 'button' : undefined}
+            accessible={accessible}
             hitSlop={8}
-            onPress={handlePress}
+            importantForAccessibility={accessible ? 'auto' : 'no-hide-descendants'}
+            onPress={handleFullPress}
             style={styles.pressableTarget}
           >
             <Image
@@ -438,7 +704,7 @@ export function AssistantMascot({
               importantForAccessibility="no"
               key={`assistant-mascot-${expression}-${reduceMotion ? 'static' : 'animated'}`}
               resizeMode="contain"
-              source={assetSource}
+              source={fullAssetSource}
               style={{ height: size, width: size }}
             />
           </Pressable>
@@ -451,7 +717,7 @@ export function AssistantMascot({
               importantForAccessibility="no"
               key={`assistant-mascot-${expression}-${reduceMotion ? 'static' : 'animated'}`}
               resizeMode="contain"
-              source={assetSource}
+              source={fullAssetSource}
               style={{ height: size, width: size }}
             />
           </View>
@@ -549,7 +815,9 @@ const createStyles = (colors: AppColors) =>
     },
     groundShadow: {
       backgroundColor:
-        colors.canvas === '#17211F' ? 'rgba(0, 0, 0, 0.45)' : 'rgba(0, 0, 0, 0.22)',
+        colors.canvas === '#121B18' || colors.canvas === '#17211F'
+          ? 'rgba(0, 0, 0, 0.45)'
+          : 'rgba(0, 0, 0, 0.22)',
       borderRadius: radii.full,
       position: 'absolute',
     },
@@ -580,5 +848,32 @@ const createStyles = (colors: AppColors) =>
       alignItems: 'center',
       justifyContent: 'center',
       position: 'absolute',
+    },
+    bustContainer: {
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      overflow: 'visible',
+      position: 'relative',
+    },
+    bustPressable: {
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      overflow: 'visible',
+      position: 'relative',
+    },
+    bustImage: {
+      bottom: 0,
+      left: 0,
+      position: 'absolute',
+    },
+    // Retained for backward compatibility
+    bustPortal: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    bustActor: {
+      alignItems: 'center',
+      justifyContent: 'center',
     },
   });

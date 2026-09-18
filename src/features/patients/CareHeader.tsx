@@ -11,13 +11,16 @@ type Props = {
   onChangePerson: () => void;
   onOpenSettings?: () => void;
   patient: Patient;
+  showPatientBar?: boolean;
 };
 
-function initialsFor(displayName: string) {
-  return displayName.split(' ').map((part) => part.at(0)).filter(Boolean).join('').slice(0, 2).toUpperCase();
+function initialsFor(displayName?: string) {
+  if (!displayName || !displayName.trim()) return 'P';
+  const initials = displayName.trim().split(/\s+/).map((part) => part.at(0)).filter(Boolean).join('').slice(0, 2).toUpperCase();
+  return initials || 'P';
 }
 
-export function CareHeader({ accountName, onChangePerson, onOpenSettings, patient }: Props) {
+export function CareHeader({ accountName, onChangePerson, onOpenSettings, patient, showPatientBar = true }: Props) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
   const { fontScale } = useWindowDimensions();
@@ -42,39 +45,54 @@ export function CareHeader({ accountName, onChangePerson, onOpenSettings, patien
             </Text>
           ) : null}
         </View>
-        {onOpenSettings ? (
+        <View style={styles.topActions}>
           <Pressable
-            accessibilityLabel={t('care.settings')}
+            accessibilityHint={t('care.patientHint')}
+            accessibilityLabel={t('care.patientLabel', { patient: patient.displayName })}
             accessibilityRole="button"
-            onPress={onOpenSettings}
-            style={({ pressed }) => [styles.settingsButton, pressed && styles.settingsButtonPressed]}
+            onPress={onChangePerson}
+            style={({ pressed }) => [styles.avatarButton, pressed && styles.actionButtonPressed]}
           >
-            <AppIcon color={colors.ink} name="settings" size={20} />
-          </Pressable>
-        ) : null}
-      </View>
-      <View style={styles.patientBar}>
-        <Pressable
-          accessibilityHint={t('care.patientHint')}
-          accessibilityLabel={t('care.patientLabel', { patient: patient.displayName })}
-          accessibilityRole="button"
-          onPress={onChangePerson}
-          style={({ pressed }) => [styles.patientButton, pressed && styles.patientButtonPressed]}
-        >
-          <View style={styles.avatar}>
-            <Text style={styles.avatarLabel}>{initialsFor(patient.displayName)}</Text>
-          </View>
-          <View style={styles.identityCopy}>
-            <Text style={styles.eyebrow}>{t('care.caringFor')}</Text>
-            <Text numberOfLines={fontScale > 1.3 ? 3 : 2} style={styles.patientName}>{patient.displayName}</Text>
-            <View style={styles.relationshipPill}>
-              <Text numberOfLines={1} style={styles.relationship}>{patient.relationshipLabel}</Text>
+            <View style={styles.avatarMini}>
+              <Text style={styles.avatarMiniLabel}>{initialsFor(patient.displayName)}</Text>
             </View>
-            {fontScale > 1.3 ? changeAction : null}
-          </View>
-          {fontScale <= 1.3 ? changeAction : null}
-        </Pressable>
+          </Pressable>
+          {onOpenSettings ? (
+            <Pressable
+              accessibilityLabel={t('care.settings')}
+              accessibilityRole="button"
+              onPress={onOpenSettings}
+              style={({ pressed }) => [styles.settingsButton, pressed && styles.actionButtonPressed]}
+            >
+              <AppIcon color={colors.ink} name="settings" size={20} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
+      {showPatientBar ? (
+        <View style={styles.patientBar}>
+          <Pressable
+            accessibilityHint={t('care.patientHint')}
+            accessibilityLabel={t('care.patientLabel', { patient: patient.displayName })}
+            accessibilityRole="button"
+            onPress={onChangePerson}
+            style={({ pressed }) => [styles.patientButton, pressed && styles.patientButtonPressed]}
+          >
+            <View style={styles.avatar}>
+              <Text style={styles.avatarLabel}>{initialsFor(patient.displayName)}</Text>
+            </View>
+            <View style={styles.identityCopy}>
+              <Text style={styles.eyebrow}>{t('care.caringFor')}</Text>
+              <Text numberOfLines={fontScale > 1.3 ? 3 : 2} style={styles.patientName}>{patient.displayName}</Text>
+              <View style={styles.relationshipPill}>
+                <Text numberOfLines={1} style={styles.relationship}>{patient.relationshipLabel}</Text>
+              </View>
+              {fontScale > 1.3 ? changeAction : null}
+            </View>
+            {fontScale <= 1.3 ? changeAction : null}
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -87,6 +105,26 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.sun },
   brand: { color: colors.ink, fontSize: 24, fontWeight: '900', letterSpacing: -0.7 },
   greeting: { maxWidth: 320, color: colors.muted, fontSize: 13, fontWeight: '600' },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  avatarButton: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+  },
+  avatarMini: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
+    backgroundColor: colors.sun,
+  },
+  avatarMiniLabel: { color: colors.ink, fontSize: 13, fontWeight: '900' },
   settingsButton: {
     width: 48,
     height: 48,
@@ -98,6 +136,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: colors.white,
   },
   settingsButtonPressed: { backgroundColor: colors.mist },
+  actionButtonPressed: { opacity: 0.85, backgroundColor: colors.mist },
   patientBar: { width: '100%' },
   patientButton: {
     minHeight: 76,

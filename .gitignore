@@ -28,6 +28,8 @@ yarn-debug.*
 yarn-error.*
 .cache/
 .tmp/
+/*.png
+/*.xml
 /alaga-*.png
 /alaga-*.xml
 

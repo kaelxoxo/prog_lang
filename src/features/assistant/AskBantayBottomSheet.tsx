@@ -219,6 +219,8 @@ export function AskBantayBottomSheet({
   const [confirmingDraftId, setConfirmingDraftId] = useState<string | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
+  const prevVisibleRef = useRef(false);
+  const prevPatientIdRef = useRef<string | null>(null);
 
   // Mascot expression synchronized with dose completion & query thinking
   const { expression, setExpression, startThinking, stopThinking, triggerCelebration } =
@@ -252,9 +254,12 @@ export function AskBantayBottomSheet({
     return t('assistant.greetingDefault', { name: caregiverName, patient: patientName });
   }, [locale, patient?.displayName, session?.displayName, t, timeline]);
 
-  // Reset conversation greeting when opening or switching patient
+  // Reset conversation greeting ONLY when opening sheet or switching patient
   useEffect(() => {
-    if (visible) {
+    const isOpening = visible && !prevVisibleRef.current;
+    const isPatientSwitch = visible && Boolean(patient?.id) && patient?.id !== prevPatientIdRef.current;
+
+    if (isOpening || isPatientSwitch) {
       setPendingDraftState(null);
       setMessages([
         {
@@ -266,6 +271,8 @@ export function AskBantayBottomSheet({
         },
       ]);
     }
+    prevVisibleRef.current = visible;
+    prevPatientIdRef.current = patient?.id ?? null;
   }, [greetingText, patient?.id, visible]);
 
   // Scroll to bottom when messages change
@@ -610,10 +617,12 @@ export function AskBantayBottomSheet({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.mascotAndTitle}>
-              <AssistantMascot
-                expression={expression}
-                size={48}
-              />
+              <View style={styles.mascotBadge}>
+                <AssistantMascot
+                  expression={expression}
+                  size={40}
+                />
+              </View>
               <View style={styles.titleColumn}>
                 <Text accessibilityRole="header" style={styles.sheetTitle}>
                   {t('assistant.sheetTitle')}
@@ -627,32 +636,12 @@ export function AskBantayBottomSheet({
             <Pressable
               accessibilityLabel={t('assistant.sheetClose')}
               accessibilityRole="button"
-              hitSlop={12}
+              hitSlop={8}
               onPress={onClose}
               style={({ pressed }) => [styles.closeButton, pressed && styles.buttonPressed]}
             >
               <AppIcon color={colors.ink} name="x" size={20} />
             </Pressable>
-          </View>
-
-          {/* Suggestion Chips */}
-          <View style={styles.chipsRow}>
-            <ScrollView
-              contentContainerStyle={styles.chipsContent}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-            >
-              {suggestionChips.map((chip) => (
-                <Pressable
-                  accessibilityRole="button"
-                  key={chip.id}
-                  onPress={() => void handleSendQuery(chip.label)}
-                  style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
-                >
-                  <Text style={styles.chipText}>{chip.label}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
           </View>
 
           {/* Conversation Stream */}
@@ -719,6 +708,7 @@ export function AskBantayBottomSheet({
 
                         <View style={styles.doseCardActions}>
                           <Pressable
+                            accessibilityLabel={t('assistant.doseCardRecordTaken')}
                             accessibilityRole="button"
                             disabled={recordingDoseId === msg.actionableDose.occurrenceId}
                             onPress={() =>
@@ -746,6 +736,7 @@ export function AskBantayBottomSheet({
 
                           {onNavigateToToday ? (
                             <Pressable
+                              accessibilityLabel={t('assistant.doseCardViewToday')}
                               accessibilityRole="button"
                               onPress={() => {
                                 onClose();
@@ -825,6 +816,7 @@ export function AskBantayBottomSheet({
                         ) : (
                           <View style={styles.draftCardActions}>
                             <Pressable
+                              accessibilityLabel={t('assistant.draftCardConfirm')}
                               accessibilityRole="button"
                               disabled={confirmingDraftId === msg.medicationDraft.id}
                               onPress={() => confirmMedicationMutation.mutate(msg.medicationDraft!)}
@@ -847,6 +839,7 @@ export function AskBantayBottomSheet({
                             </Pressable>
 
                             <Pressable
+                              accessibilityLabel={t('assistant.draftCardEdit')}
                               accessibilityRole="button"
                               disabled={confirmingDraftId === msg.medicationDraft.id}
                               onPress={() => handleEditDraft(msg.medicationDraft!)}
@@ -869,6 +862,7 @@ export function AskBantayBottomSheet({
                     {msg.canViewInSchedule && (onNavigateToMedicines || onNavigateToToday) ? (
                       <View style={styles.viewScheduleRow}>
                         <Pressable
+                          accessibilityLabel={t('assistant.draftCardViewSchedule')}
                           accessibilityRole="button"
                           onPress={() => {
                             onClose();
@@ -910,6 +904,27 @@ export function AskBantayBottomSheet({
             ) : null}
           </ScrollView>
 
+          {/* Quick Suggestion Chips (above input bar) */}
+          <View style={styles.chipsRow}>
+            <ScrollView
+              contentContainerStyle={styles.chipsContent}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+            >
+              {suggestionChips.map((chip) => (
+                <Pressable
+                  accessibilityLabel={chip.label}
+                  accessibilityRole="button"
+                  key={chip.id}
+                  onPress={() => void handleSendQuery(chip.label)}
+                  style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
+                >
+                  <Text style={styles.chipText}>{chip.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+
           {/* Text Input Bar */}
           <View style={styles.inputContainer}>
             <TextInput
@@ -938,7 +953,7 @@ export function AskBantayBottomSheet({
               <AppIcon
                 color={!inputQuery.trim() || isQuerying ? colors.muted : colors.white}
                 name="arrow-up"
-                size={18}
+                size={20}
               />
             </Pressable>
           </View>
@@ -989,38 +1004,50 @@ const createStyles = (colors: AppColors) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingVertical: 12,
     },
     mascotAndTitle: {
       alignItems: 'center',
       flexDirection: 'row',
       gap: spacing.sm,
     },
+    mascotBadge: {
+      alignItems: 'center',
+      backgroundColor: colors.successTint,
+      borderRadius: 26,
+      height: 52,
+      justifyContent: 'center',
+      width: 52,
+    },
     titleColumn: {
       justifyContent: 'center',
     },
     sheetTitle: {
       color: colors.ink,
-      fontSize: 17,
-      fontWeight: '800',
-      letterSpacing: -0.3,
+      fontSize: 18,
+      fontWeight: '900',
+      letterSpacing: -0.4,
     },
     sheetSubtitle: {
       color: colors.muted,
       fontSize: 12,
-      fontWeight: '500',
+      fontWeight: '600',
     },
     closeButton: {
       alignItems: 'center',
-      borderRadius: radii.full,
-      height: 36,
+      backgroundColor: colors.white,
+      borderColor: colors.line,
+      borderRadius: 24,
+      borderWidth: 1,
+      height: 48,
       justifyContent: 'center',
-      width: 36,
+      width: 48,
     },
     chipsRow: {
-      borderBottomColor: colors.line,
-      borderBottomWidth: 1,
-      paddingVertical: spacing.xs,
+      backgroundColor: colors.canvas,
+      borderTopColor: colors.line,
+      borderTopWidth: 1,
+      paddingVertical: 8,
     },
     chipsContent: {
       flexDirection: 'row',
@@ -1032,19 +1059,19 @@ const createStyles = (colors: AppColors) =>
       borderColor: colors.line,
       borderRadius: radii.full,
       borderWidth: 1,
-      minHeight: 32,
+      minHeight: 48,
       justifyContent: 'center',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
     },
     chipPressed: {
-      backgroundColor: colors.primaryTint,
-      borderColor: colors.primary,
+      backgroundColor: colors.successTint,
+      borderColor: colors.success,
     },
     chipText: {
       color: colors.ink,
-      fontSize: 12,
-      fontWeight: '600',
+      fontSize: 12.5,
+      fontWeight: '700',
     },
     messagesScroll: {
       flex: 1,
@@ -1079,14 +1106,24 @@ const createStyles = (colors: AppColors) =>
       paddingVertical: spacing.sm,
     },
     userBubble: {
-      backgroundColor: colors.primaryDark,
-      borderBottomRightRadius: spacing.xs,
+      backgroundColor: colors.primaryTint,
+      borderColor: colors.primary + '28',
+      borderRadius: radii.xl,
+      borderBottomRightRadius: 4,
+      borderWidth: 1,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
     },
     assistantBubble: {
       backgroundColor: colors.white,
-      borderBottomLeftRadius: spacing.xs,
+      borderBottomLeftRadius: 4,
       borderColor: colors.line,
+      borderLeftColor: colors.successDark,
+      borderLeftWidth: 3.5,
+      borderRadius: 16,
       borderWidth: 1,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
     },
     thinkingBubble: {
       alignItems: 'center',
@@ -1097,12 +1134,16 @@ const createStyles = (colors: AppColors) =>
       lineHeight: 20,
     },
     userMessageText: {
-      color: colors.white,
-      fontWeight: '500',
+      color: colors.ink,
+      fontSize: 14.5,
+      fontWeight: '700',
+      lineHeight: 20,
     },
     assistantMessageText: {
       color: colors.ink,
+      fontSize: 14.5,
       fontWeight: '400',
+      lineHeight: 21,
     },
     thinkingText: {
       color: colors.muted,
@@ -1161,8 +1202,9 @@ const createStyles = (colors: AppColors) =>
       flexDirection: 'row',
       gap: 4,
       justifyContent: 'center',
-      minHeight: 36,
-      paddingHorizontal: spacing.sm,
+      minHeight: 48,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
     },
     recordTakenText: {
       color: colors.white,
@@ -1178,8 +1220,9 @@ const createStyles = (colors: AppColors) =>
       flexDirection: 'row',
       gap: 4,
       justifyContent: 'center',
-      minHeight: 36,
-      paddingHorizontal: spacing.sm,
+      minHeight: 48,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
     },
     viewTodayText: {
       color: colors.ink,
@@ -1188,32 +1231,33 @@ const createStyles = (colors: AppColors) =>
     },
     inputContainer: {
       alignItems: 'center',
+      backgroundColor: colors.white,
       borderTopColor: colors.line,
       borderTopWidth: 1,
       flexDirection: 'row',
-      gap: spacing.xs,
+      gap: 10,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.xs,
+      paddingVertical: 10,
     },
     textInput: {
-      backgroundColor: colors.white,
+      backgroundColor: colors.mist,
       borderColor: colors.line,
       borderRadius: radii.full,
       borderWidth: 1,
       color: colors.ink,
       flex: 1,
-      fontSize: 14,
-      minHeight: 44,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs,
+      fontSize: 14.5,
+      minHeight: 48,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
     },
     sendButton: {
       alignItems: 'center',
-      backgroundColor: colors.primaryDark,
-      borderRadius: radii.full,
-      height: 40,
+      backgroundColor: colors.successDark,
+      borderRadius: 24,
+      height: 48,
       justifyContent: 'center',
-      width: 40,
+      width: 48,
     },
     sendButtonDisabled: {
       backgroundColor: colors.line,
@@ -1317,7 +1361,7 @@ const createStyles = (colors: AppColors) =>
       flexDirection: 'row',
       gap: 4,
       justifyContent: 'center',
-      minHeight: 38,
+      minHeight: 48,
       paddingHorizontal: spacing.sm,
     },
     confirmDraftText: {
@@ -1334,7 +1378,7 @@ const createStyles = (colors: AppColors) =>
       flexDirection: 'row',
       gap: 4,
       justifyContent: 'center',
-      minHeight: 38,
+      minHeight: 48,
       paddingHorizontal: spacing.md,
     },
     editDraftText: {
@@ -1352,7 +1396,8 @@ const createStyles = (colors: AppColors) =>
       flexDirection: 'row',
       gap: 6,
       justifyContent: 'center',
-      paddingVertical: 6,
+      minHeight: 44,
+      paddingVertical: 8,
     },
     confirmedBadgeText: {
       color: colors.primaryDark,
@@ -1369,8 +1414,10 @@ const createStyles = (colors: AppColors) =>
       borderRadius: radii.full,
       flexDirection: 'row',
       gap: 4,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 6,
+      justifyContent: 'center',
+      minHeight: 48,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
     },
     viewScheduleText: {
       color: colors.primaryDark,

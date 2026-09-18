@@ -16,7 +16,7 @@ const services = [
   {
     name: 'Expo/Metro',
     command: isWindows ? 'npx.cmd' : 'npx',
-    args: ['expo', 'start', '--localhost'],
+    args: ['expo', 'start'],
     url: 'http://127.0.0.1:8081/status',
     validate: (body) => body.includes('packager-status:running'),
   },

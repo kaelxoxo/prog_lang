@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  Animated,
+  type GestureResponderEvent,
+  Pressable,
+  type PressableProps,
+  ScrollView,
+  type StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
 
 import { AppIcon } from '../../components/AppIcon';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
@@ -18,6 +30,74 @@ import { useLocale } from '../settings/LocaleProvider';
 import { DoseTimeline } from './DoseTimeline';
 
 type Props = { focusedOccurrenceId?: string | null; onOpenMedicines: () => void; onOpenSettings: () => void };
+
+/** Emil Kowalski scale: 0.98 spring pressable with reduced-motion awareness */
+type PressableScaleProps = PressableProps & {
+  children: React.ReactNode;
+  targetScale?: number;
+  containerStyle?: StyleProp<ViewStyle>;
+};
+
+function PressableScale({
+  children,
+  targetScale = 0.98,
+  style,
+  onPressIn,
+  onPressOut,
+  disabled,
+  ...rest
+}: PressableScaleProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const reduceMotion = useRef(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      reduceMotion.current = enabled;
+    });
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
+      reduceMotion.current = enabled;
+    });
+    return () => sub.remove();
+  }, []);
+
+  const handlePressIn = (event: GestureResponderEvent) => {
+    if (!disabled && !reduceMotion.current) {
+      Animated.spring(scale, {
+        toValue: targetScale,
+        friction: 7,
+        tension: 140,
+        useNativeDriver: true,
+      }).start();
+    }
+    onPressIn?.(event);
+  };
+
+  const handlePressOut = (event: GestureResponderEvent) => {
+    if (!disabled && !reduceMotion.current) {
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 7,
+        tension: 140,
+        useNativeDriver: true,
+      }).start();
+    }
+    onPressOut?.(event);
+  };
+
+  return (
+    <Pressable
+      disabled={disabled}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={style}
+      {...rest}
+    >
+      <Animated.View style={{ transform: [{ scale }] }}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettings }: Props) {
   const { colors, styles } = useThemedStyles(createStyles);
@@ -50,8 +130,12 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
       <View style={styles.stateScreen}>
         <Text accessibilityRole="header" style={styles.stateTitle}>{t('today.loadError')}</Text>
         <Text accessibilityLiveRegion="assertive" style={styles.stateBody}>{error}</Text>
-        <Pressable accessibilityRole="button" onPress={retry} style={styles.statePrimaryButton}><Text style={styles.statePrimaryLabel}>{t('app.retry')}</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => void signOut()} style={styles.stateSecondaryButton}><Text style={styles.stateSecondaryLabel}>{t('care.signOut')}</Text></Pressable>
+        <PressableScale accessibilityRole="button" onPress={retry} style={styles.statePrimaryButton}>
+          <Text style={styles.statePrimaryLabel}>{t('app.retry')}</Text>
+        </PressableScale>
+        <PressableScale accessibilityRole="button" onPress={() => void signOut()} style={styles.stateSecondaryButton}>
+          <Text style={styles.stateSecondaryLabel}>{t('care.signOut')}</Text>
+        </PressableScale>
       </View>
     );
   }
@@ -62,8 +146,13 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
         <ScrollView contentContainerStyle={styles.emptyScreen}>
           <View style={styles.emptyColumn}>
             <View style={styles.topBar}>
-              <View><Text style={styles.brand}>Alaga</Text><Text style={styles.greeting}>{t('today.hello', { name: session?.displayName ?? '' })}</Text></View>
-              <Pressable accessibilityRole="button" onPress={() => void signOut()} style={styles.exitButton}><Text style={styles.exitLabel}>{t('care.signOut')}</Text></Pressable>
+              <View>
+                <Text style={styles.brand}>Alaga</Text>
+                <Text style={styles.greeting}>{t('today.hello', { name: session?.displayName ?? '' })}</Text>
+              </View>
+              <PressableScale accessibilityRole="button" onPress={() => void signOut()} style={styles.exitButton}>
+                <Text style={styles.exitLabel}>{t('care.signOut')}</Text>
+              </PressableScale>
             </View>
             <InvitationInbox />
             <View style={styles.emptyCard}>
@@ -71,9 +160,9 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
               <Text style={styles.emptyEyebrow}>{t('today.firstSpace')}</Text>
               <Text accessibilityRole="header" style={styles.emptyTitle}>{t('today.who')}</Text>
               <Text style={styles.emptyBody}>{t('today.emptyBody')}</Text>
-              <Pressable accessibilityRole="button" onPress={() => setCreatorVisible(true)} style={({ pressed }) => [styles.emptyButton, pressed && styles.emptyButtonPressed]}>
+              <PressableScale accessibilityRole="button" onPress={() => setCreatorVisible(true)} style={styles.emptyButton}>
                 <Text style={styles.emptyButtonLabel}>{t('today.addPerson')}</Text>
-              </Pressable>
+              </PressableScale>
             </View>
           </View>
         </ScrollView>
@@ -84,35 +173,54 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
 
   return (
     <>
-      <ScrollView contentContainerStyle={styles.screen} ref={scrollRef}>
+      <ScrollView
+        contentContainerStyle={styles.screen}
+        keyboardShouldPersistTaps="handled"
+        ref={scrollRef}
+      >
         <View style={styles.contentColumn}>
           <CareHeader accountName={session?.displayName} onChangePerson={() => setSwitcherVisible(true)} onOpenSettings={onOpenSettings} patient={activePatient} />
           <SyncNotice error={error} onRetry={retry} updatedAt={dataUpdatedAt} />
 
+          {/* Smooth Capsule View Switcher (Timeline / Summary) */}
           <View accessibilityRole="tablist" style={styles.viewSwitch}>
-            {(['today', 'history'] as const).map((option) => (
-              <Pressable
-                accessibilityLabel={t(option === 'today' ? 'today.title' : 'today.history')}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: view === option }}
-                key={option}
-                onPress={() => setView(option)}
-                style={({ pressed }) => [styles.viewOption, view === option && styles.viewOptionSelected, pressed && styles.pressed]}
-              >
-                <AppIcon color={view === option ? colors.ink : colors.muted} name={option === 'today' ? 'calendar-days' : 'history'} size={17} />
-                <Text style={[styles.viewOptionLabel, view === option && styles.viewOptionLabelSelected]}>
-                  {t(option === 'today' ? 'today.title' : 'today.history')}
-                </Text>
-              </Pressable>
-            ))}
+            {(['today', 'history'] as const).map((option) => {
+              const isSelected = view === option;
+              const label = t(option === 'today' ? 'today.title' : 'today.history');
+              return (
+                <PressableScale
+                  accessibilityLabel={label}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isSelected }}
+                  key={option}
+                  onPress={() => setView(option)}
+                  style={[styles.viewOption, isSelected && styles.viewOptionSelected]}
+                  targetScale={0.98}
+                >
+                  <View style={styles.viewOptionInner}>
+                    <AppIcon
+                      color={isSelected ? colors.ink : colors.muted}
+                      name={option === 'today' ? 'calendar-days' : 'history'}
+                      size={16}
+                    />
+                    <Text style={[styles.viewOptionLabel, isSelected && styles.viewOptionLabelSelected]}>
+                      {label}
+                    </Text>
+                  </View>
+                </PressableScale>
+              );
+            })}
           </View>
 
           {view === 'today' ? (
             <>
+              {/* Date Metadata Pill */}
               <View style={styles.datePill}>
-                <AppIcon color={colors.muted} name="calendar-days" size={15} />
+                <AppIcon color={colors.primaryDark} name="calendar-days" size={15} />
                 <Text style={styles.date}>{formattedDate}</Text>
               </View>
+
+              {/* Streamlined Dose Timeline */}
               <View onLayout={(event) => { timelineOffset.current = event.nativeEvent.layout.y; }}>
                 <DoseTimeline
                   focusedOccurrenceId={focusedOccurrenceId}
@@ -134,10 +242,10 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
 }
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
-  screen: { flexGrow: 1, paddingBottom: spacing.xl, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.canvas },
+  screen: { flexGrow: 1, paddingBottom: 110, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.canvas },
   contentColumn: { width: '100%', maxWidth: 760, alignSelf: 'center', gap: spacing.lg },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brand: { color: colors.ink, fontSize: 26, fontWeight: '800', letterSpacing: -0.8 },
+  brand: { color: colors.ink, fontSize: 26, fontWeight: '900', letterSpacing: -0.8 },
   greeting: { marginTop: 2, color: colors.muted, fontSize: 14 },
   exitButton: { minHeight: 48, justifyContent: 'center', borderRadius: radii.sm, paddingHorizontal: spacing.sm },
   exitLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
@@ -145,42 +253,53 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
     borderRadius: radii.full,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.white,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
-  date: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  date: { color: colors.ink, fontSize: 13, fontWeight: '700' },
+
+  // Smooth capsule view switcher pill
   viewSwitch: {
     flexDirection: 'row',
     borderRadius: radii.full,
     backgroundColor: colors.mist,
+    borderWidth: 1,
+    borderColor: colors.line,
     padding: 4,
+    gap: 4,
   },
   viewOption: {
     minHeight: 48,
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
     borderRadius: radii.full,
-    paddingHorizontal: spacing.sm,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
   },
   viewOptionSelected: {
     backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  viewOptionInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: spacing.md,
   },
   viewOptionLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
   viewOptionLabelSelected: { color: colors.ink, fontWeight: '900' },
-  pressed: { opacity: 0.75 },
+
   stateScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl, backgroundColor: colors.canvas },
-  stateTitle: { maxWidth: 420, color: colors.ink, fontSize: 24, fontWeight: '800', textAlign: 'center' },
+  stateTitle: { maxWidth: 420, color: colors.ink, fontSize: 24, fontWeight: '900', textAlign: 'center' },
   stateBody: { maxWidth: 420, color: colors.muted, fontSize: 15, lineHeight: 22, textAlign: 'center' },
   statePrimaryButton: { minHeight: 52, minWidth: 180, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.ink, paddingHorizontal: spacing.lg },
-  statePrimaryLabel: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  statePrimaryLabel: { color: colors.white, fontSize: 16, fontWeight: '800' },
   stateSecondaryButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.lg },
   stateSecondaryLabel: { color: colors.primaryDark, fontSize: 15, fontWeight: '700' },
   emptyScreen: { flexGrow: 1, padding: 20, backgroundColor: colors.canvas },
@@ -191,6 +310,5 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   emptyTitle: { maxWidth: 420, color: colors.ink, fontSize: 30, fontWeight: '900', lineHeight: 37 },
   emptyBody: { maxWidth: 440, color: colors.muted, fontSize: 16, lineHeight: 24 },
   emptyButton: { minHeight: 54, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.ink, marginTop: spacing.sm, paddingHorizontal: spacing.lg },
-  emptyButtonPressed: { opacity: 0.82 },
   emptyButtonLabel: { color: colors.white, fontSize: 17, fontWeight: '800' },
 });

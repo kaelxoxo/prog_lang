@@ -4,6 +4,7 @@ import { AppIcon } from './AppIcon';
 import { errorMessage } from '../lib/api';
 import { radii, spacing, type AppColors } from '../theme/tokens';
 import { useThemedStyles } from '../theme/useTheme';
+import { useAuth } from '../features/auth/AuthProvider';
 import { useLocale } from '../features/settings/LocaleProvider';
 
 export function SyncNotice({ error, onRetry, updatedAt }: {
@@ -13,8 +14,11 @@ export function SyncNotice({ error, onRetry, updatedAt }: {
 }) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { localeTag, t } = useLocale();
+  const { signOut } = useAuth();
   if (!error || !updatedAt) return null;
 
+  const msg = errorMessage(error);
+  const isSessionExpired = msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('sign in');
   const time = new Intl.DateTimeFormat(localeTag, { hour: 'numeric', minute: '2-digit' }).format(updatedAt);
   return (
     <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.notice}>
@@ -23,17 +27,29 @@ export function SyncNotice({ error, onRetry, updatedAt }: {
       </View>
       <View style={styles.copy}>
         <Text style={styles.title}>{t('sync.savedAt', { time })}</Text>
-        <Text style={styles.body}>{errorMessage(error)}</Text>
+        <Text style={styles.body}>{msg}</Text>
       </View>
-      <Pressable
-        accessibilityLabel={t('app.retry')}
-        accessibilityRole="button"
-        onPress={onRetry}
-        style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
-      >
-        <AppIcon color={colors.warning} name="refresh-cw" size={15} />
-        <Text style={styles.retryLabel}>{t('app.retry')}</Text>
-      </Pressable>
+      {isSessionExpired ? (
+        <Pressable
+          accessibilityLabel="Sign in again"
+          accessibilityRole="button"
+          onPress={() => void signOut()}
+          style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+        >
+          <AppIcon color={colors.warning} name="log-out" size={15} />
+          <Text style={styles.retryLabel}>Sign in</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          accessibilityLabel={t('app.retry')}
+          accessibilityRole="button"
+          onPress={onRetry}
+          style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+        >
+          <AppIcon color={colors.warning} name="refresh-cw" size={15} />
+          <Text style={styles.retryLabel}>{t('app.retry')}</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
