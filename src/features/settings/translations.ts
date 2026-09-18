@@ -369,6 +369,10 @@ const english = {
   'bantay.viewInToday': 'View in Today',
   'bantay.doseRecordedSuccess': '{medicine} recorded as taken for {patient}.',
 
+  // --- Ask Bantay: Verified Formulary Leaflet Citations ---
+  'assistant.leafletCitationBadge': 'Verified PNDF Leaflet',
+  'assistant.leafletCitationBadgeA11y': 'Verified leaflet citation from {source} for {medication}, section {section}',
+
   // --- Ask Bantay: Mascot States ---
   assistantMascotIdleAlt: 'Bantay listening attentively',
   assistantMascotThinkingAlt: 'Bantay thinking with curious head tilt and perked ears',
@@ -767,6 +771,10 @@ const filipino: Record<CopyKey, string> = {
   'bantay.recordTaken': 'Itala bilang Naibigay',
   'bantay.viewInToday': 'Tingnan sa Ngayon',
   'bantay.doseRecordedSuccess': 'Naitala ang {medicine} bilang naibigay para kay {patient}.',
+
+  // --- Ask Bantay: Verified Formulary Leaflet Citations ---
+  'assistant.leafletCitationBadge': 'Beripikadong PNDF Leaflet',
+  'assistant.leafletCitationBadgeA11y': 'Beripikadong sanggunian mula sa {source} para sa {medication}, seksyon {section}',
 
   // --- Ask Bantay: Mascot States ---
   assistantMascotIdleAlt: 'Si Bantay na nakikinig nang maigi',

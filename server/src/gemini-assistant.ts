@@ -97,14 +97,21 @@ import {
   extractStrengthAndDose,
   isAddMedicineIntent,
 } from '../../src/features/assistant/rulesEngine';
+import {
+  type LeafletCitation,
+  retrieveEntityScopedFormularyGuidance,
+} from './formulary-knowledge';
+
+export type AssistantLeafletCitation = LeafletCitation;
 
 export interface AssistantQueryResponse {
   answer: string;
-  source: 'local_rules' | 'gemini' | 'fallback';
+  source: 'local_rules' | 'gemini' | 'fallback' | 'formulary_rag';
   model: string;
   actionableDose?: AssistantActionableDose | null;
   medicationDraft?: AssistantMedicationDraft | null;
   suggestedQuickReplies: string[];
+  leafletCitation?: AssistantLeafletCitation | null;
 }
 
 const proposeMedicationDraftTool = {
@@ -191,8 +198,9 @@ const DIAGNOSIS_PATTERNS = [
 const DOSAGE_MODIFICATION_PATTERNS = [
   /\b(increase|decrease|double|triple|reduce|stop|discontinue|skip|change|adjust)\b.*?\b(dose|dosage|medicine|medication|tablet|pill|prescription)\b/i,
   /\b(dose|dosage|medicine|medication|tablet|pill)\b.*?\b(increase|decrease|double|triple|reduce|stop|discontinue|skip|change|adjust)\b/i,
-  /\bcan i (increase|decrease|double|stop|skip|change|adjust|take|give|drink)\b/i,
-  /\bshould i (increase|decrease|double|stop|skip|change|adjust|take|give|drink)\b/i,
+  /\bcan i (increase|decrease|double|triple|reduce|stop|skip|change|adjust)\b/i,
+  /\bshould i (increase|decrease|double|triple|reduce|stop|skip|change|adjust)\b/i,
+  /\b(can|should)\s+i\s+(take|give|drink)\s+(an?\s+)?(extra|more|less|another|second|double|half|kalahati|\d+)\b/i,
   /\b(dagdagan|bawasan|itigil|ihinto|laktawan|palitan)\b.*?\b(dose|dosage|gamot|inumin|reseta)\b/i,
   /\bpwede bang (dagdagan|bawasan|itigil|doblehin|dalawa|kalahati)\b/i,
   /\b(doblehin|doble|kalahati)\s+(ang\s+)?(dose|dosage|gamot|inumin)\b/i,
@@ -201,7 +209,24 @@ const DOSAGE_MODIFICATION_PATTERNS = [
 export function checkMedicalSafetyInvariants(query: string, patientName: string, locale: 'en' | 'fil'): string | null {
   const trimmed = query.trim();
   const isDiagnosisQuery = DIAGNOSIS_PATTERNS.some((pattern) => pattern.test(trimmed));
-  const isDosageQuery = DOSAGE_MODIFICATION_PATTERNS.some((pattern) => pattern.test(trimmed));
+
+  const isFoodOrAdministrationInquiry =
+    /\b(with food|without food|before meal|after meal|before meals|after meals|with meal|with meals|empty stomach|before breakfast|after breakfast|with breakfast|before lunch|after lunch|with lunch|before dinner|after dinner|with dinner|before bed|bedtime|at night|in the morning|in the evening|with water|with juice|grapefruit|how to take|how should|when to take|when should|what time|paano inumin|paano ipainom|paano gamitin|kailan dapat|oras ng pag-inom|sa umaga|sa gabi|sa tanghali|bago kumain|pagkatapos kumain|kasabay ng pagkain|kasama ang tubig|nang may laman|walang laman)\b/i.test(
+      trimmed,
+    );
+  const isMissedDoseInquiry =
+    /\b(missed dose|missed a dose|missed her dose|missed his dose|missed her medicine|missed his medicine|nakalimutang uminom|nalimutang uminom|nakaligtaang dose|nalaktawang dose|nakalimutan|nalimutan|nakaligtaan|nalaktawan)\b/i.test(
+      trimmed,
+    ) || /\bmissed\b/i.test(trimmed);
+  const isExplicitDosageAlteration =
+    /\b(increase|decrease|double|triple|reduce|stop|discontinue|extra|more|less|half|bawasan|dagdagan|doble|doblehin|kalahati|itigil|ihinto)\b/i.test(
+      trimmed,
+    ) || /\b(change|adjust|palitan)\s+(ang\s+)?(dose|dosage|reseta)\b/i.test(trimmed);
+
+  const isDosageQuery =
+    !isExplicitDosageAlteration && (isFoodOrAdministrationInquiry || isMissedDoseInquiry)
+      ? false
+      : DOSAGE_MODIFICATION_PATTERNS.some((pattern) => pattern.test(trimmed));
 
   if (isDiagnosisQuery || isDosageQuery) {
     return locale === 'fil'
@@ -323,6 +348,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
       actionableDose: null,
       medicationDraft: null,
       suggestedQuickReplies,
+      leafletCitation: null,
     };
   }
 
@@ -345,11 +371,134 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
       actionableDose: null,
       medicationDraft: null,
       suggestedQuickReplies,
+      leafletCitation: null,
     };
   }
 
   const apiKey = params.apiKey !== undefined ? params.apiKey : (process.env.GEMINI_API_KEY || '');
   const fetchImpl = params.fetchFn || globalThis.fetch;
+
+  // 2.5 Entity-Scoped Formulary RAG (eliminates hallucinations for medication queries)
+  if (!isAddIntent) {
+    const formularyResult = retrieveEntityScopedFormularyGuidance({
+      query: params.query,
+      patientName,
+      locale,
+      activeMedications: params.medications,
+    });
+
+    if (formularyResult.matched) {
+      if (formularyResult.status === 'unprescribed_drug') {
+        return {
+          answer: formularyResult.groundedAnswer![locale],
+          source: 'gemini',
+          model: 'formulary_rag_cross_drug_isolation',
+          actionableDose: null,
+          medicationDraft: null,
+          suggestedQuickReplies,
+          leafletCitation: null,
+        };
+      }
+
+      if (formularyResult.status === 'out_of_scope') {
+        return {
+          answer: formularyResult.groundedAnswer![locale],
+          source: 'gemini',
+          model: 'formulary_rag_closed_world',
+          actionableDose: null,
+          medicationDraft: null,
+          suggestedQuickReplies,
+          leafletCitation: null,
+        };
+      }
+
+      if (formularyResult.status === 'success' && formularyResult.chunk && formularyResult.citation) {
+        if (apiKey) {
+          const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const systemInstructionText = `You are Bantay, the warm, faithful, and protective eldercare companion mascot of Alaga in the Philippines. You are conversing with caregiver ${caregiverName} regarding ${patientName}.
+
+STRICT CLOSED-WORLD GROUNDING:
+Answer questions strictly based ONLY on the provided official Philippine National Drug Formulary (PNDF) patient leaflet excerpt.
+Do not invent, hallucinate, assume, or extrapolate outside medical claims.
+If the caregiver asks something that is not directly covered in the leaflet excerpt, state that it is not covered in the leaflet and advise consulting ${patientName}'s doctor or pharmacist.
+${locale === 'fil' ? 'Reply in respectful Tagalog with cultural warmth ("po" and "opo") and refer to the elder as ' + patientName + '.' : 'Reply in clear, gentle, reassuring care-companion English.'}
+Keep answers concise (maximum 2-3 sentences for mobile screens).
+Never alter pharmaceutical brand names, generic ingredients, or the patient's name (${patientName}).`;
+
+          const groundedUserPrompt = `Locale: ${locale}
+Caregiver Question: ${params.query}
+
+OFFICIAL PHILIPPINE NATIONAL DRUG FORMULARY (PNDF) PATIENT LEAFLET:
+Medication: ${formularyResult.citation.medicationName}
+Source: ${formularyResult.citation.sourceTitle}
+Section: ${formularyResult.citation.section}
+Leaflet Content:
+"${formularyResult.chunk.content}"
+
+Caregiver Question: ${params.query}`;
+
+          const requestBody = {
+            contents: [{ role: 'user', parts: [{ text: groundedUserPrompt }] }],
+            systemInstruction: { parts: [{ text: systemInstructionText }] },
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 350,
+            },
+          };
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+          try {
+            const response = await fetchImpl(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(requestBody),
+              signal: controller.signal,
+            });
+
+            if (response.ok) {
+              const data = (await response.json()) as {
+                candidates?: Array<{
+                  content?: {
+                    parts?: Array<{ text?: string }>;
+                  };
+                }>;
+              };
+              const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+              if (candidateText) {
+                return {
+                  answer: candidateText,
+                  source: 'gemini',
+                  model,
+                  actionableDose: null,
+                  medicationDraft: null,
+                  suggestedQuickReplies,
+                  leafletCitation: formularyResult.citation,
+                };
+              }
+            }
+          } catch (_err) {
+            // Fall through to deterministic local synthesis
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        }
+
+        // Deterministic local grounded synthesis
+        return {
+          answer: formularyResult.groundedAnswer![locale],
+          source: 'gemini',
+          model: 'formulary_rag',
+          actionableDose: null,
+          medicationDraft: null,
+          suggestedQuickReplies,
+          leafletCitation: formularyResult.citation,
+        };
+      }
+    }
+  }
 
   // 3. Fallback handler when API key missing or on network failure
   const handleFallback = (): AssistantQueryResponse => {
@@ -366,6 +515,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
           actionableDose: null,
           medicationDraft: null,
           suggestedQuickReplies,
+          leafletCitation: null,
         };
       }
 
@@ -399,6 +549,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
           actionableDose: null,
           medicationDraft: null,
           suggestedQuickReplies,
+          leafletCitation: null,
         };
       }
 
@@ -450,6 +601,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
         actionableDose: null,
         medicationDraft: draft,
         suggestedQuickReplies,
+        leafletCitation: null,
       };
     }
 
@@ -464,6 +616,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
       actionableDose: findActionableDose(params.timeline, params.query, fallbackAnswer),
       medicationDraft: null,
       suggestedQuickReplies,
+      leafletCitation: null,
     };
   };
 

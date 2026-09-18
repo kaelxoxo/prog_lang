@@ -45,7 +45,13 @@ export interface AssistantMedicationDraft {
   confirmed?: boolean;
 }
 
-export type AssistantResponseSource = 'local_rules' | 'gemini' | 'fallback';
+export type AssistantResponseSource = 'local_rules' | 'gemini' | 'fallback' | 'formulary_rag';
+
+export interface AssistantLeafletCitation {
+  medicationName: string;
+  sourceTitle: string;
+  section: string;
+}
 
 export interface AssistantQueryResponse {
   answer: string;
@@ -54,6 +60,7 @@ export interface AssistantQueryResponse {
   actionableDose?: AssistantActionableDose | null;
   medicationDraft?: AssistantMedicationDraft | null;
   suggestedQuickReplies: string[];
+  leafletCitation?: AssistantLeafletCitation | null;
 }
 
 export type MascotExpression = 'idle' | 'thinking' | 'celebration';
@@ -144,6 +151,7 @@ export interface AssistantChatMessage {
   medicationDraft?: AssistantMedicationDraft | null;
   canViewInSchedule?: boolean;
   source?: AssistantResponseSource;
+  leafletCitation?: AssistantLeafletCitation | null;
 }
 
 export function toActionableDose(dose: AssistantDoseContext): AssistantActionableDose {

@@ -341,8 +341,9 @@ const DIAGNOSIS_PATTERNS = [
 const DOSAGE_MODIFICATION_PATTERNS = [
   /\b(increase|decrease|double|triple|reduce|stop|discontinue|skip|change|adjust)\b.*?\b(dose|dosage|medicine|medication|tablet|pill|prescription)\b/i,
   /\b(dose|dosage|medicine|medication|tablet|pill)\b.*?\b(increase|decrease|double|triple|reduce|stop|discontinue|skip|change|adjust)\b/i,
-  /\bcan i (increase|decrease|double|stop|skip|change|adjust|take|give|drink)\b/i,
-  /\bshould i (increase|decrease|double|stop|skip|change|adjust|take|give|drink)\b/i,
+  /\bcan i (increase|decrease|double|triple|reduce|stop|skip|change|adjust)\b/i,
+  /\bshould i (increase|decrease|double|triple|reduce|stop|skip|change|adjust)\b/i,
+  /\b(can|should)\s+i\s+(take|give|drink)\s+(an?\s+)?(extra|more|less|another|second|double|half|kalahati|\d+)\b/i,
   /\b(dagdagan|bawasan|itigil|ihinto|laktawan|palitan)\b.*?\b(dose|dosage|gamot|inumin|reseta)\b/i,
   /\bpwede bang (dagdagan|bawasan|itigil|doblehin|dalawa|kalahati)\b/i,
   /\b(doblehin|doble|kalahati)\s+(ang\s+)?(dose|dosage|gamot|inumin)\b/i,
@@ -410,7 +411,24 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
 
   // 1. Critical Medical Safety Invariants (0ms enforcement)
   const isDiagnosisQuery = DIAGNOSIS_PATTERNS.some((pattern) => pattern.test(trimmed));
-  const isDosageQuery = DOSAGE_MODIFICATION_PATTERNS.some((pattern) => pattern.test(trimmed));
+
+  const isFoodOrAdministrationInquiry =
+    /\b(with food|without food|before meal|after meal|before meals|after meals|with meal|with meals|empty stomach|before breakfast|after breakfast|with breakfast|before lunch|after lunch|with lunch|before dinner|after dinner|with dinner|before bed|bedtime|at night|in the morning|in the evening|with water|with juice|grapefruit|how to take|how should|when to take|when should|what time|paano inumin|paano ipainom|paano gamitin|kailan dapat|oras ng pag-inom|sa umaga|sa gabi|sa tanghali|bago kumain|pagkatapos kumain|kasabay ng pagkain|kasama ang tubig|nang may laman|walang laman)\b/i.test(
+      trimmed,
+    );
+  const isMissedDoseInquiry =
+    /\b(missed dose|missed a dose|missed her dose|missed his dose|missed her medicine|missed his medicine|nakalimutang uminom|nalimutang uminom|nakaligtaang dose|nalaktawang dose|nakalimutan|nalimutan|nakaligtaan|nalaktawan)\b/i.test(
+      trimmed,
+    ) || /\bmissed\b/i.test(trimmed);
+  const isExplicitDosageAlteration =
+    /\b(increase|decrease|double|triple|reduce|stop|discontinue|extra|more|less|half|bawasan|dagdagan|doble|doblehin|kalahati|itigil|ihinto)\b/i.test(
+      trimmed,
+    ) || /\b(change|adjust|palitan)\s+(ang\s+)?(dose|dosage|reseta)\b/i.test(trimmed);
+
+  const isDosageQuery =
+    !isExplicitDosageAlteration && (isFoodOrAdministrationInquiry || isMissedDoseInquiry)
+      ? false
+      : DOSAGE_MODIFICATION_PATTERNS.some((pattern) => pattern.test(trimmed));
 
   if (isDiagnosisQuery || isDosageQuery) {
     const answer = locale === 'fil'
@@ -820,7 +838,8 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
     return queryLower.includes(medLower) || medLower.split(/\s+/).some((w) => w.length >= 4 && queryLower.includes(w));
   }) || (isStatusQuery ? timeline[0] : null);
 
-  if (isStatusQuery || (matchedDose && (queryLower.includes('record') || queryLower.includes('tala') || queryLower.includes('inom')))) {
+  const isRecordedOrTakenCheck = /\b(record|recorded|tala|naitala|nainom|naipainom|taken|given)\b/i.test(queryLower);
+  if (!isFoodOrAdministrationInquiry && !isMissedDoseInquiry && (isStatusQuery || (matchedDose && isRecordedOrTakenCheck))) {
     if (matchedDose) {
       const actor = matchedDose.recordedByName || (locale === 'fil' ? 'isang tagapag-alaga' : 'a caregiver');
       const timeTaken = matchedDose.recordedAt ? formatFriendlyTime(matchedDose.recordedAt, locale) : formatFriendlyTime(matchedDose.scheduledFor, locale);

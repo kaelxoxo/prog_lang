@@ -541,6 +541,7 @@ export function AskBantayBottomSheet({
             timestamp: new Date().toISOString(),
             actionableDose: response.actionableDose,
             medicationDraft: response.medicationDraft,
+            leafletCitation: response.leafletCitation,
             source: response.source,
           },
         ]);
@@ -855,6 +856,32 @@ export function AskBantayBottomSheet({
                             </Pressable>
                           </View>
                         )}
+                      </View>
+                    ) : null}
+
+                    {/* Verified Formulary Leaflet Citation Card */}
+                    {msg.leafletCitation ? (
+                      <View
+                        accessibilityLabel={t('assistant.leafletCitationBadgeA11y', {
+                          source: msg.leafletCitation.sourceTitle,
+                          medication: msg.leafletCitation.medicationName,
+                          section: msg.leafletCitation.section,
+                        })}
+                        accessibilityRole="text"
+                        style={styles.leafletCitationCard}
+                      >
+                        <View style={styles.leafletCitationHeader}>
+                          <AppIcon color={colors.primaryDark} name="book-open" size={13} />
+                          <Text style={styles.leafletCitationBadgeText}>
+                            {t('assistant.leafletCitationBadge')}
+                          </Text>
+                        </View>
+                        <Text style={styles.leafletCitationMedication}>
+                          {msg.leafletCitation.medicationName} · {msg.leafletCitation.section}
+                        </Text>
+                        <Text style={styles.leafletCitationSource}>
+                          {msg.leafletCitation.sourceTitle}
+                        </Text>
                       </View>
                     ) : null}
 
@@ -1426,5 +1453,37 @@ const createStyles = (colors: AppColors) =>
     },
     buttonDisabled: {
       opacity: 0.6,
+    },
+    leafletCitationCard: {
+      backgroundColor: colors.white,
+      borderColor: colors.line,
+      borderRadius: radii.sm,
+      borderWidth: 1,
+      flexDirection: 'column',
+      gap: 2,
+      marginTop: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs + 2,
+    },
+    leafletCitationHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 6,
+    },
+    leafletCitationBadgeText: {
+      color: colors.primaryDark,
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    },
+    leafletCitationMedication: {
+      color: colors.ink,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    leafletCitationSource: {
+      color: colors.muted,
+      fontSize: 11,
     },
   });
