@@ -6,11 +6,12 @@ import { initialWindowMetrics, SafeAreaProvider, SafeAreaView } from 'react-nati
 
 import { AuthProvider, useAuth } from './src/features/auth/AuthProvider';
 import { AuthScreen } from './src/features/auth/AuthScreen';
+import { CareSetupFlow, type CareSetupFinishTarget } from './src/features/careSetup/CareSetupFlow';
 import { OnboardingSlideshow } from './src/features/onboarding/OnboardingSlideshow';
 import { markOnboardingCompleted, readHasSeenOnboarding } from './src/features/onboarding/onboardingStorage';
 import { SyntheticDataNotice } from './src/components/SyntheticDataNotice';
 import { MainTabs } from './src/features/navigation/MainTabs';
-import { PatientProvider } from './src/features/patients/PatientProvider';
+import { PatientProvider, usePatient } from './src/features/patients/PatientProvider';
 import { configureNotifications } from './src/features/reminders/notifications';
 import { LocaleProvider, useLocale } from './src/features/settings/LocaleProvider';
 import { spacing, type AppColors } from './src/theme/tokens';
@@ -27,6 +28,42 @@ const queryClient = new QueryClient({
 });
 
 configureNotifications();
+
+function AuthenticatedContent({ onOpenWelcomeStory }: { onOpenWelcomeStory: () => void }) {
+  const { styles } = useThemedStyles(createStyles);
+  const { t } = useLocale();
+  const { session } = useAuth();
+  const { patients, isLoading, error } = usePatient();
+  const [startedFor, setStartedFor] = useState<string | null>(null);
+  const [deferredFor, setDeferredFor] = useState<string | null>(null);
+  const [initialAction, setInitialAction] = useState<CareSetupFinishTarget>('home');
+
+  useEffect(() => {
+    if (session && session.careSetup === null && !isLoading && !error && patients.length === 0 && deferredFor !== session.id) {
+      setStartedFor(session.id);
+    }
+  }, [deferredFor, error, isLoading, patients.length, session?.careSetup, session?.id]);
+
+  if (session && startedFor === session.id) {
+    return <CareSetupFlow onFinish={(target) => {
+      setInitialAction(target);
+      setDeferredFor(session.id);
+      setStartedFor(null);
+    }} />;
+  }
+
+  const awaitingDecision = session?.careSetup === null && deferredFor !== session.id;
+  if (awaitingDecision && (isLoading || (!error && patients.length === 0))) {
+    return (
+      <View accessibilityLiveRegion="polite" style={styles.loadingScreen}>
+        <Text style={styles.loadingBrand}>Alaga</Text>
+        <Text style={styles.loadingText}>{t('app.restoring')}</Text>
+      </View>
+    );
+  }
+
+  return <MainTabs initialAction={initialAction === 'addMedicine' ? 'addMedicine' : undefined} onOpenWelcomeStory={onOpenWelcomeStory} />;
+}
 
 function AppContent() {
   const { styles } = useThemedStyles(createStyles);
@@ -69,26 +106,34 @@ function AppContent() {
     );
   }
 
-  if (!hasSeenOnboarding || showReplayOnboarding) {
-    return (
-      <OnboardingSlideshow
-        onComplete={async () => {
-          await markOnboardingCompleted();
-          setHasSeenOnboarding(true);
-          setShowReplayOnboarding(false);
-        }}
-      />
-    );
+  const finishStory = async () => {
+    await markOnboardingCompleted();
+    setHasSeenOnboarding(true);
+    setShowReplayOnboarding(false);
+  };
+
+  if (!hasSeenOnboarding) {
+    return <OnboardingSlideshow onComplete={finishStory} />;
   }
 
-  if (!session) {
-    return <AuthScreen onOpenWelcomeStory={() => setShowReplayOnboarding(true)} />;
-  }
-
+  // A replay opens over the current screen so closing it returns exactly where the user was, form input included.
   return (
-    <PatientProvider>
-      <MainTabs onOpenWelcomeStory={() => setShowReplayOnboarding(true)} />
-    </PatientProvider>
+    <View style={styles.content}>
+      <View accessibilityElementsHidden={showReplayOnboarding} importantForAccessibility={showReplayOnboarding ? 'no-hide-descendants' : 'auto'} style={styles.content}>
+        {session ? (
+          <PatientProvider>
+            <AuthenticatedContent onOpenWelcomeStory={() => setShowReplayOnboarding(true)} />
+          </PatientProvider>
+        ) : (
+          <AuthScreen onOpenWelcomeStory={() => setShowReplayOnboarding(true)} />
+        )}
+      </View>
+      {showReplayOnboarding ? (
+        <View style={StyleSheet.absoluteFill}>
+          <OnboardingSlideshow onComplete={finishStory} />
+        </View>
+      ) : null}
+    </View>
   );
 }
 

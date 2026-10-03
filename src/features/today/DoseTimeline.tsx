@@ -30,6 +30,7 @@ import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
+import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { useLocale } from '../settings/LocaleProvider';
 import { actionableAt, manilaDate, type DoseOccurrence, type TimelineResponse } from './types';
 
@@ -148,6 +149,7 @@ function PressableScale({
 export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicines, patient }: Props) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { localeTag, t } = useLocale();
+  const { isSelf } = usePatientDisplay(patient);
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1.3;
   const now = useCurrentTime();
@@ -205,7 +207,7 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
   };
 
   const snooze = (occurrence: DoseOccurrence) => Alert.alert(
-    t('dose.snoozeTitle', { medicine: occurrence.medicationName, patient: patient.displayName }),
+    t(isSelf ? 'shell.snoozeSelf' : 'dose.snoozeTitle', { medicine: occurrence.medicationName, patient: patient.displayName }),
     t('dose.snoozeBody', { time: friendlyTime(occurrence.scheduledFor, localeTag) }),
     ([15, 30, 60].map((minutes) => ({
       text: t('dose.minutes', { minutes }),
@@ -355,7 +357,7 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
                       </View>
                     </PressableScale>
                     <PressableScale
-                      accessibilityLabel={t('dose.snoozeTitle', { medicine: dose.medicationName, patient: patient.displayName })}
+                      accessibilityLabel={t(isSelf ? 'shell.snoozeSelf' : 'dose.snoozeTitle', { medicine: dose.medicationName, patient: patient.displayName })}
                       accessibilityRole="button"
                       accessibilityState={{ busy, disabled: busy }}
                       disabled={busy}

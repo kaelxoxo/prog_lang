@@ -1180,8 +1180,12 @@ export function retrieveEntityScopedFormularyGuidance(params: {
       };
     }
   } else {
-    // If no drug was named, but patient has exactly 1 active medication:
-    if (activeMedications.length === 1) {
+    // Check if query is asking general food/missed-dose/administration without naming medication
+    const isGuidanceQuery =
+      /\b(with food|without food|empty stomach|missed dose|how to take|when to take|nakalimutan|bago kumain|pagkatapos kumain|inumin|kailan|para saan|gamot sa|gamot para)\b/i.test(queryLower);
+    const hasLeafletIntent = Boolean(detectSectionIntent(query) || isGuidanceQuery);
+
+    if (activeMedications.length === 1 && hasLeafletIntent) {
       targetActiveMed = activeMedications[0];
       const match =
         detectMedicationMention(targetActiveMed.displayName, activeMedications) ||
@@ -1189,23 +1193,19 @@ export function retrieveEntityScopedFormularyGuidance(params: {
       if (match) {
         canonicalGeneric = match.canonicalGeneric;
       }
+    } else if (activeMedications.length > 1 && isGuidanceQuery) {
+      const medNames = activeMedications.map((m) => m.displayName).join(', ');
+      return {
+        matched: true,
+        status: 'out_of_scope',
+        citation: null,
+        chunk: null,
+        groundedAnswer: {
+          en: `Which of ${patientName}'s active medicines are you asking about (${medNames})?`,
+          fil: `Alin po sa mga aktibong gamot ni ${patientName} ang tinutukoy ninyo (${medNames})?`,
+        },
+      };
     } else {
-      // Check if query is asking general food/missed-dose without naming medication
-      const isGuidanceQuery =
-        /\b(with food|without food|empty stomach|missed dose|how to take|when to take|nakalimutan|bago kumain|pagkatapos kumain|inumin|kailan)\b/i.test(queryLower);
-      if (isGuidanceQuery && activeMedications.length > 1) {
-        const medNames = activeMedications.map((m) => m.displayName).join(', ');
-        return {
-          matched: true,
-          status: 'out_of_scope',
-          citation: null,
-          chunk: null,
-          groundedAnswer: {
-            en: `Which of ${patientName}'s active medicines are you asking about (${medNames})?`,
-            fil: `Alin po sa mga aktibong gamot ni ${patientName} ang tinutukoy ninyo (${medNames})?`,
-          },
-        };
-      }
       return { matched: false, status: 'out_of_scope' };
     }
   }

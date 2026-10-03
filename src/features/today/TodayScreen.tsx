@@ -25,6 +25,7 @@ import { CareHeader } from '../patients/CareHeader';
 import { CreatePatientModal } from '../patients/CreatePatientModal';
 import { PatientSwitcher } from '../patients/PatientSwitcher';
 import { usePatient } from '../patients/PatientProvider';
+import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { ReminderControl } from '../reminders/ReminderControl';
 import { useLocale } from '../settings/LocaleProvider';
 import { DoseTimeline } from './DoseTimeline';
@@ -107,6 +108,7 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
   const [view, setView] = useState<'today' | 'history'>('today');
   const { session, signOut } = useAuth();
   const { activePatient, createPatient, dataUpdatedAt, error, isCreating, isLoading, patients, retry, selectPatient } = usePatient();
+  const { showSelector } = usePatientDisplay(activePatient);
   const now = useCurrentTime();
   const scrollRef = useRef<ScrollView>(null);
   const timelineOffset = useRef(0);
@@ -235,7 +237,7 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
         </View>
       </ScrollView>
 
-      <PatientSwitcher activePatientId={activePatient.id} onAddPerson={() => setCreatorVisible(true)} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} />
+      {showSelector ? <PatientSwitcher activePatientId={activePatient.id} onAddPerson={() => setCreatorVisible(true)} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} /> : null}
       <CreatePatientModal isCreating={isCreating} onClose={() => setCreatorVisible(false)} onCreate={createPatient} visible={isCreatorVisible} />
     </>
   );

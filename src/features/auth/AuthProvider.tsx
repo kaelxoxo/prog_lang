@@ -7,14 +7,18 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { ApiError, apiRequest, errorMessage } from '../../lib/api';
 import { clearSessionToken, readSessionToken, saveSessionToken } from './sessionStorage';
+
+export type CareSetup = 'self' | 'family' | 'professional';
 
 export type Account = {
   id: string;
   email: string;
   displayName: string;
+  careSetup: CareSetup | null;
 };
 
 type AuthContextValue = {
@@ -25,6 +29,7 @@ type AuthContextValue = {
   register: (input: AuthInput & { displayName: string }) => Promise<void>;
   retryRestore: () => Promise<void>;
   signIn: (input: AuthInput) => Promise<void>;
+  setCareSetup: (careSetup: CareSetup) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -41,6 +46,7 @@ type AuthResponse = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Account | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [status, setStatus] = useState<AuthContextValue['status']>('loading');
@@ -121,9 +127,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [acceptAuthentication],
   );
 
+  const setCareSetup = useCallback(async (careSetup: CareSetup) => {
+    const response = await apiRequest<{ account: Account }>('/account/care-setup', {
+      method: 'PUT',
+      token,
+      body: { careSetup },
+    });
+    setSession(response.account);
+  }, [token]);
+
   const signOut = useCallback(async () => {
     const currentToken = token;
 
+    // Cached queries belong to the account that fetched them; never show them to the next account.
+    queryClient.clear();
     setSession(null);
     setToken(null);
     setStatus('unauthenticated');
@@ -133,7 +150,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (currentToken) {
       await apiRequest('/auth/logout', { method: 'POST', token: currentToken }).catch(() => undefined);
     }
-  }, [token]);
+  }, [queryClient, token]);
 
   const value = useMemo(
     () => ({
@@ -144,9 +161,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       register,
       retryRestore: restoreSession,
       signIn,
+      setCareSetup,
       signOut,
     }),
-    [register, restoreError, restoreSession, session, signIn, signOut, status, token],
+    [register, restoreError, restoreSession, session, setCareSetup, signIn, signOut, status, token],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -32,7 +32,8 @@ The compact patient identity selector is the primary context control. The select
 
 The PostgreSQL boundary currently contains:
 
-- `patients`
+- private `accounts` and hashed `auth_sessions`; accounts record a nullable Care Setup (`self`, `family`, `professional`) that shapes presentation, never permissions
+- `patients`, with an optional `self_account_id` marker for the Owner's Self Profile (at most one active Self Profile per account)
 - `patient_members`
 - `medications`
 - immutable `medication_versions`
@@ -44,6 +45,8 @@ The PostgreSQL boundary currently contains:
 - RLS policies, opaque hashed sessions and least-privilege grants
 
 Profile creation must atomically create both the patient and its initial owner membership. Clients cannot insert or elevate memberships directly. Membership revocation is recorded rather than hard-deleted.
+
+`PUT /account/care-setup` records an authenticated account's choice. `POST /patients` can mark a new profile as the account's Self Profile with `isSelf: true`; `GET /patients` lists the account's Self Profile first and identifies it only for that account. Neither operation changes Care Circle authorization.
 
 The selected patient identifier stored by the client is not an authorization input. RLS resolves the authenticated account from a valid, unrevoked session hash on every patient-scoped query. PostgreSQL credentials stay in the local HTTP server; the Expo client contains only the public API address and stores the raw session token in SecureStore on native platforms.
 

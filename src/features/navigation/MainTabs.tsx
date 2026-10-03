@@ -127,9 +127,10 @@ function TabItem({
 
 type Props = {
   onOpenWelcomeStory?: () => void;
+  initialAction?: 'addMedicine';
 };
 
-export function MainTabs({ onOpenWelcomeStory }: Props = {}) {
+export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
   const { session, signOut, token } = useAuth();
@@ -139,7 +140,7 @@ export function MainTabs({ onOpenWelcomeStory }: Props = {}) {
   const [focusedOccurrenceId, setFocusedOccurrenceId] = useState<string | null>(null);
   const [isAssistantVisible, setAssistantVisible] = useState(false);
   const [isQuickDrawerVisible, setIsQuickDrawerVisible] = useState(false);
-  const [isMedicationEditorVisible, setMedicationEditorVisible] = useState(false);
+  const [isMedicationEditorVisible, setMedicationEditorVisible] = useState(initialAction === 'addMedicine');
   const [isScanRxModalVisible, setScanRxModalVisible] = useState(false);
   const [importDraft, setImportDraft] = useState<MedicationOcrDraft | null>(null);
 

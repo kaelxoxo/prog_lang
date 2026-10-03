@@ -23,6 +23,7 @@ import { CareHeader } from '../patients/CareHeader';
 import { CreatePatientModal } from '../patients/CreatePatientModal';
 import { PatientSwitcher } from '../patients/PatientSwitcher';
 import { usePatient } from '../patients/PatientProvider';
+import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { useLocale } from '../settings/LocaleProvider';
 import { MedicationSection } from './MedicationSection';
 
@@ -101,6 +102,7 @@ export function MedicinesScreen({ onOpenSettings }: { onOpenSettings: () => void
   const [isCreatorVisible, setCreatorVisible] = useState(false);
   const { session, signOut } = useAuth();
   const { activePatient, createPatient, dataUpdatedAt, error, isCreating, isLoading, patients, retry, selectPatient } = usePatient();
+  const { showSelector } = usePatientDisplay(activePatient);
 
   if (isLoading) {
     return (
@@ -187,7 +189,7 @@ export function MedicinesScreen({ onOpenSettings }: { onOpenSettings: () => void
           <MedicationSection patient={activePatient} />
         </View>
       </ScrollView>
-      <PatientSwitcher activePatientId={activePatient.id} onAddPerson={() => setCreatorVisible(true)} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} />
+      {showSelector ? <PatientSwitcher activePatientId={activePatient.id} onAddPerson={() => setCreatorVisible(true)} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} /> : null}
       <CreatePatientModal isCreating={isCreating} onClose={() => setCreatorVisible(false)} onCreate={createPatient} visible={isCreatorVisible} />
     </>
   );

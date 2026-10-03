@@ -24,6 +24,7 @@ type AccountRow = {
   id: string;
   email: string;
   display_name: string;
+  care_setup: 'self' | 'family' | 'professional' | null;
 };
 
 type PatientRow = {
@@ -31,6 +32,7 @@ type PatientRow = {
   display_name: string;
   role: 'owner' | 'caregiver';
   can_manage_medications: boolean;
+  is_self: boolean;
   primary_care_manager_name?: string | null;
   created_at: Date;
 };
@@ -133,7 +135,7 @@ function newSession() {
 function responseHeaders() {
   return {
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Access-Control-Allow-Origin': serverConfig.corsOrigin,
     'Content-Type': 'application/json; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',
@@ -474,6 +476,7 @@ function accountJson(account: AccountRow) {
     id: account.id,
     email: account.email,
     displayName: account.display_name,
+    careSetup: account.care_setup,
   };
 }
 
@@ -483,6 +486,7 @@ function patientJson(patient: PatientRow, account?: AccountRow) {
   return {
     id: patient.id,
     displayName: patient.display_name,
+    isSelf: patient.is_self,
     role: patient.role,
     canManageMedications: patient.role === 'owner' || patient.can_manage_medications,
     relationshipLabel: patient.role === 'owner' ? 'Primary care manager' : 'Care circle member',
@@ -644,9 +648,12 @@ function databaseError(error: unknown) {
     return null;
   }
 
-  const candidate = error as { code?: string; message?: string };
+  const candidate = error as { code?: string; message?: string; constraint?: string };
 
   if (candidate.code === '23505') {
+    if (candidate.constraint === 'patient_invitations_one_pending_email') {
+      return new HttpError(409, 'This email already has a pending invitation.');
+    }
     return new HttpError(409, candidate.message || 'That record already exists.');
   }
 
@@ -749,11 +756,31 @@ export function createAppServer(
         return;
       }
 
+      if (request.method === 'PUT' && url.pathname === '/account/care-setup') {
+        const body = await readJson(request);
+        const careSetup = body && typeof body === 'object' && 'careSetup' in body
+          ? body.careSetup
+          : undefined;
+        if (careSetup !== 'self' && careSetup !== 'family' && careSetup !== 'professional') {
+          throw new HttpError(400, 'Choose a valid Care Setup.');
+        }
+        const account = await inAuthenticatedTransaction(pool, request, async (client) => {
+          const result = await client.query<AccountRow>(
+            'SELECT * FROM app_api.set_account_care_setup($1)',
+            [careSetup],
+          );
+          return accountJson(result.rows[0]);
+        });
+        sendJson(response, 200, { account });
+        return;
+      }
+
       if (request.method === 'GET' && url.pathname === '/patients') {
         const patients = await inAuthenticatedTransaction(pool, request, async (client, account) => {
           const result = await client.query<PatientRow>(
             `SELECT patient.id, patient.display_name, membership.role,
                     membership.can_manage_medications, patient.created_at,
+                    (patient.self_account_id = $1) IS TRUE AS is_self,
                     app_api.patient_primary_care_manager(patient.id) AS primary_care_manager_name
              FROM public.patients AS patient
              JOIN public.patient_members AS membership
@@ -761,7 +788,7 @@ export function createAppServer(
               AND membership.account_id = $1
               AND membership.revoked_at IS NULL
              WHERE patient.archived_at IS NULL
-             ORDER BY patient.created_at, patient.id`,
+             ORDER BY ((patient.self_account_id = $1) IS TRUE) DESC, patient.created_at, patient.id`,
             [account.id],
           );
           return result.rows.map((row) => patientJson(row, account));
@@ -777,10 +804,16 @@ export function createAppServer(
           'Patient name',
           80,
         );
+        const isSelf = body && typeof body === 'object' && 'isSelf' in body
+          ? body.isSelf
+          : undefined;
+        if (isSelf !== undefined && typeof isSelf !== 'boolean') {
+          throw new HttpError(400, 'isSelf must be a boolean.');
+        }
         const patient = await inAuthenticatedTransaction(pool, request, async (client, account) => {
           const result = await client.query<PatientRow>(
-            'SELECT * FROM app_api.create_patient_profile($1)',
-            [displayName],
+            'SELECT * FROM app_api.create_patient_profile($1, $2)',
+            [displayName, isSelf ?? false],
           );
           return patientJson(result.rows[0], account);
         });

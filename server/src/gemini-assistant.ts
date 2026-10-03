@@ -1,3 +1,31 @@
+import { existsSync, readFileSync } from 'node:fs';
+
+export function resolveGeminiApiKey(): string {
+  if (process.env.GEMINI_API_KEY?.trim()) {
+    return process.env.GEMINI_API_KEY.trim();
+  }
+  const candidateFiles = ['.env', '.env.local', '.env.server.local'];
+  for (const file of candidateFiles) {
+    if (existsSync(file)) {
+      try {
+        const content = readFileSync(file, 'utf8');
+        const match = content.match(/^\s*GEMINI_API_KEY\s*=\s*["']?([^"'\r\n]+)["']?/m);
+        if (match && match[1].trim()) {
+          return match[1].trim();
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return '';
+}
+
+export const CANDIDATE_GEMINI_MODELS = [
+  process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+  'gemini-3.5-flash',
+];
+
 export interface AssistantActionableDose {
   occurrenceId: string;
   medicationName: string;
@@ -375,7 +403,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
     };
   }
 
-  const apiKey = params.apiKey !== undefined ? params.apiKey : (process.env.GEMINI_API_KEY || '');
+  const apiKey = params.apiKey !== undefined ? params.apiKey : resolveGeminiApiKey();
   const fetchImpl = params.fetchFn || globalThis.fetch;
 
   // 2.5 Entity-Scoped Formulary RAG (eliminates hallucinations for medication queries)
@@ -414,8 +442,10 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
 
       if (formularyResult.status === 'success' && formularyResult.chunk && formularyResult.citation) {
         if (apiKey) {
-          const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const candidateModels = process.env.GEMINI_MODEL
+            ? [process.env.GEMINI_MODEL, 'gemini-3.5-flash']
+            : CANDIDATE_GEMINI_MODELS;
+
           const systemInstructionText = `You are Bantay, the warm, faithful, and protective eldercare companion mascot of Alaga in the Philippines. You are conversing with caregiver ${caregiverName} regarding ${patientName}.
 
 STRICT CLOSED-WORLD GROUNDING:
@@ -443,46 +473,52 @@ Caregiver Question: ${params.query}`;
             systemInstruction: { parts: [{ text: systemInstructionText }] },
             generationConfig: {
               temperature: 0.1,
-              maxOutputTokens: 350,
+              maxOutputTokens: 600,
+              thinkingConfig: {
+                thinkingBudget: 0,
+              },
             },
           };
 
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          for (const model of candidateModels) {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-          try {
-            const response = await fetchImpl(endpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(requestBody),
-              signal: controller.signal,
-            });
+            try {
+              const response = await fetchImpl(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal,
+              });
 
-            if (response.ok) {
-              const data = (await response.json()) as {
-                candidates?: Array<{
-                  content?: {
-                    parts?: Array<{ text?: string }>;
-                  };
-                }>;
-              };
-              const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-              if (candidateText) {
-                return {
-                  answer: candidateText,
-                  source: 'gemini',
-                  model,
-                  actionableDose: null,
-                  medicationDraft: null,
-                  suggestedQuickReplies,
-                  leafletCitation: formularyResult.citation,
+              if (response.ok) {
+                const data = (await response.json()) as {
+                  candidates?: Array<{
+                    content?: {
+                      parts?: Array<{ text?: string }>;
+                    };
+                  }>;
                 };
+                const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                if (candidateText) {
+                  return {
+                    answer: candidateText,
+                    source: 'gemini',
+                    model,
+                    actionableDose: null,
+                    medicationDraft: null,
+                    suggestedQuickReplies,
+                    leafletCitation: formularyResult.citation,
+                  };
+                }
               }
+            } catch (_err) {
+              // Try next candidate model
+            } finally {
+              clearTimeout(timeoutId);
             }
-          } catch (_err) {
-            // Fall through to deterministic local synthesis
-          } finally {
-            clearTimeout(timeoutId);
           }
         }
 
@@ -625,8 +661,10 @@ Caregiver Question: ${params.query}`;
   }
 
   // 4. Construct Gemini REST payload with function calling tools
-  const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const candidateModels = process.env.GEMINI_MODEL
+    ? [process.env.GEMINI_MODEL, 'gemini-3.5-flash']
+    : CANDIDATE_GEMINI_MODELS;
+
   const context = buildAssistantContext(params);
   const systemInstructionText = buildSystemInstruction(caregiverName, patientName);
   const userPrompt = `Locale: ${locale}\nContext:\n${JSON.stringify(context, null, 2)}\n\nCaregiver Question: ${params.query}`;
@@ -644,155 +682,166 @@ Caregiver Question: ${params.query}`;
     tools: [proposeMedicationDraftTool],
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: 400,
+      maxOutputTokens: 1000,
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
     },
   };
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  for (const model of candidateModels) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-  try {
-    const response = await fetchImpl(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemini API returned status ${response.status}`);
-    }
-
-    const data = (await response.json()) as {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{
-            text?: string;
-            functionCall?: {
-              name: string;
-              args: Record<string, unknown>;
-            };
-          }>;
-        };
-      }>;
-    };
-
-    const candidateContent = data.candidates?.[0]?.content;
-    const parts = candidateContent?.parts || [];
-
-    const functionCallPart = parts.find((p) => p.functionCall && p.functionCall.name === 'propose_medication_draft');
-    const textPart = parts.find((p) => p.text);
-    const textPayload = textPart?.text?.trim();
-
-    if (functionCallPart && functionCallPart.functionCall) {
-      const args = (functionCallPart.functionCall.args || {}) as Record<string, unknown>;
-      const displayName = typeof args.displayName === 'string' && args.displayName ? args.displayName.trim() : 'Medicine';
-      const strengthVal =
-        typeof args.strengthValue === 'number'
-          ? args.strengthValue
-          : parseFloat(String(args.strengthValue)) || null;
-      const strengthUnit =
-        typeof args.strengthUnit === 'string' && args.strengthUnit
-          ? args.strengthUnit.trim().toLowerCase()
-          : strengthVal !== null
-          ? 'mg'
-          : '';
-      const doseQuantity =
-        typeof args.doseQuantity === 'number'
-          ? args.doseQuantity
-          : parseFloat(String(args.doseQuantity)) || 1;
-      const doseUnit =
-        typeof args.doseUnit === 'string' && args.doseUnit ? args.doseUnit.trim().toLowerCase() : 'tablet';
-      const medicineForm =
-        typeof args.medicineForm === 'string' && args.medicineForm ? args.medicineForm.trim().toLowerCase() : 'tablet';
-      const scheduleKind =
-        args.scheduleKind === 'interval' || args.scheduleKind === 'meal' ? args.scheduleKind : 'exact';
-
-      let times: string[] = Array.isArray(args.exactTimes)
-        ? (args.exactTimes as string[]).map((t) => String(t).trim()).filter(Boolean)
-        : [];
-      if (times.length === 0) {
-        times = ['08:00'];
-      }
-
-      const intervalHours = typeof args.intervalHours === 'number' ? args.intervalHours : null;
-      const weekdays = Array.isArray(args.weekdays) ? (args.weekdays as number[]) : [0, 1, 2, 3, 4, 5, 6];
-
-      // Check duplicate against params.medications
-      const medLower = displayName.toLowerCase();
-      const duplicate = params.medications.find((m) => {
-        const name = m.displayName.toLowerCase();
-        const generic = m.genericName?.toLowerCase();
-        const brand = m.brandName?.toLowerCase();
-        return (
-          name === medLower ||
-          name.includes(medLower) ||
-          medLower.includes(name) ||
-          generic === medLower ||
-          brand === medLower
-        );
+    try {
+      const response = await fetchImpl(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
       });
 
-      const draft: AssistantMedicationDraft = {
-        id: 'draft-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7),
-        displayName,
-        genericName: typeof args.genericName === 'string' ? args.genericName : undefined,
-        brandName: typeof args.brandName === 'string' ? args.brandName : undefined,
-        strengthValue: strengthVal,
-        strengthUnit,
-        doseQuantity,
-        doseUnit,
-        medicineForm,
-        scheduleKind,
-        times,
-        intervalHours,
-        weekdays,
-        mealName:
-          args.mealName === 'breakfast' || args.mealName === 'lunch' || args.mealName === 'dinner'
-            ? args.mealName
-            : undefined,
-        mealRelation:
-          args.mealRelation === 'before' || args.mealRelation === 'after' ? args.mealRelation : undefined,
-        isDuplicate: Boolean(duplicate),
-        duplicateMedicationName: duplicate?.displayName,
+      if (!response.ok) {
+        console.warn(`[Gemini Assistant] Model ${model} returned status ${response.status}`);
+        continue;
+      }
+
+      const data = (await response.json()) as {
+        candidates?: Array<{
+          content?: {
+            parts?: Array<{
+              text?: string;
+              functionCall?: {
+                name: string;
+                args: Record<string, unknown>;
+              };
+            }>;
+          };
+        }>;
       };
 
-      let answer = textPayload || '';
-      if (!answer) {
-        answer = duplicate
-          ? locale === 'fil'
-            ? `Inihanda ko ang draft para sa ${displayName}. Paalala: Ang ${duplicate.displayName} ay nasa listahan na ng aktibong gamot ni ${patientName}.`
-            : `I prepared a draft for ${displayName}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`
-          : locale === 'fil'
-          ? `Narito ang draft para sa ${displayName}. Pakisuri at kumpirmahin.`
-          : `Here is the draft for ${displayName}. Please review and confirm.`;
+      const candidateContent = data.candidates?.[0]?.content;
+      const parts = candidateContent?.parts || [];
+
+      const functionCallPart = parts.find((p) => p.functionCall && p.functionCall.name === 'propose_medication_draft');
+      const textPart = parts.find((p) => p.text);
+      const textPayload = textPart?.text?.trim();
+
+      if (functionCallPart && functionCallPart.functionCall) {
+        const args = (functionCallPart.functionCall.args || {}) as Record<string, unknown>;
+        const displayName = typeof args.displayName === 'string' && args.displayName ? args.displayName.trim() : 'Medicine';
+        const strengthVal =
+          typeof args.strengthValue === 'number'
+            ? args.strengthValue
+            : parseFloat(String(args.strengthValue)) || null;
+        const strengthUnit =
+          typeof args.strengthUnit === 'string' && args.strengthUnit
+            ? args.strengthUnit.trim().toLowerCase()
+            : strengthVal !== null
+            ? 'mg'
+            : '';
+        const doseQuantity =
+          typeof args.doseQuantity === 'number'
+            ? args.doseQuantity
+            : parseFloat(String(args.doseQuantity)) || 1;
+        const doseUnit =
+          typeof args.doseUnit === 'string' && args.doseUnit ? args.doseUnit.trim().toLowerCase() : 'tablet';
+        const medicineForm =
+          typeof args.medicineForm === 'string' && args.medicineForm ? args.medicineForm.trim().toLowerCase() : 'tablet';
+        const scheduleKind =
+          args.scheduleKind === 'interval' || args.scheduleKind === 'meal' ? args.scheduleKind : 'exact';
+
+        let times: string[] = Array.isArray(args.exactTimes)
+          ? (args.exactTimes as string[]).map((t) => String(t).trim()).filter(Boolean)
+          : [];
+        if (times.length === 0) {
+          times = ['08:00'];
+        }
+
+        const intervalHours = typeof args.intervalHours === 'number' ? args.intervalHours : null;
+        const weekdays = Array.isArray(args.weekdays) ? (args.weekdays as number[]) : [0, 1, 2, 3, 4, 5, 6];
+
+        // Check duplicate against params.medications
+        const medLower = displayName.toLowerCase();
+        const duplicate = params.medications.find((m) => {
+          const name = m.displayName.toLowerCase();
+          const generic = m.genericName?.toLowerCase();
+          const brand = m.brandName?.toLowerCase();
+          return (
+            name === medLower ||
+            name.includes(medLower) ||
+            medLower.includes(name) ||
+            generic === medLower ||
+            brand === medLower
+          );
+        });
+
+        const draft: AssistantMedicationDraft = {
+          id: 'draft-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7),
+          displayName,
+          genericName: typeof args.genericName === 'string' ? args.genericName : undefined,
+          brandName: typeof args.brandName === 'string' ? args.brandName : undefined,
+          strengthValue: strengthVal,
+          strengthUnit,
+          doseQuantity,
+          doseUnit,
+          medicineForm,
+          scheduleKind,
+          times,
+          intervalHours,
+          weekdays,
+          mealName:
+            args.mealName === 'breakfast' || args.mealName === 'lunch' || args.mealName === 'dinner'
+              ? args.mealName
+              : undefined,
+          mealRelation:
+            args.mealRelation === 'before' || args.mealRelation === 'after' ? args.mealRelation : undefined,
+          isDuplicate: Boolean(duplicate),
+          duplicateMedicationName: duplicate?.displayName,
+        };
+
+        let answer = textPayload || '';
+        if (!answer) {
+          answer = duplicate
+            ? locale === 'fil'
+              ? `Inihanda ko ang draft para sa ${displayName}. Paalala: Ang ${duplicate.displayName} ay nasa listahan na ng aktibong gamot ni ${patientName}.`
+              : `I prepared a draft for ${displayName}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`
+            : locale === 'fil'
+            ? `Narito ang draft para sa ${displayName}. Pakisuri at kumpirmahin.`
+            : `Here is the draft for ${displayName}. Please review and confirm.`;
+        }
+
+        return {
+          answer,
+          source: 'gemini',
+          model,
+          actionableDose: null,
+          medicationDraft: draft,
+          suggestedQuickReplies,
+        };
+      }
+
+      if (!textPayload) {
+        console.warn(`[Gemini Assistant] Model ${model} returned empty candidate text`);
+        continue;
       }
 
       return {
-        answer,
+        answer: textPayload,
         source: 'gemini',
         model,
-        actionableDose: null,
-        medicationDraft: draft,
+        actionableDose: findActionableDose(params.timeline, params.query, textPayload),
+        medicationDraft: null,
         suggestedQuickReplies,
       };
+    } catch (err) {
+      console.warn(`[Gemini Assistant] Error calling model ${model}:`, err);
+      // Try next model
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    if (!textPayload) {
-      throw new Error('Gemini API returned empty candidate text');
-    }
-
-    return {
-      answer: textPayload,
-      source: 'gemini',
-      model,
-      actionableDose: findActionableDose(params.timeline, params.query, textPayload),
-      medicationDraft: null,
-      suggestedQuickReplies,
-    };
-  } catch (_err) {
-    return handleFallback();
-  } finally {
-    clearTimeout(timeoutId);
   }
+
+  return handleFallback();
 }

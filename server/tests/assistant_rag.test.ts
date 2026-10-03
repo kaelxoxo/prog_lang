@@ -780,3 +780,81 @@ test('Formulary RAG: Active medication without PNDF monograph (Omeprazole) clean
   assert.doesNotMatch(response.answer, /Which of Lola Rosa's active medicines are you asking about/i);
 });
 
+test('High Availability: Open-ended query falls back to gemini-3.5-flash when primary model returns 503', async () => {
+  const attemptedModels: string[] = [];
+
+  const mockFetch = async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('gemini-3.6-flash')) {
+      attemptedModels.push('gemini-3.6-flash');
+      return new Response(JSON.stringify({ error: { code: 503, message: 'High demand' } }), {
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (url.includes('gemini-3.5-flash')) {
+      attemptedModels.push('gemini-3.5-flash');
+      return new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'I understand you are having trouble with your medications. Can you tell me more about what is making it difficult, such as side effects or schedule confusion?',
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
+    return new Response('Not Found', { status: 404 });
+  };
+
+  const response = await queryGeminiAssistant({
+    query: 'I am having trouble with my medications',
+    locale: 'en',
+    patient: lolaRosaPatient,
+    caregiver: caregiverMaya,
+    medications: lolaRosaActiveMedications,
+    timeline: [],
+    apiKey: 'test-key',
+    fetchFn: mockFetch as typeof fetch,
+  });
+
+  assert.deepEqual(attemptedModels, ['gemini-3.6-flash', 'gemini-3.5-flash']);
+  assert.equal(response.source, 'gemini');
+  assert.equal(response.model, 'gemini-3.5-flash');
+  assert.match(response.answer, /trouble with your medications/i);
+});
+
+test('High Availability: All candidate models failing cleanly drops to offline fallback without crashing', async () => {
+  const failingFetch = async () => {
+    return new Response(JSON.stringify({ error: 'All models busy' }), { status: 503 });
+  };
+
+  const response = await queryGeminiAssistant({
+    query: 'I am having trouble with my medications',
+    locale: 'en',
+    patient: lolaRosaPatient,
+    caregiver: caregiverMaya,
+    medications: lolaRosaActiveMedications,
+    timeline: [],
+    apiKey: 'test-key',
+    fetchFn: failingFetch as unknown as typeof fetch,
+  });
+
+  assert.equal(response.source, 'fallback');
+  assert.equal(response.model, 'fallback');
+  assert.match(response.answer, /trouble connecting to my AI care service/i);
+});
+

@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises';
+/import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { createWorker, OEM, PSM } from 'tesseract.js';

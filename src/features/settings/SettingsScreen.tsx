@@ -4,6 +4,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppIcon } from '../../components/AppIcon';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
+import { useAuth, type CareSetup } from '../auth/AuthProvider';
+import { CareCircleSection } from '../invitations/CareCircleSection';
+import { usePatient } from '../patients/PatientProvider';
 import { useLocale } from './LocaleProvider';
 import type { Locale } from './translations';
 
@@ -17,6 +20,24 @@ type Props = {
 export function SettingsScreen({ accountName, onBack, onOpenWelcomeStory, onSignOut }: Props) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { locale, setLocale, t } = useLocale();
+  const { session, setCareSetup } = useAuth();
+  const { patients } = usePatient();
+  const selfProfile = patients.find((patient) => patient.isSelf);
+  const [setupSaving, setSetupSaving] = useState(false);
+  const [setupError, setSetupError] = useState(false);
+  const [sharingVisible, setSharingVisible] = useState(false);
+  const chooseSetup = async (setup: CareSetup) => {
+    if (setupSaving || setup === session?.careSetup) return;
+    setSetupSaving(true);
+    setSetupError(false);
+    try {
+      await setCareSetup(setup);
+    } catch {
+      setSetupError(true);
+    } finally {
+      setSetupSaving(false);
+    }
+  };
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
 
@@ -76,12 +97,43 @@ export function SettingsScreen({ accountName, onBack, onOpenWelcomeStory, onSign
           {error ? <Text accessibilityLiveRegion="assertive" style={styles.error}>{t('settings.saveError')}</Text> : null}
         </View>
 
+        <View style={styles.card}>
+          <View style={styles.sectionCopy}>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('settings.careSetupTitle')}</Text>
+            <Text style={styles.body}>{t('settings.careSetupBody')}</Text>
+            <Text style={styles.body}>{t('settings.careSetupCurrent', { setup: session?.careSetup ? t(`settings.careSetup.${session.careSetup}`) : t('settings.careSetupNotChosen') })}</Text>
+          </View>
+          <View accessibilityRole="radiogroup" style={styles.options}>
+            {(['self', 'family', 'professional'] as const).map((setup) => {
+              const selected = session?.careSetup === setup;
+              return (
+                <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected, disabled: setupSaving }} disabled={setupSaving} key={setup} onPress={() => void chooseSetup(setup)} style={({ pressed }) => [styles.option, selected && styles.optionSelected, pressed && styles.pressed]}>
+                  <View style={[styles.radio, selected && styles.radioSelected]}>{selected ? <View style={styles.radioDot} /> : null}</View>
+                  <View style={styles.optionCopy}><Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>{t(`settings.careSetup.${setup}`)}</Text></View>
+                </Pressable>
+              );
+            })}
+          </View>
+          {setupSaving ? <Text accessibilityLiveRegion="polite" style={styles.saved}>{t('settings.careSetupSaving')}</Text> : null}
+          {setupError ? <Text accessibilityLiveRegion="assertive" style={styles.error}>{t('settings.careSetupError')}</Text> : null}
+        </View>
+
+        {session?.careSetup === 'self' && selfProfile ? (
+          <View style={styles.card}>
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: sharingVisible }} onPress={() => setSharingVisible((value) => !value)} style={({ pressed }) => [styles.option, pressed && styles.pressed]}>
+              <AppIcon color={colors.primaryDark} name="users" size={18} />
+              <Text style={styles.optionLabel}>{t('settings.shareWithFamily')}</Text>
+            </Pressable>
+            {sharingVisible ? <CareCircleSection patient={selfProfile} /> : null}
+          </View>
+        ) : null}
+
         {onOpenWelcomeStory ? (
           <View style={styles.card}>
             <View style={styles.sectionCopy}>
               <View style={styles.sectionHeading}>
                 <View style={styles.iconWrap}>
-                  <AppIcon color={colors.primaryDark} name="sparkles" size={18} />
+                  <AppIcon color={colors.primaryDark} name="book-open" size={18} />
                 </View>
                 <Text accessibilityRole="header" style={styles.sectionTitle}>
                   {t('settings.welcomeStory')}
@@ -94,7 +146,7 @@ export function SettingsScreen({ accountName, onBack, onOpenWelcomeStory, onSign
               onPress={onOpenWelcomeStory}
               style={({ pressed }) => [styles.storyReplayButton, pressed && styles.pressed]}
             >
-              <AppIcon color={colors.primaryDark} name="sparkles" size={18} />
+              <AppIcon color={colors.primaryDark} name="rotate-ccw" size={18} />
               <Text style={styles.storyReplayLabel}>{t('settings.replayStory')}</Text>
             </Pressable>
           </View>

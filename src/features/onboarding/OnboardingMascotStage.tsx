@@ -3,7 +3,6 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
-  Image,
   Pressable,
   StyleSheet,
   View,
@@ -11,6 +10,7 @@ import {
 
 import { type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
+import { BantayMascotSvg, type BantayExpression } from '../assistant/BantayMascotSvg';
 import { useLocale } from '../settings/LocaleProvider';
 import type { CopyKey } from '../settings/translations';
 
@@ -22,17 +22,17 @@ type Props = {
 
 const SLIDE_ASSETS = [
   {
-    gif: require('../../../assets/mascot-welcome.gif'),
+    expression: 'idle' as BantayExpression,
     altKey: 'onboarding_mascot_alt_slide1' as CopyKey,
     defaultAlt: 'Bantay, Alaga care companion waving hello warmly',
   },
   {
-    gif: require('../../../assets/mascot-medicine.gif'),
+    expression: 'thinking' as BantayExpression,
     altKey: 'onboarding_mascot_alt_slide2' as CopyKey,
     defaultAlt: 'Bantay holding up your Alaga care checklist with an approving nod',
   },
   {
-    gif: require('../../../assets/mascot-heart.gif'),
+    expression: 'celebration' as BantayExpression,
     altKey: 'onboarding_mascot_alt_slide3' as CopyKey,
     defaultAlt: 'Bantay hugging your glowing care heart and privacy shield',
   },
@@ -280,16 +280,14 @@ export function OnboardingMascotStage({ slideIndex, size = 220, onMascotTap }: P
           onPress={handleTap}
           style={styles.pressableTarget}
         >
-          <Image
-            accessibilityIgnoresInvertColors
+          <View
             accessible={false}
-            fadeDuration={0}
-            importantForAccessibility="no"
+            importantForAccessibility="no-hide-descendants"
             key={`slide-mascot-${slideIndex}`}
-            resizeMode="contain"
-            source={reduceMotion ? require('../../../assets/mascot.png') : activeAsset.gif}
             style={[styles.mascotImage, { height: size, width: size }]}
-          />
+          >
+            <BantayMascotSvg expression={activeAsset.expression} size={size} variant="full" />
+          </View>
         </Pressable>
       </Animated.View>
     </View>

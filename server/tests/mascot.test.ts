@@ -166,7 +166,9 @@ test('mascot unit invariants: OnboardingMascotStage design, physics, and accessi
 
   // 6. Reduced motion fallback
   assert.ok(code.includes('AccessibilityInfo'), 'Must query AccessibilityInfo');
-  assert.ok(code.includes('mascot.png'), 'Must fall back to mascot.png');
+  // Bantay 2.0 is a crisp vector: reduced motion stops the loops instead of swapping to a raster still.
+  assert.ok(code.includes('<BantayMascotSvg'), 'Must render the vector Bantay 2.0 mascot');
+  assert.ok(code.includes('reduceMotion'), 'Must gate procedural motion on reduceMotion');
 
   // 7. Calibrated 3.0s breathing float cycle (1500ms inhale, 1500ms exhale)
   const durationMatch = code.match(/duration:\s*(\d+)/);
