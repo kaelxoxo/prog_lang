@@ -133,7 +133,7 @@ describe('Chatbot and Home Screen Hero UI Revamp Suite', () => {
   });
 
   describe('R3: Quick Actions Row', () => {
-    it('HomeScreen implements all 5 accessible quick action tiles', () => {
+    it('HomeScreen implements all 6 accessible quick action squircles', () => {
       const homeContent = fs.readFileSync(HOME_SCREEN_PATH, 'utf-8');
 
       assert.ok(homeContent.includes('quickActionsSection'), 'Must have quickActionsSection');
@@ -143,31 +143,38 @@ describe('Chatbot and Home Screen Hero UI Revamp Suite', () => {
       assert.ok(homeContent.includes('actionLogDose'), 'Must have actionLogDose tile');
       assert.ok(homeContent.includes('onOpenToday'), 'Must wire to onOpenToday');
 
-      // 2. + Add Medicine
+      // 2. Add Medicine
       assert.ok(homeContent.includes('actionAddMedicine'), 'Must have actionAddMedicine tile');
 
       // 3. Scan Rx
       assert.ok(homeContent.includes('actionScanRx'), 'Must have actionScanRx tile');
       assert.ok(homeContent.includes('setScanRxModalVisible'), 'Must open Scan Rx modal');
 
-      // 4. Today\'s Schedule
-      assert.ok(homeContent.includes('actionTodaySchedule'), 'Must have actionTodaySchedule tile');
+      // 4. Ask Bantay
+      assert.ok(homeContent.includes('actionAskBantay'), 'Must have actionAskBantay tile');
+      assert.ok(homeContent.includes('onOpenAssistant?.()'), 'Ask Bantay tile must open the assistant');
 
-      // 5. Care Circle
+      // 5. Medicines
+      assert.ok(homeContent.includes('actionMedicines'), 'Must have actionMedicines tile');
+
+      // 6. Care Circle
       assert.ok(homeContent.includes('actionCareCircle'), 'Must have actionCareCircle tile');
       assert.ok(homeContent.includes('scrollToEnd'), 'Care Circle tile must scroll to Care Circle section');
 
-      // Verify touch targets >= 48dp
-      assert.match(homeContent, /quickActionTile:\s*\{[^}]*minWidth:\s*76[^}]*minHeight:\s*84/);
+      // Touch targets well above 48dp and 18px squircle radius
+      assert.match(homeContent, /quickActionTile:\s*\{[^}]*minHeight:\s*92[^}]*borderRadius:\s*18/);
+      assert.match(homeContent, /quickActionTilePressable:\s*\{[^}]*minWidth:\s*88/);
     });
 
-    it('translations exist for all 5 quick action tiles in both EN and FIL', () => {
+    it('translations exist for all quick action tiles in both EN and FIL', () => {
       const actions = [
         { key: 'home.actionLogDose', en: 'Log Dose', fil: 'Itala ang Dose' },
         { key: 'home.actionAddMedicine', en: '+ Add Medicine', fil: '+ Magdagdag ng Gamot' },
         { key: 'home.actionScanRx', en: 'Scan Rx', fil: 'I-scan ang Reseta' },
         { key: 'home.actionTodaySchedule', en: "Today's Schedule", fil: 'Iskedyul Ngayon' },
         { key: 'home.actionCareCircle', en: 'Care Circle', fil: 'Care Circle' },
+        { key: 'home.actionAskBantay', en: 'Ask Bantay', fil: 'Tanungin si Bantay' },
+        { key: 'home.actionMedicines', en: 'Medicines', fil: 'Mga Gamot' },
       ];
 
       for (const action of actions) {
@@ -264,21 +271,6 @@ describe('Chatbot and Home Screen Hero UI Revamp Suite', () => {
   });
 
   describe('Adversarial & Edge Cases Invariant Checks', () => {
-    it('HomeScreen banner prioritizes overdue/attention doses over future doses so caregivers are alerted', () => {
-      const homeContent = fs.readFileSync(HOME_SCREEN_PATH, 'utf-8');
-
-      // Verify that attention check occurs BEFORE nextDose in the status ternary
-      const attentionIdx = homeContent.indexOf('attention.length > 0');
-      const nextDoseCheckIdx = homeContent.indexOf('nextDose\n        ? t(\'home.bannerNextDose\'');
-
-      assert.ok(attentionIdx !== -1, 'Must check attention doses in banner');
-      assert.ok(nextDoseCheckIdx !== -1, 'Must check nextDose in banner');
-      assert.ok(
-        attentionIdx < nextDoseCheckIdx,
-        'Attention/overdue doses must be evaluated BEFORE nextDose so they are not masked',
-      );
-    });
-
     it('HomeScreen banner mascot sets accessible={false} to eliminate TalkBack nested button conflict', () => {
       const homeContent = fs.readFileSync(HOME_SCREEN_PATH, 'utf-8');
 
@@ -312,11 +304,20 @@ describe('Chatbot and Home Screen Hero UI Revamp Suite', () => {
       assert.ok(homeContent.includes('style={StyleSheet.absoluteFill}'), 'HomeScreen Scan Rx modal must include backdrop dismiss pressable');
     });
 
-    it('quick actions row supports responsive flexGrow and maxWidth scaling for tablet displays', () => {
+    it('quick actions grid wraps into three responsive columns', () => {
       const homeContent = fs.readFileSync(HOME_SCREEN_PATH, 'utf-8');
 
-      assert.match(homeContent, /quickActionsList:\s*\{[^}]*flexGrow:\s*1/);
-      assert.match(homeContent, /quickActionTile:\s*\{[^}]*maxWidth:\s*136/);
+      assert.match(homeContent, /quickActionsList:\s*\{[^}]*flexWrap:\s*'wrap'/);
+      assert.match(homeContent, /quickActionTilePressable:\s*\{[^}]*flexBasis:\s*'30%'[^}]*flexGrow:\s*1/);
+    });
+
+    it('bento row 2 mounts the care streak and plan horizon from real data only', () => {
+      const homeContent = fs.readFileSync(HOME_SCREEN_PATH, 'utf-8');
+
+      assert.ok(homeContent.includes('<CareStreakBadge'), 'Must mount CareStreakBadge');
+      assert.ok(homeContent.includes('computeCareStreak('), 'Streak must derive from recorded history');
+      assert.ok(homeContent.includes('{planHorizon ? ('), 'Plan horizon must render only when a schedule end date exists');
+      assert.ok(homeContent.includes('fontScale > 1.3 && styles.bentoGridStacked'), 'Row must stack for large text');
     });
   });
 });

@@ -117,22 +117,13 @@ describe('Free-Standing Mascot System E2E Test Suite', () => {
     it('R2 (FEAT-ACTION-SLIDE1, 2, 3): Multi-action choreography maps distinct states across slides', async () => {
       const stageCode = fs.readFileSync(ONBOARDING_STAGE_PATH, 'utf-8');
 
-      // Verify all 3 distinct action assets are imported or referenced
-      assert.ok(
-        stageCode.includes('mascot-welcome.gif'),
-        'Stage must reference mascot-welcome.gif for Slide 1 waving greeting',
-      );
-      assert.ok(
-        stageCode.includes('mascot-medicine.gif'),
-        'Stage must reference mascot-medicine.gif for Slide 2 medicine care checklist',
-      );
-      assert.ok(
-        stageCode.includes('mascot-heart.gif'),
-        'Stage must reference mascot-heart.gif for Slide 3 care heart and privacy shield',
-      );
-      assert.ok(
-        stageCode.includes('mascot.png'),
-        'Stage must reference mascot.png for reduceMotion fallback',
+      // Bantay 2.0 vector mascot maps a distinct expression to each slide
+      assert.ok(stageCode.includes('<BantayMascotSvg'), 'Stage must render the vector Bantay 2.0 mascot');
+      const slideExpressions = [...stageCode.matchAll(/expression: '(idle|thinking|celebration)'/g)].map((m) => m[1]);
+      assert.deepEqual(
+        slideExpressions,
+        ['idle', 'thinking', 'celebration'],
+        'Slides 1-3 must map to idle greeting, thinking checklist, and celebration heart',
       );
 
       // Verify GIFs are multi-frame animations
@@ -482,10 +473,10 @@ describe('Free-Standing Mascot System E2E Test Suite', () => {
         'Stage must query AccessibilityInfo for reduceMotion',
       );
 
-      // Verifies fallback to static mascot.png
+      // Vector mascot stays crisp when still: reduced motion stops the loops instead of swapping assets
       assert.ok(
-        stageCode.includes('mascot.png'),
-        'Stage must fall back to mascot.png when reduceMotion is enabled',
+        stageCode.includes('if (reduceMotion) {'),
+        'Stage must bypass procedural motion when reduceMotion is enabled',
       );
     });
 

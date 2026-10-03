@@ -24,13 +24,19 @@ import { CareCircleSection } from '../invitations/CareCircleSection';
 import { InvitationInbox } from '../invitations/InvitationInbox';
 import { MedicationEditorModal } from '../medications/MedicationEditorModal';
 import { MedicationPhotoImport } from '../medications/MedicationPhotoImport';
-import type { MedicationInput, MedicationOcrDraft } from '../medications/types';
+import type { Medication, MedicationInput, MedicationOcrDraft } from '../medications/types';
+import type { LucideIconName } from '@react-native-vector-icons/lucide';
+import type { CopyKey } from '../settings/translations';
 import { CareHeader } from './CareHeader';
 import { AdherenceProgressRing } from './AdherenceProgressRing';
+import { CareStreakBadge } from './CareStreakBadge';
+import { addLocalDays, computeCareStreak, findPlanHorizon, type HistoryDay } from './careInsights';
 import { NextDueCard } from './NextDueCard';
+import { RefillHorizonCard } from './RefillHorizonCard';
 import { CreatePatientModal } from '../patients/CreatePatientModal';
 import { PatientSwitcher } from '../patients/PatientSwitcher';
 import { usePatient } from '../patients/PatientProvider';
+import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { useLocale } from '../settings/LocaleProvider';
 import { actionableAt, manilaDate, type DoseOccurrence, type TimelineResponse } from '../today/types';
 
@@ -104,12 +110,29 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
     retry: retryPatients,
     selectPatient,
   } = usePatient();
+  const { name: patientName, showSelector, showCareCircle, isSelf } = usePatientDisplay(activePatient);
   const now = useCurrentTime();
   const date = manilaDate(now);
   const timelineQuery = useQuery({
     queryKey: ['today', activePatient?.id, date],
     enabled: Boolean(activePatient),
     queryFn: () => apiRequest<TimelineResponse>(`/patients/${activePatient!.id}/today?date=${date}`, { token }),
+  });
+  // Same key and range as HistoryPanel so the 7-day history is fetched once and shared.
+  const historyThrough = addLocalDays(date, -1);
+  const historyQuery = useQuery({
+    queryKey: ['history', activePatient?.id, historyThrough],
+    enabled: Boolean(activePatient),
+    queryFn: () =>
+      apiRequest<{ history: HistoryDay[] }>(
+        `/patients/${activePatient!.id}/history?through=${historyThrough}&days=7`,
+        { token },
+      ),
+  });
+  const medicationsQuery = useQuery({
+    queryKey: ['medications', activePatient?.id],
+    enabled: Boolean(activePatient),
+    queryFn: () => apiRequest<{ medications: Medication[] }>(`/patients/${activePatient!.id}/medications`, { token }),
   });
 
   const saveMedicationMutation = useMutation({
@@ -141,6 +164,7 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['today', activePatient?.id] });
       void queryClient.invalidateQueries({ queryKey: ['timeline', activePatient?.id] });
+      void queryClient.invalidateQueries({ queryKey: ['history', activePatient?.id] });
       void timelineQuery.refetch();
     },
   });
@@ -155,11 +179,8 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
   const bubbleOpacityAnim = useRef(new Animated.Value(0)).current;
   const pillScaleAnim = useRef(new Animated.Value(1)).current;
 
-  // Spring press animations for quick actions (Emil Kowalski: scale 0.98)
-  const tile1Scale = useRef(new Animated.Value(1)).current;
-  const tile2Scale = useRef(new Animated.Value(1)).current;
-  const tile3Scale = useRef(new Animated.Value(1)).current;
-  const tile4Scale = useRef(new Animated.Value(1)).current;
+  // Spring press animations for the six quick-action squircles (Emil Kowalski: scale 0.96)
+  const tileScales = useRef(Array.from({ length: 6 }, () => new Animated.Value(1))).current;
 
   const animatePressIn = (val: Animated.Value) => {
     Animated.timing(val, {
@@ -258,20 +279,56 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
 
   const allHandled = timeline.length > 0 && handled === timeline.length;
   const bannerExpression: MascotExpression = allHandled ? 'celebration' : 'idle';
+  const careStreak = computeCareStreak([...(historyQuery.data?.history ?? []), { date, timeline }], date);
+  const planHorizon = findPlanHorizon(medicationsQuery.data?.medications ?? [], date);
+
+  const openCareCircle = () => scrollRef.current?.scrollToEnd({ animated: true });
+  const openMedicationEditor = () => {
+    if (activePatient.canManageMedications) {
+      setImportDraft(null);
+      setMedicationEditorVisible(true);
+    } else {
+      onOpenMedicines();
+    }
+  };
+  const openScanRx = () => {
+    if (activePatient.canManageMedications) {
+      setScanRxModalVisible(true);
+    } else {
+      onOpenMedicines();
+    }
+  };
+  const quickActions: Array<{
+    key: string;
+    label: CopyKey;
+    a11yLabel: CopyKey;
+    hint: CopyKey;
+    icon: LucideIconName;
+    iconColor: string;
+    tint: string;
+    onPress: () => void;
+  }> = [
+    { key: 'log', label: 'home.tileLogDose', a11yLabel: 'home.actionLogDose', hint: 'home.actionLogDoseHint', icon: 'circle-check', iconColor: colors.successDark, tint: colors.successTint, onPress: onOpenToday },
+    { key: 'add', label: 'home.tileAddMedicine', a11yLabel: 'home.actionAddMedicine', hint: 'home.actionAddMedicineHint', icon: 'plus', iconColor: colors.primaryDark, tint: colors.primaryTint, onPress: openMedicationEditor },
+    { key: 'scan', label: 'home.tileScanRx', a11yLabel: 'home.actionScanRx', hint: 'home.actionScanRxHint', icon: 'camera', iconColor: colors.warning, tint: colors.warningTint, onPress: openScanRx },
+    { key: 'ask', label: 'home.actionAskBantay', a11yLabel: 'home.actionAskBantay', hint: 'home.actionAskBantayHint', icon: 'message-circle', iconColor: colors.flame, tint: colors.sunTint, onPress: () => onOpenAssistant?.() },
+    { key: 'medicines', label: 'home.actionMedicines', a11yLabel: 'home.actionMedicines', hint: 'home.actionMedicinesHint', icon: 'pill', iconColor: colors.ink, tint: colors.mist, onPress: onOpenMedicines },
+    ...(showCareCircle ? [{ key: 'circle', label: 'home.actionCareCircle' as const, a11yLabel: 'home.actionCareCircle' as const, hint: 'home.actionCareCircleHint' as const, icon: 'users' as const, iconColor: colors.ink, tint: colors.mist, onPress: openCareCircle }] : []),
+  ];
 
   const bannerStatusText = allHandled
-    ? t('home.bannerAllDone', { patient: activePatient.displayName })
+    ? t(isSelf ? 'shell.bannerAllDoneSelf' : 'home.bannerAllDone', { patient: patientName })
     : attention.length > 0
-      ? t(attention.length === 1 ? 'home.bannerReview' : 'home.bannerManyReview', {
+      ? t(isSelf ? (attention.length === 1 ? 'shell.bannerReviewSelf' : 'shell.bannerManyReviewSelf') : (attention.length === 1 ? 'home.bannerReview' : 'home.bannerManyReview'), {
           count: attention.length,
-          patient: activePatient.displayName,
+          patient: patientName,
         })
       : nextDose
-        ? t('home.bannerNextDose', {
+        ? t(isSelf ? 'shell.bannerNextDoseSelf' : 'home.bannerNextDose', {
             medicine: nextDose.medicationName,
             dose: `${nextDose.doseQuantity} ${nextDose.doseUnit}`,
             time: friendlyTime(actionableAt(nextDose), localeTag),
-            patient: activePatient.displayName,
+            patient: patientName,
           })
         : t('home.bannerTip');
 
@@ -287,7 +344,7 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
           <CareHeader
             accountName={session?.displayName}
             activePatient={activePatient}
-            onOpenCareCircle={() => scrollRef.current?.scrollToEnd({ animated: true })}
+            onOpenCareCircle={showCareCircle ? openCareCircle : undefined}
             onOpenSettings={onOpenSettings}
           />
 
@@ -301,9 +358,9 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
             <Text accessibilityRole="header" style={styles.greetingTitle}>
               {greetingText}
             </Text>
-            <Pressable
+            {showSelector ? <Pressable
               accessibilityHint={t('care.patientHint')}
-              accessibilityLabel={t('home.caringForPillA11y', { patient: activePatient.displayName })}
+              accessibilityLabel={isSelf ? t('shell.caringForSelfPillA11y') : t('home.caringForPillA11y', { patient: patientName })}
               accessibilityRole="button"
               onPress={() => setSwitcherVisible(true)}
               onPressIn={() => animatePressIn(pillScaleAnim)}
@@ -311,10 +368,10 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
             >
               <Animated.View style={[styles.caringForPill, { transform: [{ scale: pillScaleAnim }] }]}>
                 <Text numberOfLines={1} style={styles.caringForPillText}>
-                  {t('home.caringForPill', { patient: activePatient.displayName })}
+                  {isSelf ? t('shell.caringForSelfPill') : t('home.caringForPill', { patient: patientName })}
                 </Text>
               </Animated.View>
-            </Pressable>
+            </Pressable> : null}
           </View>
 
           {/* Companion Hero Card: Forest-tinted Card with Peeking Bust & Speech Bubble */}
@@ -376,116 +433,33 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
             </Animated.View>
           </Pressable>
 
-          {/* Quick Actions Row: 4 Uniform Squircles */}
+          {/* Quick Actions: 6 Squircles in a 3x2 grid */}
           <View style={styles.quickActionsSection}>
-            <View style={styles.quickActionsHeaderRow}>
-              <Text accessibilityRole="header" style={styles.quickActionsTitle}>
-                {t('home.quickActionsTitle')}
-              </Text>
-              <Pressable
-                accessibilityHint={t('home.actionCareCircleHint')}
-                accessibilityLabel={t('home.actionCareCircle')}
-                accessibilityRole="button"
-                onPress={() => scrollRef.current?.scrollToEnd({ animated: true })}
-                style={styles.careCircleShortcut}
-              >
-                <AppIcon color={colors.muted} name="users" size={14} />
-                <Text style={styles.careCircleShortcutText}>{t('home.actionCareCircle')}</Text>
-              </Pressable>
-            </View>
+            <Text accessibilityRole="header" style={styles.quickActionsTitle}>
+              {t('home.quickActionsTitle')}
+            </Text>
             <View style={styles.quickActionsList}>
-              {/* 1. Log Dose */}
-              <Pressable
-                accessibilityHint={t('home.actionLogDoseHint')}
-                accessibilityLabel={t('home.actionLogDose')}
-                accessibilityRole="button"
-                onPress={onOpenToday}
-                onPressIn={() => animatePressIn(tile1Scale)}
-                onPressOut={() => animatePressOut(tile1Scale)}
-                style={styles.quickActionTilePressable}
-              >
-                <Animated.View style={[styles.quickActionTile, { transform: [{ scale: tile1Scale }] }]}>
-                  <View style={[styles.quickActionIconWrap, { backgroundColor: colors.successTint }]}>
-                    <AppIcon color={colors.successDark} name="circle-check" size={22} />
-                  </View>
-                  <Text numberOfLines={1} style={styles.quickActionLabel}>
-                    Log Dose
-                  </Text>
-                </Animated.View>
-              </Pressable>
-
-              {/* 2. + Add Medicine */}
-              <Pressable
-                accessibilityHint={t('home.actionAddMedicineHint')}
-                accessibilityLabel={t('home.actionAddMedicine')}
-                accessibilityRole="button"
-                onPress={() => {
-                  if (activePatient.canManageMedications) {
-                    setImportDraft(null);
-                    setMedicationEditorVisible(true);
-                  } else {
-                    onOpenMedicines();
-                  }
-                }}
-                onPressIn={() => animatePressIn(tile2Scale)}
-                onPressOut={() => animatePressOut(tile2Scale)}
-                style={styles.quickActionTilePressable}
-              >
-                <Animated.View style={[styles.quickActionTile, { transform: [{ scale: tile2Scale }] }]}>
-                  <View style={[styles.quickActionIconWrap, { backgroundColor: colors.primaryTint }]}>
-                    <AppIcon color={colors.primaryDark} name="plus" size={22} />
-                  </View>
-                  <Text numberOfLines={1} style={styles.quickActionLabel}>
-                    Add Med
-                  </Text>
-                </Animated.View>
-              </Pressable>
-
-              {/* 3. Scan Rx */}
-              <Pressable
-                accessibilityHint={t('home.actionScanRxHint')}
-                accessibilityLabel={t('home.actionScanRx')}
-                accessibilityRole="button"
-                onPress={() => {
-                  if (activePatient.canManageMedications) {
-                    setScanRxModalVisible(true);
-                  } else {
-                    onOpenMedicines();
-                  }
-                }}
-                onPressIn={() => animatePressIn(tile3Scale)}
-                onPressOut={() => animatePressOut(tile3Scale)}
-                style={styles.quickActionTilePressable}
-              >
-                <Animated.View style={[styles.quickActionTile, { transform: [{ scale: tile3Scale }] }]}>
-                  <View style={[styles.quickActionIconWrap, { backgroundColor: colors.warningTint }]}>
-                    <AppIcon color={colors.warning} name="camera" size={22} />
-                  </View>
-                  <Text numberOfLines={1} style={styles.quickActionLabel}>
-                    Scan Rx
-                  </Text>
-                </Animated.View>
-              </Pressable>
-
-              {/* 4. Today's Schedule */}
-              <Pressable
-                accessibilityHint={t('home.actionTodayScheduleHint')}
-                accessibilityLabel={t('home.actionTodaySchedule')}
-                accessibilityRole="button"
-                onPress={onOpenToday}
-                onPressIn={() => animatePressIn(tile4Scale)}
-                onPressOut={() => animatePressOut(tile4Scale)}
-                style={styles.quickActionTilePressable}
-              >
-                <Animated.View style={[styles.quickActionTile, { transform: [{ scale: tile4Scale }] }]}>
-                  <View style={[styles.quickActionIconWrap, { backgroundColor: colors.mist }]}>
-                    <AppIcon color={colors.ink} name="calendar-days" size={22} />
-                  </View>
-                  <Text numberOfLines={1} style={styles.quickActionLabel}>
-                    Schedule
-                  </Text>
-                </Animated.View>
-              </Pressable>
+              {quickActions.map((action, index) => (
+                <Pressable
+                  accessibilityHint={t(action.hint)}
+                  accessibilityLabel={t(action.a11yLabel)}
+                  accessibilityRole="button"
+                  key={action.key}
+                  onPress={action.onPress}
+                  onPressIn={() => animatePressIn(tileScales[index])}
+                  onPressOut={() => animatePressOut(tileScales[index])}
+                  style={styles.quickActionTilePressable}
+                >
+                  <Animated.View style={[styles.quickActionTile, { transform: [{ scale: tileScales[index] }] }]}>
+                    <View style={[styles.quickActionIconWrap, { backgroundColor: action.tint }]}>
+                      <AppIcon color={action.iconColor} name={action.icon} size={22} />
+                    </View>
+                    <Text numberOfLines={2} style={styles.quickActionLabel}>
+                      {t(action.label)}
+                    </Text>
+                  </Animated.View>
+                </Pressable>
+              ))}
             </View>
           </View>
 
@@ -513,7 +487,7 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
                 </View>
                 <View style={styles.emptyCopy}>
                   <Text accessibilityRole="header" style={styles.emptyTitle}>
-                    {t('home.noConfirmedFor', { patient: activePatient.displayName })}
+                    {isSelf ? t('shell.noConfirmedSelf') : t('home.noConfirmedFor', { patient: patientName })}
                   </Text>
                   <Text style={styles.emptyBody}>
                     {t(activePatient.canManageMedications ? 'home.emptyManagerBody' : 'home.emptyViewerBody')}
@@ -562,6 +536,29 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
                   onOpenToday={onOpenToday}
                   onTakeDose={handleTakeDose}
                 />
+              </View>
+
+              {/* Bento Row 2: Care Streak + Plan Horizon (horizon only when a schedule has an end date) */}
+              <View style={[styles.bentoGrid, fontScale > 1.3 && styles.bentoGridStacked]}>
+                <View style={fontScale > 1.3 ? styles.bentoCellStacked : styles.bentoCell}>
+                  <CareStreakBadge onPress={onOpenToday} streakDays={careStreak} />
+                </View>
+                {planHorizon ? (
+                  <View style={fontScale > 1.3 ? styles.bentoCellStacked : styles.bentoCell}>
+                    <RefillHorizonCard
+                      daysRemaining={planHorizon.daysRemaining}
+                      dosageText={t('home.horizonEnds', {
+                        date: new Intl.DateTimeFormat(localeTag, {
+                          month: 'short',
+                          day: 'numeric',
+                          timeZone: 'UTC',
+                        }).format(new Date(`${planHorizon.endOn}T00:00:00Z`)),
+                      })}
+                      medicationName={planHorizon.medication.displayName}
+                      onRefillPress={onOpenMedicines}
+                    />
+                  </View>
+                ) : null}
               </View>
 
               {/* Unified Today Schedule Container */}
@@ -692,18 +689,18 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
             </>
           )}
 
-          <CareCircleSection patient={activePatient} />
+          {showCareCircle ? <CareCircleSection patient={activePatient} /> : null}
         </View>
       </ScrollView>
 
-      <PatientSwitcher
+      {showSelector ? <PatientSwitcher
         activePatientId={activePatient.id}
         onAddPerson={() => setCreatorVisible(true)}
         onClose={() => setSwitcherVisible(false)}
         onSelect={selectPatient}
         patients={patients}
         visible={isSwitcherVisible}
-      />
+      /> : null}
       <CreatePatientModal
         isCreating={isCreating}
         onClose={() => setCreatorVisible(false)}
@@ -914,46 +911,26 @@ const createStyles = (colors: AppColors) =>
     quickActionsSection: {
       gap: 10,
     },
-    quickActionsHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
     quickActionsTitle: {
       color: colors.ink,
       fontSize: 18,
       fontWeight: '800',
       letterSpacing: -0.3,
     },
-    careCircleShortcut: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      paddingVertical: 4,
-      paddingHorizontal: 8,
-    },
-    careCircleShortcutText: {
-      color: colors.muted,
-      fontSize: 12,
-      fontWeight: '700',
-    },
     quickActionsList: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: 10,
       paddingVertical: 2,
-      flexGrow: 1,
-      justifyContent: 'space-between',
     },
     quickActionTilePressable: {
-      flex: 1,
-      minWidth: 76,
-      maxWidth: 136,
+      flexBasis: '30%',
+      flexGrow: 1,
+      minWidth: 88,
     },
     quickActionTile: {
       flex: 1,
-      minWidth: 76,
-      maxWidth: 136,
-      minHeight: 84,
+      minHeight: 92,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 18,
@@ -985,6 +962,17 @@ const createStyles = (colors: AppColors) =>
     bentoGrid: {
       flexDirection: 'row',
       gap: 12,
+      width: '100%',
+    },
+    bentoGridStacked: {
+      flexDirection: 'column',
+    },
+    bentoCell: {
+      flexGrow: 1,
+      flexBasis: 0,
+      minWidth: 0,
+    },
+    bentoCellStacked: {
       width: '100%',
     },
     scheduleCard: {

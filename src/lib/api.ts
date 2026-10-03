@@ -16,7 +16,7 @@ const REQUEST_TIMEOUT_MS = 15_000;
 
 type ApiRequestOptions = {
   body?: unknown;
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PUT';
   token?: string | null;
 };
 

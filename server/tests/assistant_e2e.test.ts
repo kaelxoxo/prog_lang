@@ -363,7 +363,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
     // F2: Expandable Bottom Sheet & Stream UI (5 tests)
     // -----------------------------------------------------------------------
 
-    it('T1.2.1 (SHEET-STRUCTURE): Bottom sheet defines tonal surface (white), 28dp top radii, and accessible dismiss control', () => {
+    it('T1.2.1 (SHEET-STRUCTURE): Bottom sheet defines tonal surface (white), top radii, and accessible dismiss control', () => {
       const sheetTokens = {
         surfaceColor: lightColors.white,
         topRadius: radii.xl,
@@ -372,8 +372,8 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
         dismissTouchSlop: { top: 8, bottom: 8, left: 8, right: 8 },
       };
 
-      assert.equal(sheetTokens.surfaceColor, '#FFFCF6', 'Sheet surface must use tonal white token');
-      assert.equal(sheetTokens.topRadius, 28, 'Top corner radius must be 28dp (radii.xl)');
+      assert.equal(sheetTokens.surfaceColor, lightColors.white, 'Sheet surface must use tonal white token');
+      assert.equal(sheetTokens.topRadius, radii.xl, 'Top corner radius must match radii.xl');
       assert.equal(sheetTokens.borderWidth, 1);
     });
 

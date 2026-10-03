@@ -84,10 +84,7 @@ export function AuthScreen({ onOpenWelcomeStory }: Props = {}) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.brandBlock}>
-          <WelcomingMascot
-            greetingText={t('auth.welcomeMascot')}
-            size={112}
-          />
+          <WelcomingMascot size={112} />
           <View style={styles.brandLockup}>
             <Text accessibilityRole="header" style={styles.brand}>Alaga</Text>
           </View>
@@ -125,6 +122,19 @@ export function AuthScreen({ onOpenWelcomeStory }: Props = {}) {
               },
             ]}
           />
+
+          {onOpenWelcomeStory ? (
+            <Pressable
+              accessibilityHint={t('auth.meetBantayHint')}
+              accessibilityLabel={t('auth.meetBantayLink')}
+              accessibilityRole="button"
+              onPress={onOpenWelcomeStory}
+              style={({ pressed }) => [styles.storyLink, pressed && styles.modeButtonPressed]}
+            >
+              <Text style={styles.storyLinkLabel}>{t('auth.meetBantayLink')}</Text>
+              <AppIcon color={colors.primary} name="arrow-right" size={16} />
+            </Pressable>
+          ) : null}
         </View>
 
         <View style={styles.formCard}>
@@ -258,22 +268,9 @@ export function AuthScreen({ onOpenWelcomeStory }: Props = {}) {
               isSubmitting && styles.buttonDisabled,
             ]}
           >
-            <AppIcon color={colors.primary} name="sparkles" size={18} />
+            <AppIcon color={colors.primary} name="user-round" size={18} />
             <Text style={styles.demoButtonLabel}>{t('auth.demoAccount')}</Text>
           </Pressable>
-
-          {onOpenWelcomeStory ? (
-            <Pressable
-              accessibilityHint="Replays the welcome walkthrough and mascot introduction"
-              accessibilityLabel={t('auth.meetBantayLink')}
-              accessibilityRole="button"
-              onPress={onOpenWelcomeStory}
-              style={({ pressed }) => [styles.storyLink, pressed && styles.modeButtonPressed]}
-            >
-              <AppIcon color={colors.primary} name="sparkles" size={15} />
-              <Text style={styles.storyLinkLabel}>{t('auth.meetBantayLink')}</Text>
-            </Pressable>
-          ) : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -363,19 +360,18 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   demoButtonLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
   storyLink: {
-    minHeight: 44,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
     borderRadius: radii.full,
     paddingHorizontal: spacing.md,
-    marginTop: spacing.xs,
   },
   storyLinkLabel: {
     color: colors.primary,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     textAlign: 'center',
   },
 });

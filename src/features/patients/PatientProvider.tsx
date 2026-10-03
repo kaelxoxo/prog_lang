@@ -17,7 +17,7 @@ type PatientContextValue = {
   patients: readonly Patient[];
   activePatient: Patient | null;
   selectPatient: (patientId: string) => void;
-  createPatient: (displayName: string) => Promise<Patient>;
+  createPatient: (displayName: string, options?: { isSelf?: boolean }) => Promise<Patient>;
   error: string | null;
   isCreating: boolean;
   isLoading: boolean;
@@ -46,33 +46,37 @@ export function PatientProvider({ children }: PropsWithChildren) {
     patients.find((patient) => patient.id === activePatientId) ?? patients[0] ?? null;
 
   useEffect(() => {
+    // A just-selected patient (e.g. an accepted invitation) may not be listed until the refetch lands.
+    if (patientQuery.isFetching) return;
     if (activePatient && activePatient.id !== activePatientId) {
       setActivePatientId(activePatient.id);
     }
-  }, [activePatient, activePatientId]);
+  }, [activePatient, activePatientId, patientQuery.isFetching]);
 
   const selectPatient = useCallback((patientId: string) => {
     setActivePatientId(patientId);
   }, []);
 
   const createMutation = useMutation({
-    mutationFn: (displayName: string) =>
+    mutationFn: ({ displayName, options }: { displayName: string; options?: { isSelf?: boolean } }) =>
       apiRequest<PatientCreateResponse>('/patients', {
         method: 'POST',
         token,
-        body: { displayName },
+        body: { displayName, ...options },
       }),
     onSuccess: ({ patient }) => {
       queryClient.setQueryData<PatientListResponse>(queryKey, (current) => ({
-        patients: [...(current?.patients ?? []), patient],
+        patients: patient.isSelf
+          ? [patient, ...(current?.patients ?? [])]
+          : [...(current?.patients ?? []), patient],
       }));
       setActivePatientId(patient.id);
     },
   });
 
   const createPatient = useCallback(
-    async (displayName: string) => {
-      const response = await createMutation.mutateAsync(displayName);
+    async (displayName: string, options?: { isSelf?: boolean }) => {
+      const response = await createMutation.mutateAsync({ displayName, options });
       return response.patient;
     },
     [createMutation],

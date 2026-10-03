@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import {
   AccessibilityInfo,
-  Alert,
   findNodeHandle,
   KeyboardAvoidingView,
   Modal,
@@ -19,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../components/AppIcon';
 import { errorMessage } from '../../lib/api';
+import { confirmAction } from '../../lib/confirm';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import type { Patient } from '../patients/types';
@@ -367,10 +367,14 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
       onClose();
       return;
     }
-    Alert.alert('Discard your changes?', `Nothing for ${patient.displayName} will be saved.`, [
-      { text: 'Keep editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: onClose },
-    ]);
+    confirmAction({
+      title: 'Discard your changes?',
+      message: `Nothing for ${patient.displayName} will be saved.`,
+      cancelLabel: 'Keep editing',
+      confirmLabel: 'Discard',
+      destructive: true,
+      onConfirm: onClose,
+    });
   };
 
   const validateDetails = () => {

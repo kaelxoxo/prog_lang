@@ -15,6 +15,7 @@ import {
 import { AppIcon } from '../../components/AppIcon';
 import { type AppColors, radii } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
+import { BantayMascotSvg } from './BantayMascotSvg';
 
 export type MascotExpression = 'idle' | 'thinking' | 'celebration';
 
@@ -26,6 +27,7 @@ export interface AssistantMascotProps {
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  useSvg?: boolean;
   variant?: 'full' | 'bust';
 }
 
@@ -43,6 +45,7 @@ export function AssistantMascot({
   onPress,
   style,
   testID,
+  useSvg = true,
   variant = 'full',
 }: AssistantMascotProps) {
   const { colors, styles } = useThemedStyles(createStyles);
@@ -414,43 +417,53 @@ export function AssistantMascot({
           onPressOut={onPress ? handleBustPressOut : undefined}
           style={[styles.bustPressable, { height: size, width: size }]}
         >
-          {/* Base Layer: Calm Resting Bust */}
-          <Animated.Image
-            accessibilityIgnoresInvertColors
-            accessible={false}
-            fadeDuration={0}
-            importantForAccessibility="no"
-            resizeMode="contain"
-            source={BUST_RESTING_ASSET}
-            style={[
-              styles.bustImage,
-              {
-                height: size,
-                width: size,
-                opacity: reduceMotion ? 1 : Animated.subtract(1, bustWaveCrossfade),
-              },
-            ]}
-          />
-
-          {/* Top Layer: Welcoming Waving Bust */}
-          {!reduceMotion ? (
-            <Animated.Image
-              accessibilityIgnoresInvertColors
-              accessible={false}
-              fadeDuration={0}
-              importantForAccessibility="no"
-              resizeMode="contain"
-              source={BUST_WAVE_ASSET}
-              style={[
-                styles.bustImage,
-                {
-                  height: size,
-                  width: size,
-                  opacity: bustWaveCrossfade,
-                },
-              ]}
+          {useSvg ? (
+            <BantayMascotSvg
+              expression={expression}
+              size={size}
+              variant="bust"
             />
-          ) : null}
+          ) : (
+            <>
+              {/* Base Layer: Calm Resting Bust */}
+              <Animated.Image
+                accessibilityIgnoresInvertColors
+                accessible={false}
+                fadeDuration={0}
+                importantForAccessibility="no"
+                resizeMode="contain"
+                source={BUST_RESTING_ASSET}
+                style={[
+                  styles.bustImage,
+                  {
+                    height: size,
+                    width: size,
+                    opacity: reduceMotion ? 1 : Animated.subtract(1, bustWaveCrossfade),
+                  },
+                ]}
+              />
+
+              {/* Top Layer: Welcoming Waving Bust */}
+              {!reduceMotion ? (
+                <Animated.Image
+                  accessibilityIgnoresInvertColors
+                  accessible={false}
+                  fadeDuration={0}
+                  importantForAccessibility="no"
+                  resizeMode="contain"
+                  source={BUST_WAVE_ASSET}
+                  style={[
+                    styles.bustImage,
+                    {
+                      height: size,
+                      width: size,
+                      opacity: bustWaveCrossfade,
+                    },
+                  ]}
+                />
+              ) : null}
+            </>
+          )}
 
           {/* Thinking Sparkle Overlay */}
           {expression === 'thinking' && !reduceMotion ? (
@@ -697,29 +710,45 @@ export function AssistantMascot({
             onPress={handleFullPress}
             style={styles.pressableTarget}
           >
-            <Image
-              accessibilityIgnoresInvertColors
-              accessible={false}
-              fadeDuration={0}
-              importantForAccessibility="no"
-              key={`assistant-mascot-${expression}-${reduceMotion ? 'static' : 'animated'}`}
-              resizeMode="contain"
-              source={fullAssetSource}
-              style={{ height: size, width: size }}
-            />
+            {useSvg ? (
+              <BantayMascotSvg
+                expression={expression}
+                size={size}
+                variant="full"
+              />
+            ) : (
+              <Image
+                accessibilityIgnoresInvertColors
+                accessible={false}
+                fadeDuration={0}
+                importantForAccessibility="no"
+                key={`assistant-mascot-${expression}-${reduceMotion ? 'static' : 'animated'}`}
+                resizeMode="contain"
+                source={fullAssetSource}
+                style={{ height: size, width: size }}
+              />
+            )}
           </Pressable>
         ) : (
           <View pointerEvents="none" style={styles.pressableTarget}>
-            <Image
-              accessibilityIgnoresInvertColors
-              accessible={false}
-              fadeDuration={0}
-              importantForAccessibility="no"
-              key={`assistant-mascot-${expression}-${reduceMotion ? 'static' : 'animated'}`}
-              resizeMode="contain"
-              source={fullAssetSource}
-              style={{ height: size, width: size }}
-            />
+            {useSvg ? (
+              <BantayMascotSvg
+                expression={expression}
+                size={size}
+                variant="full"
+              />
+            ) : (
+              <Image
+                accessibilityIgnoresInvertColors
+                accessible={false}
+                fadeDuration={0}
+                importantForAccessibility="no"
+                key={`assistant-mascot-${expression}-${reduceMotion ? 'static' : 'animated'}`}
+                resizeMode="contain"
+                source={fullAssetSource}
+                style={{ height: size, width: size }}
+              />
+            )}
           </View>
         )}
 

@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  BackHandler,
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -88,6 +89,21 @@ export function OnboardingSlideshow({ onComplete }: Props) {
       onComplete();
     }
   };
+
+  useEffect(() => {
+    // Back steps to the previous slide; on the first slide it leaves the story like Skip, never trapping the user.
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (activeIndex === 0) {
+        onComplete();
+        return true;
+      }
+      const previous = activeIndex - 1;
+      flatListRef.current?.scrollToIndex({ animated: true, index: previous });
+      setActiveIndex(previous);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [activeIndex, onComplete]);
 
   const isLastSlide = activeIndex === SLIDES.length - 1;
 
@@ -212,7 +228,7 @@ export function OnboardingSlideshow({ onComplete }: Props) {
           </Text>
           <AppIcon
             color={colors.white}
-            name={isLastSlide ? 'sparkles' : 'arrow-right'}
+            name={isLastSlide ? 'check' : 'arrow-right'}
             size={18}
           />
         </Pressable>

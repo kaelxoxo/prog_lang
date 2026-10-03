@@ -3,6 +3,9 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { AppIcon } from '../../components/AppIcon';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
+import { useAuth } from '../auth/AuthProvider';
+import { usePatient } from './PatientProvider';
+import { usePatientDisplay } from './usePatientDisplay';
 import { useLocale } from '../settings/LocaleProvider';
 import type { Patient } from './types';
 
@@ -24,6 +27,7 @@ export function CareHeader({ accountName, onChangePerson, onOpenSettings, patien
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
   const { fontScale } = useWindowDimensions();
+  const { name, showSelector, isProfessional } = usePatientDisplay(patient);
   const changeAction = (
     <View style={styles.changeAction}>
       <Text style={styles.changeLabel}>{t('care.change')}</Text>
@@ -46,17 +50,17 @@ export function CareHeader({ accountName, onChangePerson, onOpenSettings, patien
           ) : null}
         </View>
         <View style={styles.topActions}>
-          <Pressable
+          {showSelector ? <Pressable
             accessibilityHint={t('care.patientHint')}
-            accessibilityLabel={t('care.patientLabel', { patient: patient.displayName })}
+            accessibilityLabel={t('care.patientLabel', { patient: name })}
             accessibilityRole="button"
             onPress={onChangePerson}
             style={({ pressed }) => [styles.avatarButton, pressed && styles.actionButtonPressed]}
           >
             <View style={styles.avatarMini}>
-              <Text style={styles.avatarMiniLabel}>{initialsFor(patient.displayName)}</Text>
+              <Text style={styles.avatarMiniLabel}>{initialsFor(name)}</Text>
             </View>
-          </Pressable>
+          </Pressable> : null}
           {onOpenSettings ? (
             <Pressable
               accessibilityLabel={t('care.settings')}
@@ -69,21 +73,21 @@ export function CareHeader({ accountName, onChangePerson, onOpenSettings, patien
           ) : null}
         </View>
       </View>
-      {showPatientBar ? (
+      {showPatientBar && showSelector ? (
         <View style={styles.patientBar}>
           <Pressable
             accessibilityHint={t('care.patientHint')}
-            accessibilityLabel={t('care.patientLabel', { patient: patient.displayName })}
+            accessibilityLabel={t('care.patientLabel', { patient: name })}
             accessibilityRole="button"
             onPress={onChangePerson}
             style={({ pressed }) => [styles.patientButton, pressed && styles.patientButtonPressed]}
           >
             <View style={styles.avatar}>
-              <Text style={styles.avatarLabel}>{initialsFor(patient.displayName)}</Text>
+              <Text style={styles.avatarLabel}>{initialsFor(name)}</Text>
             </View>
             <View style={styles.identityCopy}>
-              <Text style={styles.eyebrow}>{t('care.caringFor')}</Text>
-              <Text numberOfLines={fontScale > 1.3 ? 3 : 2} style={styles.patientName}>{patient.displayName}</Text>
+              <Text style={styles.eyebrow}>{isProfessional ? t('shell.peopleYouCareFor') : t('care.caringFor')}</Text>
+              <Text numberOfLines={fontScale > 1.3 ? 3 : 2} style={styles.patientName}>{name}</Text>
               <View style={styles.relationshipPill}>
                 <Text numberOfLines={1} style={styles.relationship}>{patient.relationshipLabel}</Text>
               </View>

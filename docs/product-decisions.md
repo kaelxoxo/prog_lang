@@ -72,6 +72,10 @@ Milestone 6 uses in-app invitations tied to a normalized account email. An owner
 
 The local prototype does not send invitation email and account emails are not yet externally verified. Shared “not recorded” escalation means every accepted caregiver sees overdue items on Home when they open Alaga. Remote notifications, verified identity and household rules remain later decisions.
 
+## Care Setup onboarding
+
+Approved 2026-09-28. After sign-in, an account with no recorded Care Setup and no Care Circle membership sees a post-signup onboarding (separate from the pre-auth welcome slideshow). Pending invitations for the account's email are detected automatically and shown first; otherwise the account chooses Caring for myself, Caring for family, Caring professionally, or Waiting for an invite (which shows the exact email to share with the Owner). "I'll decide later" skips it until the next sign-in. The Care Setup is recorded when its path creates the first profile, or when an invited account picks Family or Professional after accepting. It shapes the shell but never permissions (`docs/adr/0002-care-setup-shapes-shell.md`); self-tracking uses a marked Self Profile (`docs/adr/0001-self-profile-marker.md`).
+
 ## Task-first UI reference pass
 
 The 2026-08-27 UI polish pass used interaction references from real mobile products without copying their branding:

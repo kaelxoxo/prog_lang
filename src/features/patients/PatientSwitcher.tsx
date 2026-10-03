@@ -6,6 +6,7 @@ import { AppIcon } from '../../components/AppIcon';
 import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
+import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from './types';
 
 type PatientSwitcherProps = {
@@ -37,12 +38,13 @@ export function PatientSwitcher({
 }: PatientSwitcherProps) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
+  const { session } = useAuth();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1.3;
   const [search, setSearch] = useState('');
   const visiblePatients = useMemo(
-    () => patients.filter((patient) => patient.displayName.toLowerCase().includes(search.trim().toLowerCase())),
-    [patients, search],
+    () => patients.filter((patient) => (patient.isSelf ? `${t('shell.you')} ${patient.displayName}` : patient.displayName).toLowerCase().includes(search.trim().toLowerCase())),
+    [patients, search, t],
   );
   const close = () => {
     setSearch('');
@@ -72,7 +74,7 @@ export function PatientSwitcher({
             <View style={[styles.headingRow, largeText && styles.headingRowLarge]}>
               <View style={styles.headingCopy}>
                 <Text accessibilityRole="header" style={styles.title}>
-                  {t('people.changeTitle')}
+                  {session?.careSetup === 'professional' ? t('shell.peopleYouCareFor') : t('people.changeTitle')}
                 </Text>
                 <Text style={styles.subtitle}>{t('people.changeBody')}</Text>
               </View>
@@ -123,7 +125,7 @@ export function PatientSwitcher({
 
                 return (
                   <Pressable
-                    accessibilityLabel={`${patient.displayName}, ${patient.relationshipLabel}`}
+                    accessibilityLabel={`${patient.isSelf ? t('shell.you') : patient.displayName}, ${patient.relationshipLabel}`}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: isSelected }}
                     key={patient.id}
@@ -144,7 +146,7 @@ export function PatientSwitcher({
                       </Text>
                     </View>
                     <View style={styles.patientCopy}>
-                      <Text style={styles.patientName}>{patient.displayName}</Text>
+                      <Text style={styles.patientName}>{patient.isSelf ? t('shell.you') : patient.displayName}</Text>
                       <View style={styles.relationshipChip}>
                         <Text style={styles.relationshipText}>{patient.relationshipLabel}</Text>
                       </View>

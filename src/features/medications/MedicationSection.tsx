@@ -23,6 +23,7 @@ import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
+import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { useLocale } from '../settings/LocaleProvider';
 import { MedicationEditorModal } from './MedicationEditorModal';
 import { MedicationPhotoImport } from './MedicationPhotoImport';
@@ -122,6 +123,7 @@ function PressableScale({
 export function MedicationSection({ patient }: Props) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { localeTag, t } = useLocale();
+  const { isSelf } = usePatientDisplay(patient);
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1.3;
   const { token } = useAuth();
@@ -238,7 +240,7 @@ export function MedicationSection({ patient }: Props) {
       <View style={[styles.headingRow, largeText && styles.headingRowLarge]}>
         <View style={styles.headingCopy}>
           <Text accessibilityRole="header" style={styles.title}>{t('medicine.title')}</Text>
-          <Text style={styles.subtitle}>{t('medicine.subtitle', { patient: patient.displayName })}</Text>
+          <Text style={styles.subtitle}>{isSelf ? t('shell.yourMedicines') : t('medicine.subtitle', { patient: patient.displayName })}</Text>
         </View>
         {patient.canManageMedications ? (
           <PressableScale

@@ -8,6 +8,7 @@ import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
+import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { useLocale } from '../settings/LocaleProvider';
 import { manilaDate, type DoseOccurrence } from '../today/types';
 
@@ -60,6 +61,7 @@ export function HistoryPanel({ patient }: { patient: Patient }) {
   const { fontScale } = useWindowDimensions();
   const { localeTag, t } = useLocale();
   const { token } = useAuth();
+  const { isSelf } = usePatientDisplay(patient);
   const through = addDays(manilaDate(), -1);
   const historyQuery = useQuery({
     queryKey: ['history', patient.id, through],
@@ -82,7 +84,7 @@ export function HistoryPanel({ patient }: { patient: Patient }) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.subtitle}>{t('history.subtitle', { patient: patient.displayName })}</Text>
+      <Text style={styles.subtitle}>{isSelf ? t('shell.yourCareLog') : t('history.subtitle', { patient: patient.displayName })}</Text>
 
       {historyQuery.isLoading && !historyQuery.data ? (
         <Text accessibilityLiveRegion="polite" style={styles.stateText}>{t('history.loading')}</Text>

@@ -3,24 +3,21 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
-  Image,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 
 import { radii, spacing, type AppColors } from '../theme/tokens';
 import { useThemedStyles } from '../theme/useTheme';
+import { BantayMascotSvg } from '../features/assistant/BantayMascotSvg';
 import { AnimatedAppIcon } from './AnimatedAppIcon';
 
 type Props = {
-  greetingText?: string;
   size?: number;
 };
 
 export function WelcomingMascot({
-  greetingText,
   size = 110,
 }: Props) {
   const { colors, styles } = useThemedStyles(createStyles);
@@ -136,14 +133,6 @@ export function WelcomingMascot({
 
   return (
     <View style={styles.outerContainer}>
-      {/* Welcoming Speech Pill */}
-      {greetingText ? (
-        <View style={styles.greetingPill}>
-          <AnimatedAppIcon animation="pulse" color={colors.primaryDark} name="sparkles" size={13} />
-          <Text style={styles.greetingText}>{greetingText}</Text>
-        </View>
-      ) : null}
-
       <Pressable
         accessibilityHint="Tap to interact with Bantay for a warm greeting"
         accessibilityLabel="Bantay, the Alaga mascot"
@@ -185,20 +174,13 @@ export function WelcomingMascot({
             },
           ]}
         >
-          <Image
-            accessibilityIgnoresInvertColors
-            accessibilityLabel="Bantay guardian cub mascot"
-            resizeMode="cover"
-            source={reduceMotion ? require('../../assets/mascot.png') : require('../../assets/mascot-welcome.gif')}
-            style={[
-              styles.mascotImage,
-              {
-                borderRadius: size / 2,
-                height: size,
-                width: size,
-              },
-            ]}
-          />
+          <View
+            accessibilityLabel="Bantay, the Alaga care companion"
+            accessible
+            style={[styles.mascotImage, { borderRadius: size / 2, height: size, width: size }]}
+          >
+            <BantayMascotSvg expression={tapped ? 'celebration' : 'idle'} size={size * 0.9} variant="bust" />
+          </View>
 
           {/* Cheerful Heart Badge on interaction */}
           {tapped ? (
@@ -217,28 +199,6 @@ const createStyles = (colors: AppColors) =>
     auraRing: {
       backgroundColor: colors.sun,
       position: 'absolute',
-    },
-    greetingPill: {
-      alignItems: 'center',
-      backgroundColor: colors.white,
-      borderColor: colors.sun,
-      borderRadius: radii.full,
-      borderWidth: 1.5,
-      flexDirection: 'row',
-      gap: 6,
-      marginBottom: spacing.md,
-      paddingHorizontal: 14,
-      paddingVertical: 6,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 6,
-    },
-    greetingText: {
-      color: colors.ink,
-      fontSize: 12,
-      fontWeight: '700',
-      letterSpacing: 0.2,
     },
     heartReaction: {
       alignItems: 'center',
@@ -267,6 +227,8 @@ const createStyles = (colors: AppColors) =>
       shadowRadius: 10,
     },
     mascotImage: {
+      alignItems: 'center',
+      justifyContent: 'center',
       overflow: 'hidden',
     },
     outerContainer: {
