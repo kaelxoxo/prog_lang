@@ -3,12 +3,13 @@
 ## Architecture
 - **Presentation & Navigation**:
   - `FloatingAssistantFab`: Persistent 56x56dp circular avatar anchored at `{ position: 'absolute', bottom: 16, right: 20 }` inside `MainTabs.tsx` across Home, Today, and Medicines tabs, above bottom navigation bar. Includes soft status beacon (12dp) when `attention.length > 0`.
-  - `AskBantayBottomSheet`: Modal bottom sheet overlay with dynamic greeting, suggestion chips, conversation stream, and text query input bar.
+  - `AskBantayBottomSheet`: Full-screen modal conversation (edge-to-edge, safe-area padded, closes via header button or Android back) with dynamic greeting, suggestion chips, conversation stream, and text query input bar.
   - `ActionableDoseCard`: In-stream interactive dose card anchored with patient name, inline "Record Taken" action with caregiver attribution, and "View in Today" shortcut.
   - `AssistantMascot`: Animated mascot component rendering Idle (3.0s breathing float + blinks), Thinking (curious head tilt -5.0deg + sparkle pulse), and Celebration (embracing care heart and shield + spring hop). Gracefully falls back to static asset when `reduceMotion` is enabled.
 - **Hybrid Dual-Engine Intelligence**:
   - **Tier 1 (Instant Local Rules)**: `src/features/assistant/rulesEngine.ts` runs 0ms offline client-side evaluation over in-memory React Query cache (`todayTimeline`, `activeMedications`, `activePatient`, `now`).
   - **Tier 2 (Gemini LLM Backend)**: `POST /patients/:patientId/assistant/query` in `server/src/app.ts` calling Google Generative Language REST API (`gemini-2.5-flash`) via `server/src/gemini-assistant.ts` with contextualized synthetic patient data, bilingual instructions, and strict medical safety invariants.
+  - **Topic Scope Guardrail**: Bantay only answers about the patient's care in Alaga (recorded medicines, schedules, dose history, medication summaries, information about a recorded medicine, adding medicines, app help). `src/features/assistant/topicGuardrail.ts` declines code, essays/creative writing, role-play/impersonation, prompt-injection, personal and unrelated requests before any model call, both in Tier 1 and on the server (`model: 'topic_guardrail'`). Both Gemini system instructions carry the same scope rules for phrasings the patterns miss, and any model reply containing code is replaced with the scope decline.
 - **State & Real-Time Synchronization**:
   - Inline dose recording calls `POST /patients/:patientId/doses/:occurrenceId/events` with caregiver token and `clientActionId`.
   - TanStack Query invalidation triggers immediate real-time update of `['today', patient.id, date]`, updating the Today screen and assistant cards synchronously.
@@ -128,7 +129,7 @@ export interface AssistantMascotProps {
 - `src/features/assistant/rulesEngine.ts`: Tier 1 instant local rules engine.
 - `src/features/assistant/AssistantMascot.tsx`: Dynamic animated mascot component (Idle, Thinking, Celebration).
 - `src/features/assistant/FloatingAssistantFab.tsx`: Persistent FAB with touch target >= 48dp and soft status beacon.
-- `src/features/assistant/AskBantayBottomSheet.tsx`: Expandable bottom sheet with greeting, chips, message stream, and input bar.
+- `src/features/assistant/AskBantayBottomSheet.tsx`: Full-screen conversation modal with greeting, chips, message stream, and input bar.
 - `src/features/assistant/ActionableDoseCard.tsx`: Attributable dose card with inline "Record Taken" and "View in Today".
 - `src/features/navigation/MainTabs.tsx`: Integration of FAB above bottom navigation across Home, Today, Medicines.
 - `src/i18n/translations.ts`: Bilingual copy keys in 1:1 parity (EN/FIL).

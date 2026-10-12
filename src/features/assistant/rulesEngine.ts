@@ -7,6 +7,7 @@ import {
   type LocalEvaluationResult,
   toActionableDose,
 } from './types';
+import { detectOffTopicRequest, offTopicDecline } from './topicGuardrail';
 
 function formatFriendlyTime(value: string | Date, locale: AssistantLocale): string {
   try {
@@ -408,6 +409,20 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
   const { query, locale, patient, medications, timeline, now } = context;
   const trimmed = query.trim();
   const patientName = patient?.displayName || (locale === 'fil' ? 'ang pasyente' : 'the patient');
+
+  // 0. Topic scope: Bantay only helps with the patient's medicines and care in Alaga.
+  if (detectOffTopicRequest(trimmed)) {
+    return {
+      handled: true,
+      answer: offTopicDecline(patientName, locale),
+      actionableDose: null,
+      medicationDraft: null,
+      pendingDraft: context.pendingDraftState ?? null,
+      expression: 'idle',
+      suggestedQuickReplies: defaultQuickReplies(locale),
+      source: 'local_rules',
+    };
+  }
 
   // 1. Critical Medical Safety Invariants (0ms enforcement)
   const isDiagnosisQuery = DIAGNOSIS_PATTERNS.some((pattern) => pattern.test(trimmed));

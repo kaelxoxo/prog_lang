@@ -9,6 +9,7 @@ import { radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
+import { imageMimeTypeFromBase64 } from './imageType';
 import type { MedicationOcrDraft } from './types';
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -78,10 +79,11 @@ export function MedicationPhotoImport({
         return;
       }
 
-      const isPng = asset.mimeType === 'image/png'
-        || (Boolean(asset.uri) && asset.uri.toLowerCase().endsWith('.png'))
-        || (Boolean(asset.base64) && asset.base64.startsWith('iVBORw0KGgo'));
-      const mimeType: 'image/jpeg' | 'image/png' = isPng ? 'image/png' : 'image/jpeg';
+      const mimeType = imageMimeTypeFromBase64(asset.base64);
+      if (!mimeType) {
+        setPickerError('Alaga could not read that image. Choose another JPEG or PNG.');
+        return;
+      }
 
       setImageUri(asset.uri);
       ocrMutation.mutate({ imageBase64: asset.base64, mimeType, sourceKind });

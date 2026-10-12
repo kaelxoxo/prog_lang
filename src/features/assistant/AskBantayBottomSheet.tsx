@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { AppIcon } from '../../components/AppIcon';
@@ -204,7 +204,6 @@ export function AskBantayBottomSheet({
 }: AskBantayBottomSheetProps) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { locale, t } = useLocale();
-  const insets = useSafeAreaInsets();
   const { session, token } = useAuth();
   const queryClient = useQueryClient();
   const now = useCurrentTime();
@@ -592,28 +591,16 @@ export function AskBantayBottomSheet({
   return (
     <>
       <Modal
-      animationType="slide"
-      onRequestClose={onClose}
-      transparent
-      visible={visible}
-    >
-      <View style={styles.overlay}>
-        <Pressable
-          accessibilityHint="Closes the Ask Bantay assistant"
-          accessibilityLabel={t('assistant.sheetClose')}
-          accessibilityRole="button"
-          onPress={onClose}
-          style={styles.backdrop}
-        />
-
+        animationType="slide"
+        navigationBarTranslucent
+        onRequestClose={onClose}
+        statusBarTranslucent
+        visible={visible}
+      >
+      <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={[
-            styles.sheetContainer,
-            {
-              paddingBottom: Math.max(insets.bottom, spacing.md),
-            },
-          ]}
+          style={styles.screen}
         >
           {/* Header */}
           <View style={styles.header}>
@@ -985,7 +972,7 @@ export function AskBantayBottomSheet({
             </Pressable>
           </View>
         </KeyboardAvoidingView>
-      </View>
+      </SafeAreaView>
     </Modal>
     {patient && editorModalVisible ? (
       <MedicationEditorModal
@@ -1006,23 +993,9 @@ export function AskBantayBottomSheet({
 
 const createStyles = (colors: AppColors) =>
   StyleSheet.create({
-    overlay: {
-      backgroundColor: 'rgba(0, 0, 0, 0.42)',
-      flex: 1,
-      justifyContent: 'flex-end',
-    },
-    backdrop: {
-      flex: 1,
-    },
-    sheetContainer: {
+    screen: {
       backgroundColor: colors.canvas,
-      borderTopLeftRadius: radii.xl,
-      borderTopRightRadius: radii.xl,
-      borderTopWidth: 1,
-      borderColor: colors.line,
-      maxHeight: '85%',
-      minHeight: 380,
-      width: '100%',
+      flex: 1,
     },
     header: {
       alignItems: 'center',
