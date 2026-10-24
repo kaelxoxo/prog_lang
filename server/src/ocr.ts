@@ -522,4 +522,3 @@ export async function recognizeMedicationImage(
     await worker.terminate();
   }
 }
-
