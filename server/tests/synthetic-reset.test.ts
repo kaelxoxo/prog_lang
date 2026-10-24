@@ -23,7 +23,7 @@ function adminDatabaseUrl() {
 
 async function runReset(confirmFlag: boolean) {
   const args = [
-    '--env-file=.env.server.local',
+    '--env-file-if-exists=.env.server.local',
     '--import',
     'tsx',
     'server/src/resetSyntheticDatabase.ts',

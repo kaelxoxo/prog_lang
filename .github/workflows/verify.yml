@@ -24,10 +24,10 @@ jobs:
       SERVER_PORT: 4000
       CORS_ORIGIN: '*'
       POSTGRES_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
-      DATABASE_NAME: alaga_ci
+      DATABASE_NAME: alaga_ci_test
       DATABASE_ROLE: alaga_api
       DATABASE_ROLE_PASSWORD: alaga-ci-password
-      DATABASE_URL: postgresql://alaga_api:alaga-ci-password@127.0.0.1:5432/alaga_ci
+      DATABASE_URL: postgresql://alaga_api:alaga-ci-password@127.0.0.1:5432/alaga_ci_test
       EXPO_PUBLIC_API_URL: auto
     steps:
       - uses: actions/checkout@v4
