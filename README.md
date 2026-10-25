@@ -88,7 +88,7 @@ The test suite covers authentication, patient isolation, row-level security, car
 
 Alaga is intentionally local and Android-first. It has no hosted service, verified email delivery, remote push, offline writes, or production monitoring. Real patient data, real medicine labels, pilot use, and clinical deployment are out of scope. iOS and full TalkBack focus-order validation remain environment-dependent follow-up checks.
 
-## Project notes
+# Project notes
 
 - [Product decisions](docs/product-decisions.md)
 - [Prototype architecture](docs/prototype-architecture.md)
