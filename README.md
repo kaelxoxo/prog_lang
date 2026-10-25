@@ -8,6 +8,7 @@ Alaga is a warm, patient-first medicine care log for families coordinating care 
 
 - Account-backed patient ownership and caregiver sharing.
 - Confirmed, versioned medicine schedules with fixed, interval, and meal-window timing.
+- Medicine inventory tracking for tablets and capsules, with stock counts, refill logging, automatic stock updates from dose records, and estimated days remaining.
 - A chronological Today care log with attributable Taken, Skipped, Snoozed, and correction events.
 - A seven-day read-only history and reversible medicine archiving.
 - Opt-in local reminders with private lock-screen wording.
