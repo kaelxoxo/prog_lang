@@ -29,7 +29,7 @@ import { manilaDate } from '../today/types';
 import { MedicationEditorModal } from './MedicationEditorModal';
 import { MedicationInventoryModal } from './MedicationInventoryModal';
 import { MedicationPhotoImport } from './MedicationPhotoImport';
-import { estimateInventoryDaysRemaining, normalizeInventoryUnit, supportsInventory } from './inventory';
+import { estimateInventoryDaysRemaining, inventoryUnitLabel, normalizeInventoryUnit, supportsInventory } from './inventory';
 import type { Medication, MedicationInput, MedicationOcrDraft, MedicationSchedule } from './types';
 
 type Props = { patient: Patient };
@@ -148,6 +148,8 @@ export function MedicationSection({ patient }: Props) {
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [inventoryMedication, setInventoryMedication] = useState<Medication | null>(null);
+  // One idempotency key per distinct save attempt, so retrying after a lost response cannot double-apply a refill.
+  const inventoryAttempt = useRef<{ key: string; clientActionId: string } | null>(null);
 
   useEffect(() => {
     setNotice(null);
@@ -208,11 +210,12 @@ export function MedicationSection({ patient }: Props) {
     },
   });
   const inventoryMutation = useMutation({
-    mutationFn: ({ medication, kind, quantity }: { medication: Medication; kind: 'count' | 'refill'; quantity: number }) =>
+    mutationFn: ({ medication, kind, quantity, clientActionId }: { medication: Medication; kind: 'count' | 'refill'; quantity: number; clientActionId: string }) =>
       apiRequest(`/patients/${patient.id}/medications/${medication.id}/inventory`, {
-        method: 'POST', token, body: { kind, quantity, clientActionId: actionId() },
+        method: 'POST', token, body: { kind, quantity, clientActionId },
       }),
     onSuccess: async () => {
+      inventoryAttempt.current = null;
       setInventoryMedication(null);
       await queryClient.invalidateQueries({ queryKey });
     },
@@ -391,7 +394,7 @@ export function MedicationSection({ patient }: Props) {
                   <View style={styles.inventoryCopy}>
                     <Text style={styles.inventoryValue}>
                       {medication.inventory
-                        ? t('inventory.onHand', { quantity: medication.inventory.onHandQuantity, unit: medication.inventory.unit })
+                        ? t('inventory.onHand', { quantity: medication.inventory.onHandQuantity, unit: inventoryUnitLabel(medication.inventory.unit, medication.inventory.onHandQuantity) })
                         : t('inventory.notRecorded')}
                     </Text>
                     {medication.inventory ? (
@@ -411,7 +414,7 @@ export function MedicationSection({ patient }: Props) {
                     ) : null}
                   </View>
                   {patient.canManageMedications ? (
-                    <PressableScale accessibilityRole="button" onPress={() => { inventoryMutation.reset(); setInventoryMedication(medication); }} style={styles.inventoryButton}>
+                    <PressableScale accessibilityRole="button" onPress={() => { inventoryMutation.reset(); inventoryAttempt.current = null; setInventoryMedication(medication); }} style={styles.inventoryButton}>
                       <Text style={styles.inventoryButtonLabel}>{t(medication.inventory ? 'inventory.manage' : 'inventory.recordCount')}</Text>
                     </PressableScale>
                   ) : null}
@@ -531,9 +534,14 @@ export function MedicationSection({ patient }: Props) {
         isSaving={inventoryMutation.isPending}
         medicationName={inventoryMedication?.displayName ?? ''}
         onClose={() => setInventoryMedication(null)}
-        onSave={(kind, quantity) => { if (inventoryMedication) inventoryMutation.mutate({ medication: inventoryMedication, kind, quantity }); }}
+        onSave={(kind, quantity) => {
+          if (!inventoryMedication) return;
+          const key = `${inventoryMedication.id}:${kind}:${quantity}`;
+          if (inventoryAttempt.current?.key !== key) inventoryAttempt.current = { key, clientActionId: actionId() };
+          inventoryMutation.mutate({ medication: inventoryMedication, kind, quantity, clientActionId: inventoryAttempt.current.clientActionId });
+        }}
         quantityOnHand={inventoryMedication?.inventory?.onHandQuantity ?? null}
-        unit={inventoryMedication?.doseUnit ?? 'tablets'}
+        unit={inventoryUnitLabel(inventoryMedication?.doseUnit ?? 'tablets')}
         visible={inventoryMedication !== null}
       />
     </View>

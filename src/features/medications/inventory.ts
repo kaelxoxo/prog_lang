@@ -9,6 +9,13 @@ export function normalizeInventoryUnit(unit: string) {
   return normalized;
 }
 
+/** Countable unit for display: singular only for exactly one, plural otherwise (including the field label). */
+export function inventoryUnitLabel(unit: string, quantity?: number) {
+  const singular = normalizeInventoryUnit(unit);
+  if (!COUNTABLE_UNITS.has(singular) || quantity === 1) return singular;
+  return `${singular}s`;
+}
+
 export function supportsInventory(medication: Pick<Medication, 'doseUnit'>) {
   return COUNTABLE_UNITS.has(medication.doseUnit.trim().toLowerCase());
 }

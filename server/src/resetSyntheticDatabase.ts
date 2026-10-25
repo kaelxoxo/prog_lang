@@ -69,6 +69,8 @@ async function clearAppData() {
     await admin.query(`
       TRUNCATE TABLE
         alaga_private.patient_invitations,
+        public.medication_inventory_events,
+        public.medication_inventory,
         public.dose_events,
         public.dose_occurrences,
         public.medication_schedules,
