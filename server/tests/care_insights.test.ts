@@ -47,6 +47,7 @@ function medication(displayName: string, endDates: Array<string | null>, archive
     sourceKind: 'manual',
     status: 'confirmed',
     confirmedAt: '2026-09-01T00:00:00.000Z',
+    inventory: null,
     schedules: endDates.map(schedule),
   };
 }

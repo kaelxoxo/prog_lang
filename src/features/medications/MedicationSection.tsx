@@ -25,8 +25,11 @@ import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
 import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { useLocale } from '../settings/LocaleProvider';
+import { manilaDate } from '../today/types';
 import { MedicationEditorModal } from './MedicationEditorModal';
+import { MedicationInventoryModal } from './MedicationInventoryModal';
 import { MedicationPhotoImport } from './MedicationPhotoImport';
+import { estimateInventoryDaysRemaining, normalizeInventoryUnit, supportsInventory } from './inventory';
 import type { Medication, MedicationInput, MedicationOcrDraft, MedicationSchedule } from './types';
 
 type Props = { patient: Patient };
@@ -35,6 +38,14 @@ type SaveResponse = { medicationId: string; versionId: string };
 type Notice = { message: string; medicationId?: string; canUndo?: boolean };
 
 type Translator = ReturnType<typeof useLocale>['t'];
+
+function actionId() {
+  const random = () => Math.floor(Math.random() * 16).toString(16);
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const value = Number.parseInt(random(), 16);
+    return (character === 'x' ? value : (value & 0x3) | 0x8).toString(16);
+  });
+}
 
 function friendlyTime(value: string, locale: string) {
   const [hours, minutes] = value.split(':').map(Number);
@@ -136,6 +147,7 @@ export function MedicationSection({ patient }: Props) {
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [inventoryMedication, setInventoryMedication] = useState<Medication | null>(null);
 
   useEffect(() => {
     setNotice(null);
@@ -193,6 +205,16 @@ export function MedicationSection({ patient }: Props) {
       void queryClient.invalidateQueries({ queryKey: ['history', patient.id] });
       void queryClient.invalidateQueries({ queryKey: ['reminders', patient.id] });
       return queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  const inventoryMutation = useMutation({
+    mutationFn: ({ medication, kind, quantity }: { medication: Medication; kind: 'count' | 'refill'; quantity: number }) =>
+      apiRequest(`/patients/${patient.id}/medications/${medication.id}/inventory`, {
+        method: 'POST', token, body: { kind, quantity, clientActionId: actionId() },
+      }),
+    onSuccess: async () => {
+      setInventoryMedication(null);
+      await queryClient.invalidateQueries({ queryKey });
     },
   });
 
@@ -327,17 +349,19 @@ export function MedicationSection({ patient }: Props) {
         {/* Streamlined Medication Cards (No card-inside-card clutter, no redundant subheaders) */}
         <View style={styles.list}>
           {visibleMedications.map((medication) => (
-            <PressableScale
-              accessibilityLabel={`${t('medicine.confirmed')}, ${medication.displayName}, ${medication.doseQuantity} ${medication.doseUnit}${medication.strengthValue ? `, ${medication.strengthValue} ${medication.strengthUnit}` : ''}, ${t('medicine.schedule')}: ${scheduleSummary(medication.schedules, localeTag, t)}`}
-              accessibilityRole="button"
-              disabled={!patient.canManageMedications}
+            <View
               key={medication.id}
-              onPress={() => patient.canManageMedications && openEdit(medication)}
               style={[
                 styles.medicineCard,
                 highlightedId === medication.id && styles.medicineCardHighlighted,
               ]}
             >
+              <PressableScale
+                accessibilityLabel={`${t('medicine.confirmed')}, ${medication.displayName}, ${medication.doseQuantity} ${medication.doseUnit}${medication.strengthValue ? `, ${medication.strengthValue} ${medication.strengthUnit}` : ''}, ${t('medicine.schedule')}: ${scheduleSummary(medication.schedules, localeTag, t)}`}
+                accessibilityRole="button"
+                disabled={!patient.canManageMedications}
+                onPress={() => patient.canManageMedications && openEdit(medication)}
+              >
               <View style={styles.cardHeader}>
                 <View style={styles.nameBlock}>
                   <Text numberOfLines={1} style={styles.medicineName}>{medication.displayName}</Text>
@@ -360,6 +384,39 @@ export function MedicationSection({ patient }: Props) {
                   {scheduleSummary(medication.schedules, localeTag, t)}
                 </Text>
               </View>
+              </PressableScale>
+
+              {supportsInventory(medication) ? (
+                <View style={[styles.inventoryRow, largeText && styles.inventoryRowLarge]}>
+                  <View style={styles.inventoryCopy}>
+                    <Text style={styles.inventoryValue}>
+                      {medication.inventory
+                        ? t('inventory.onHand', { quantity: medication.inventory.onHandQuantity, unit: medication.inventory.unit })
+                        : t('inventory.notRecorded')}
+                    </Text>
+                    {medication.inventory ? (
+                      <Text style={styles.inventoryMeta}>{t('inventory.lastCounted', { date: new Intl.DateTimeFormat(localeTag, { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(medication.inventory.lastCountedAt)) })}</Text>
+                    ) : <Text style={styles.inventoryMeta}>{t('inventory.startHint')}</Text>}
+                    {medication.inventory && normalizeInventoryUnit(medication.inventory.unit) !== normalizeInventoryUnit(medication.doseUnit) ? (
+                      <Text style={styles.inventoryWarning}>{t('inventory.unitChanged')}</Text>
+                    ) : medication.inventory && medication.inventory.onHandQuantity < 0 ? (
+                      <Text style={styles.inventoryWarning}>{t('inventory.recountWarning')}</Text>
+                    ) : medication.inventory ? (
+                      <Text style={styles.inventoryMeta}>
+                        {(() => {
+                          const days = estimateInventoryDaysRemaining(medication, manilaDate(new Date()));
+                          return days === null ? t('inventory.noEstimate') : t('inventory.daysRemaining', { count: days });
+                        })()}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {patient.canManageMedications ? (
+                    <PressableScale accessibilityRole="button" onPress={() => { inventoryMutation.reset(); setInventoryMedication(medication); }} style={styles.inventoryButton}>
+                      <Text style={styles.inventoryButtonLabel}>{t(medication.inventory ? 'inventory.manage' : 'inventory.recordCount')}</Text>
+                    </PressableScale>
+                  ) : null}
+                </View>
+              ) : null}
 
               {(!medication.strengthValue || !medication.medicineForm || !medication.route) ? (
                 <View style={styles.missingDetailBox}>
@@ -396,7 +453,7 @@ export function MedicationSection({ patient }: Props) {
                   </PressableScale>
                 </View>
               ) : null}
-            </PressableScale>
+            </View>
           ))}
           {!visibleMedications.length ? <Text style={styles.noResults}>{t('medicine.noResults')}</Text> : null}
         </View>
@@ -468,6 +525,16 @@ export function MedicationSection({ patient }: Props) {
         onSave={(input) => saveMutation.mutateAsync({ input, medication: editingMedication })}
         patient={patient}
         visible={editorVisible}
+      />
+      <MedicationInventoryModal
+        error={inventoryMutation.error ? errorMessage(inventoryMutation.error) : null}
+        isSaving={inventoryMutation.isPending}
+        medicationName={inventoryMedication?.displayName ?? ''}
+        onClose={() => setInventoryMedication(null)}
+        onSave={(kind, quantity) => { if (inventoryMedication) inventoryMutation.mutate({ medication: inventoryMedication, kind, quantity }); }}
+        quantityOnHand={inventoryMedication?.inventory?.onHandQuantity ?? null}
+        unit={inventoryMedication?.doseUnit ?? 'tablets'}
+        visible={inventoryMedication !== null}
       />
     </View>
   );
@@ -584,6 +651,14 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignSelf: 'flex-start',
   },
   schedulePillText: { color: colors.ink, fontSize: 13, fontWeight: '700' },
+  inventoryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
+  inventoryRowLarge: { flexDirection: 'column', alignItems: 'stretch' },
+  inventoryCopy: { flex: 1, gap: 2 },
+  inventoryValue: { color: colors.ink, fontSize: 14, fontWeight: '800' },
+  inventoryMeta: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  inventoryWarning: { color: colors.warning, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  inventoryButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.full, backgroundColor: colors.canvas },
+  inventoryButtonLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
 
   missingDetailBox: {
     flexDirection: 'row',

@@ -59,6 +59,14 @@ type MedicationRow = {
   confirmed_at: Date;
 };
 
+type MedicationInventoryRow = {
+  medication_id: string;
+  on_hand_quantity: string;
+  unit: string;
+  last_counted_at: Date;
+  updated_at: Date;
+};
+
 type ScheduleRow = {
   id: string;
   medication_version_id: string;
@@ -616,6 +624,16 @@ async function medicationsFor(client: PoolClient, patientId: string, archived = 
     )
     : { rows: [] as ScheduleRow[] };
 
+  const medicationIds = medicationResult.rows.map((medication) => medication.id);
+  const inventoryResult = medicationIds.length
+    ? await client.query<MedicationInventoryRow>(
+      `SELECT medication_id, on_hand_quantity::text, unit, last_counted_at, updated_at
+       FROM public.medication_inventory
+       WHERE medication_id = ANY($1::uuid[]) AND patient_id = $2`,
+      [medicationIds, patientId],
+    )
+    : { rows: [] as MedicationInventoryRow[] };
+
   return medicationResult.rows.map((medication) => ({
     id: medication.id,
     archivedAt: medication.archived_at,
@@ -637,6 +655,15 @@ async function medicationsFor(client: PoolClient, patientId: string, archived = 
     sourceKind: medication.source_kind,
     status: 'confirmed' as const,
     confirmedAt: medication.confirmed_at,
+    inventory: (() => {
+      const inventory = inventoryResult.rows.find((row) => row.medication_id === medication.id);
+      return inventory ? {
+        onHandQuantity: Number(inventory.on_hand_quantity),
+        unit: inventory.unit,
+        lastCountedAt: inventory.last_counted_at,
+        updatedAt: inventory.updated_at,
+      } : null;
+    })(),
     schedules: scheduleResult.rows
       .filter((schedule) => schedule.medication_version_id === medication.version_id)
       .map(scheduleJson),
@@ -1041,6 +1068,55 @@ export function createAppServer(
       }
 
       const medicationsPath = url.pathname.match(/^\/patients\/([0-9a-f-]{36})\/medications$/i);
+
+      const inventoryPath = url.pathname.match(
+        /^\/patients\/([0-9a-f-]{36})\/medications\/([0-9a-f-]{36})\/inventory$/i,
+      );
+
+      if (request.method === 'POST' && inventoryPath) {
+        const [, patientId, medicationId] = inventoryPath;
+        const body = await readJson(request);
+        const input = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+        const kind = input.kind;
+        if (kind !== 'count' && kind !== 'refill') {
+          throw new HttpError(400, 'Inventory action must be a count or refill.');
+        }
+        const quantityInput = input.quantity;
+        const quantity = typeof quantityInput === 'number'
+          ? quantityInput
+          : typeof quantityInput === 'string' && quantityInput.trim() !== ''
+            ? Number(quantityInput)
+            : Number.NaN;
+        if (!Number.isFinite(quantity) || quantity < 0 || quantity > 999_999 || (kind === 'refill' && quantity === 0)) {
+          throw new HttpError(400, 'Enter a valid medicine quantity.');
+        }
+        const clientActionId = input.clientActionId;
+        if (typeof clientActionId !== 'string' || !UUID_PATTERN.test(clientActionId)) {
+          throw new HttpError(400, 'Client action ID must be a UUID.');
+        }
+        const inventory = await inAuthenticatedTransaction(pool, request, async (client) => {
+          const result = await client.query<{
+            event_id: string;
+            event_kind: 'count' | 'refill';
+            on_hand_quantity: string;
+            unit: string;
+            last_counted_at: Date;
+            updated_at: Date;
+          }>(
+            'SELECT * FROM app_api.record_medication_inventory_change($1, $2, $3, $4, $5)',
+            [patientId, medicationId, kind, quantity, clientActionId],
+          );
+          const row = result.rows[0];
+          return {
+            onHandQuantity: Number(row.on_hand_quantity),
+            unit: row.unit,
+            lastCountedAt: row.last_counted_at,
+            updatedAt: row.updated_at,
+          };
+        });
+        sendJson(response, 200, { inventory });
+        return;
+      }
 
       const ocrPath = url.pathname.match(/^\/patients\/([0-9a-f-]{36})\/imports\/ocr$/i);
 
