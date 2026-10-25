@@ -36,7 +36,15 @@ export type Medication = {
   sourceKind: 'manual' | 'label_photo' | 'timetable_photo';
   status: 'confirmed';
   confirmedAt: string;
+  inventory: MedicationInventory | null;
   schedules: MedicationSchedule[];
+};
+
+export type MedicationInventory = {
+  onHandQuantity: number;
+  unit: string;
+  lastCountedAt: string;
+  updatedAt: string;
 };
 
 export type MedicationInput = {
