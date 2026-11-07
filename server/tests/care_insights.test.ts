@@ -194,34 +194,24 @@ describe('heroState', () => {
     const hero = heroState(demoDay, at('14:30'), 4);
     assert.equal(hero.kind, 'notRecorded');
     assert.equal(hero.expression, 'attention');
-    const copy = copyFor(hero);
-    assert.equal(copy.title, '8 not recorded');
-    assert.equal(copy.emphasis, '8');
-    assert.equal(copy.detail, "Lola Rosa's 8:00 AM and 12:00 PM doses need a record");
-    assert.equal(copy.progress, '1 of 14 recorded · 4-day streak');
-    assert.equal(copy.ask, "Ask Bantay about Lola Rosa's medicines…");
+    assert.deepEqual(copyFor(hero), { line: 'Lola Rosa has 8 doses to record.', emphasis: '8' });
   });
 
-  it('names one Time Slot, or the span when three or more need a record, with Self Profile phrasing', () => {
-    const oneSlot = heroState([dose('a', '08:00'), dose('b', '08:00'), dose('c', '20:00')], at('09:00'), 0);
-    assert.equal(copyFor(oneSlot, true).detail, 'Your 8:00 AM doses need a record');
-    assert.equal(copyFor(oneSlot, true).ask, 'Ask Bantay about your medicines…');
-    const threeSlots = heroState([dose('a', '08:00'), dose('b', '08:30'), dose('c', '12:00')], at('13:00'), 0);
-    assert.equal(copyFor(threeSlots).detail, "Lola Rosa's doses from 8:00 AM to 12:00 PM need a record");
+  it('speaks to the caregiver directly for a Self Profile, singular for one dose', () => {
+    const oneDose = heroState([dose('a', '08:00'), dose('c', '20:00')], at('09:00'), 0);
+    assert.equal(copyFor(oneDose, true).line, 'You have 1 dose to record.');
+    assert.equal(copyFor(oneDose).line, 'Lola Rosa has 1 dose to record.');
   });
 
-  it('shows the next Time Slot once nothing is Not Recorded', () => {
+  it('says when the next Time Slot is once nothing is Not Recorded', () => {
     const recordedMorning = demoDay.map((item) =>
       new Date(item.dueAt).getTime() < at('14:30') ? { ...item, status: 'taken' as const } : item,
     );
     const hero = heroState(recordedMorning, at('14:30'), 1);
     assert.equal(hero.kind, 'next');
     assert.equal(hero.expression, 'idle');
-    const copy = copyFor(hero);
-    assert.equal(copy.title, '6:00 PM next');
-    assert.equal(copy.emphasis, '6:00 PM');
-    assert.equal(copy.detail, "Lola Rosa's Biogesic and 2 others");
-    assert.equal(copy.progress, '9 of 14 recorded');
+    assert.deepEqual(copyFor(hero), { line: "Lola Rosa's next dose is at 6:00 PM.", emphasis: '6:00 PM' });
+    assert.equal(copyFor(hero, true).line, 'Your next dose is at 6:00 PM.');
   });
 
   it('celebrates a fully recorded day and mentions the Care Streak only from two days', () => {
@@ -229,21 +219,16 @@ describe('heroState', () => {
     const hero = heroState(allTaken, at('21:00'), 3);
     assert.equal(hero.kind, 'allRecorded');
     assert.equal(hero.expression, 'celebration');
-    const copy = copyFor(hero);
-    assert.equal(copy.title, 'All 14 recorded');
-    assert.equal(copy.emphasis, 'All 14');
-    assert.equal(copy.detail, "Lola Rosa is all set for today. That's 3 days in a row.");
-    assert.equal(copy.progress, null);
-    assert.equal(copyFor(heroState(allTaken, at('21:00'), 1)).detail, 'Lola Rosa is all set for today.');
+    assert.equal(copyFor(hero).line, "Lola Rosa is all set for today! That's 3 days in a row.");
+    assert.equal(copyFor(heroState(allTaken, at('21:00'), 1)).line, 'Lola Rosa is all set for today!');
   });
 
   it('treats a day with nothing scheduled as no doses, not all recorded', () => {
     const hero = heroState([], at('09:00'), 5);
     assert.equal(hero.kind, 'noDoses');
     assert.equal(hero.expression, 'idle');
-    assert.equal(copyFor(hero).title, 'No doses today');
-    assert.equal(copyFor(hero).detail, "Add a medicine to start Lola Rosa's schedule");
-    assert.equal(copyFor(hero, true).detail, 'Add a medicine to start your schedule');
+    assert.equal(copyFor(hero).line, 'No doses for Lola Rosa today.');
+    assert.equal(copyFor(hero, true).line, 'No doses for you today.');
   });
 });
 

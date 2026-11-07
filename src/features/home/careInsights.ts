@@ -81,14 +81,12 @@ export function findRefillAlerts(medications: Medication[], today: string): Refi
 }
 
 export type HomeHero = (
-  | { kind: 'notRecorded'; count: number; slotTimes: string[] }
-  | { kind: 'next'; at: string; medicines: string[] }
+  | { kind: 'notRecorded'; count: number }
+  | { kind: 'next'; at: string }
   | { kind: 'allRecorded' }
   | { kind: 'noDoses' }
 ) & {
   expression: MascotExpression;
-  recorded: number;
-  total: number;
   careStreak: number;
 };
 
@@ -98,8 +96,7 @@ export type HomeHero = (
  */
 export function heroState(timeline: DoseOccurrence[], now: number, careStreak: number): HomeHero {
   const total = timeline.length;
-  const recorded = timeline.filter(isRecorded).length;
-  const common = { recorded, total, careStreak };
+  const common = { careStreak };
   if (total === 0) return { kind: 'noDoses', expression: 'idle', ...common };
 
   const unrecorded = [...timeline]
@@ -107,25 +104,11 @@ export function heroState(timeline: DoseOccurrence[], now: number, careStreak: n
     .sort((left, right) => new Date(actionableAt(left)).getTime() - new Date(actionableAt(right)).getTime());
   const notRecorded = unrecorded.filter((dose) => isNotRecorded(dose, now));
   if (notRecorded.length > 0) {
-    return {
-      kind: 'notRecorded',
-      count: notRecorded.length,
-      slotTimes: groupByTimeSlot(notRecorded).map((slot) => slot.at),
-      expression: 'attention',
-      ...common,
-    };
+    return { kind: 'notRecorded', count: notRecorded.length, expression: 'attention', ...common };
   }
 
   const [nextSlot] = groupByTimeSlot(unrecorded);
-  if (nextSlot) {
-    return {
-      kind: 'next',
-      at: nextSlot.at,
-      medicines: [...new Set(nextSlot.doses.map((dose) => dose.medicationName))],
-      expression: 'idle',
-      ...common,
-    };
-  }
+  if (nextSlot) return { kind: 'next', at: nextSlot.at, expression: 'idle', ...common };
 
   return { kind: 'allRecorded', expression: 'celebration', ...common };
 }
@@ -133,17 +116,10 @@ export function heroState(timeline: DoseOccurrence[], now: number, careStreak: n
 /** A Care Streak is worth mentioning from two days on. */
 export const MIN_STREAK_SHOWN = 2;
 
+/** What Bantay says after his greeting: one short line. `emphasis` is the part drawn in narra, when there is one. */
 export type HeroCopy = {
-  /** The big line, e.g. "8 not recorded". */
-  title: string;
-  /** The part of `title` drawn in narra, e.g. "8". */
-  emphasis: string;
-  /** Names the Patient, e.g. "Lola Rosa's 8:00 AM and 12:00 PM doses need a record". */
-  detail: string;
-  /** "6 of 14 recorded · 3-day streak" while doses remain; null otherwise. */
-  progress: string | null;
-  /** Placeholder of the chat box. */
-  ask: string;
+  line: string;
+  emphasis: string | null;
 };
 
 type CopyContext = {
@@ -154,59 +130,26 @@ type CopyContext = {
   isSelf: boolean;
 };
 
-/** The hero's words for a state. Self Profile phrasing uses "your" instead of the name. */
+/** Bantay's one line for a state. Self Profile phrasing speaks to "you". */
 export function heroCopy(hero: HomeHero, { t, formatTime, patient, isSelf }: CopyContext): HeroCopy {
-  const whose = isSelf ? t('shell.your') : t('home.heroWhose', { patient });
-  const ask = isSelf ? t('home.heroAskSelf') : t('home.heroAsk', { patient });
-  const streak = hero.careStreak >= MIN_STREAK_SHOWN ? hero.careStreak : null;
-  const progress = [
-    t('home.recordedCount', { handled: hero.recorded, total: hero.total }),
-    streak ? t('home.streak', { count: streak }) : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
   switch (hero.kind) {
     case 'notRecorded': {
-      const times = hero.slotTimes.map(formatTime);
-      const detail =
-        times.length === 1
-          ? t(hero.count === 1 ? 'home.heroSlotOne' : 'home.heroSlotMany', { whose, time: times[0] })
-          : times.length === 2
-            ? t('home.heroSlotsTwo', { whose, first: times[0], second: times[1] })
-            : t('home.heroSlotsRange', { whose, first: times[0], last: times[times.length - 1] });
-      const emphasis = String(hero.count);
-      return { title: t('home.heroNotRecorded', { count: emphasis }), emphasis, detail, progress, ask };
+      const count = String(hero.count);
+      const key = isSelf
+        ? hero.count === 1 ? 'home.heroToRecordSelfOne' : 'home.heroToRecordSelfMany'
+        : hero.count === 1 ? 'home.heroToRecordOne' : 'home.heroToRecordMany';
+      return { line: t(key, { patient, count }), emphasis: count };
     }
     case 'next': {
-      const [medicine] = hero.medicines;
-      const others = hero.medicines.length - 1;
-      const detail = t(
-        others === 0 ? 'home.heroNextOne' : others === 1 ? 'home.heroNextOneOther' : 'home.heroNextOthers',
-        { whose, medicine, count: others },
-      );
-      const emphasis = formatTime(hero.at);
-      return { title: t('home.heroNext', { time: emphasis }), emphasis, detail, progress, ask };
+      const time = formatTime(hero.at);
+      return { line: t(isSelf ? 'home.heroNextSelf' : 'home.heroNext', { patient, time }), emphasis: time };
     }
     case 'allRecorded': {
-      const emphasis = t('home.heroAllCount', { count: hero.total });
-      const detail = [
-        isSelf ? t('home.heroAllSetSelf') : t('home.heroAllSet', { patient }),
-        streak ? t('home.heroStreak', { count: streak }) : null,
-      ]
-        .filter(Boolean)
-        .join(' ');
-      return { title: t('home.heroAllRecorded', { all: emphasis }), emphasis, detail, progress: null, ask };
+      const done = isSelf ? t('home.heroAllSetSelf') : t('home.heroAllSet', { patient });
+      const streak = hero.careStreak >= MIN_STREAK_SHOWN ? t('home.heroStreak', { count: hero.careStreak }) : null;
+      return { line: streak ? `${done} ${streak}` : done, emphasis: null };
     }
-    case 'noDoses': {
-      const emphasis = t('home.heroNoDosesEmphasis');
-      return {
-        title: t('home.heroNoDoses', { none: emphasis }),
-        emphasis,
-        detail: isSelf ? t('home.heroAddFirstSelf') : t('home.heroAddFirst', { patient }),
-        progress: null,
-        ask,
-      };
-    }
+    case 'noDoses':
+      return { line: isSelf ? t('home.heroNoDosesSelf') : t('home.heroNoDoses', { patient }), emphasis: null };
   }
 }
