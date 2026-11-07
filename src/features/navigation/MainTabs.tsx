@@ -18,6 +18,7 @@ import type { Medication, MedicationInput, MedicationOcrDraft } from '../medicat
 import { MedicinesScreen } from '../medications/MedicinesScreen';
 import { usePatient } from '../patients/PatientProvider';
 import { subscribeToReminderRoutes, type ReminderRoute } from '../reminders/notifications';
+import { ReminderSync } from '../reminders/useReminders';
 import { useLocale } from '../settings/LocaleProvider';
 import { SettingsScreen } from '../settings/SettingsScreen';
 import { TodayScreen } from '../today/TodayScreen';
@@ -89,7 +90,7 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
   const previousPatientId = useRef<string | undefined>(undefined);
   const settingsOrigin = useRef<Tab>('home');
   const insets = useSafeAreaInsets();
-  const { activePatient, selectPatient } = usePatient();
+  const { activePatient, patients, selectPatient } = usePatient();
   const now = useCurrentTime();
   const date = manilaDate(now);
 
@@ -201,6 +202,8 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
 
   return (
     <View style={styles.shell}>
+      {/* Keeps each person's enabled reminders scheduled whichever screen is open; the switches live in Settings. */}
+      {patients.map((patient) => <ReminderSync key={patient.id} patient={patient} />)}
       <View style={styles.content}>
         {tab === 'home'
           ? (

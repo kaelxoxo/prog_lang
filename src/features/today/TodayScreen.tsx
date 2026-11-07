@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated from 'react-native-reanimated';
 
 import { PressableScale } from '../../components/PressableScale';
 import { radii, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useCurrentTime } from '../../lib/useCurrentTime';
-import { reflow } from '../../lib/motion';
 import { SyncNotice } from '../../components/SyncNotice';
 import { useAuth } from '../auth/AuthProvider';
 import { HistoryPanel } from '../history/HistoryPanel';
@@ -15,7 +13,6 @@ import { CareHeader } from '../patients/CareHeader';
 import { CreatePatientModal } from '../patients/CreatePatientModal';
 import { PatientChips } from '../patients/PatientChips';
 import { usePatient } from '../patients/PatientProvider';
-import { ReminderControl } from '../reminders/ReminderControl';
 import { useLocale } from '../settings/LocaleProvider';
 import { DoseTimeline } from './DoseTimeline';
 
@@ -133,10 +130,6 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
                 patient={activePatient}
               />
             </View>
-            {/* Glides with the Disclosures above it instead of jumping when one opens or closes. */}
-            <Animated.View layout={reflow}>
-              <ReminderControl patient={activePatient} />
-            </Animated.View>
           </>
         ) : <HistoryPanel patient={activePatient} />}
       </View>

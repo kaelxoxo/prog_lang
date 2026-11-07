@@ -7,6 +7,7 @@ import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth, type CareSetup } from '../auth/AuthProvider';
 import { CareCircleSection } from '../invitations/CareCircleSection';
 import { usePatient } from '../patients/PatientProvider';
+import { ReminderSettings } from '../reminders/ReminderSettings';
 import { useLocale } from './LocaleProvider';
 
 type Props = {
@@ -77,6 +78,8 @@ export function SettingsScreen({ accountName, onBack, onOpenWelcomeStory, onSign
             {sharingVisible ? <CareCircleSection patient={selfProfile} /> : null}
           </View>
         ) : null}
+
+        <ReminderSettings />
 
         {onOpenWelcomeStory ? (
           <View style={styles.section}>

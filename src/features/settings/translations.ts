@@ -225,7 +225,7 @@ const english = {
   'reminders.label': 'Private reminders for {patient}',
   'reminders.onBody': 'Active on this device',
   'reminders.offBody': 'Notifications off',
-  'reminders.refreshing': 'Refreshing reminders…',
+  'reminders.settingsBody': 'Private notifications on this device for each person you care for.',
   'reminders.blocked': 'Notifications are blocked in device settings.',
   'reminders.openSettings': 'Open device settings',
   'medicine.noSchedule': 'No schedule',
