@@ -23,7 +23,7 @@ type Props = Omit<PressableProps, 'style' | 'children'> & {
 
 const easeOut = Easing.bezier(...easing.out);
 
-/** Press feedback: scales to 0.97 over 160 ms ease-out, no bounce. Reduced motion skips the scale. */
+/** Press feedback: scales to 0.97 over 140 ms ease-out, no bounce. Reduced motion skips the scale. */
 export function PressableScale({
   children,
   containerStyle,

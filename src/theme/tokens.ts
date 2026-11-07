@@ -164,7 +164,7 @@ export const iconPress = pressScales.iconPress;
 
 export const durations = {
   instant: 100,
-  feedback: 160,   // Press feedback
+  feedback: 140,   // Press feedback (mobile: 100–150 ms)
   stateChange: 200, // Reveals, checkmark draw
   drawer: 280,
 } as const;

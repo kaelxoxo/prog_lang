@@ -10,10 +10,9 @@ import {
 import { useReducedMotion } from '../lib/useReducedMotion';
 import { durations, easing, spacing, typography, type AppColors } from '../theme/tokens';
 import { useThemedStyles } from '../theme/useTheme';
-import { AnimatedAppIcon, type IconAnimationKind } from './AnimatedAppIcon';
+import { AppIcon } from './AppIcon';
 
 type PillarItem = {
-  animation: IconAnimationKind;
   description: string;
   icon: 'heart' | 'users' | 'shield-check';
   iconColor: (colors: AppColors) => string;
@@ -22,41 +21,13 @@ type PillarItem = {
 };
 
 type Props = {
-  items?: PillarItem[];
+  items: PillarItem[];
 };
 
-export function AnimatedFeaturePills({ items }: Props) {
+/** Sign-in feature rows: a one-time staggered entrance (rare screen), then still. */
+export function AnimatedFeaturePills({ items: pillarData }: Props) {
   const { colors, styles } = useThemedStyles(createStyles);
   const reduceMotion = useReducedMotion();
-
-  const defaultItems: PillarItem[] = [
-    {
-      animation: 'pulse',
-      description: 'Walang kalituhan sa iskedyul',
-      icon: 'heart',
-      iconColor: (c) => c.primary,
-      id: 'meds',
-      title: 'Maingat na Gamot',
-    },
-    {
-      animation: 'float',
-      description: 'Sama-samang pag-aalaga',
-      icon: 'users',
-      iconColor: (c) => c.inkLine,
-      id: 'family',
-      title: 'Care Circle',
-    },
-    {
-      animation: 'chime',
-      description: 'Sa device mo lang nakatago',
-      icon: 'shield-check',
-      iconColor: (c) => c.inkLine,
-      id: 'privacy',
-      title: '100% Pribado',
-    },
-  ];
-
-  const pillarData = items || defaultItems;
 
   // Staggered entrance; with reduced motion, fade only.
   const fadeAnims = useRef(pillarData.map(() => new Animated.Value(0))).current;
@@ -100,13 +71,7 @@ export function AnimatedFeaturePills({ items }: Props) {
 
         return (
           <Animated.View key={item.id} style={[styles.row, index > 0 && styles.ruled, animatedStyle]}>
-            <AnimatedAppIcon
-              animation={item.animation}
-              color={item.iconColor(colors)}
-              delay={index * 300}
-              name={item.icon}
-              size={18}
-            />
+            <AppIcon color={item.iconColor(colors)} name={item.icon} size={18} />
             <View style={styles.textColumn}>
               <Text style={styles.rowTitle}>{item.title}</Text>
               <Text numberOfLines={1} style={styles.rowDescription}>

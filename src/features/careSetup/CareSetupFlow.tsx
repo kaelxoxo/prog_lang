@@ -9,7 +9,7 @@ import { AppIcon } from '../../components/AppIcon';
 import { PressableScale } from '../../components/PressableScale';
 import { ApiError, apiRequest, errorMessage } from '../../lib/api';
 import { confirmAction } from '../../lib/confirm';
-import { cardPress, durations, radii, spacing, typography, type AppColors } from '../../theme/tokens';
+import { cardPress, durations, easing, radii, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { SetupBantay, type SetupBantayPose } from '../assistant/SetupBantay';
 import { useAuth, type CareSetup } from '../auth/AuthProvider';
@@ -134,7 +134,7 @@ export function CareSetupFlow({ onFinish }: Props) {
     stage.setValue(0);
     setSettling(true);
     Animated.timing(stage, { toValue: 1, duration: durations.stateChange,
-      easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      easing: Easing.bezier(...easing.out), useNativeDriver: true }).start();
     const settle = setTimeout(() => setSettling(false), durations.stateChange);
     return () => clearTimeout(settle);
   }, [step, stage]);

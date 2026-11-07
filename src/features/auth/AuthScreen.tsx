@@ -98,7 +98,6 @@ export function AuthScreen({ onOpenWelcomeStory }: Props = {}) {
           <AnimatedFeaturePills
             items={[
               {
-                animation: 'pulse',
                 description: t('auth.pillar1Desc'),
                 icon: 'heart',
                 iconColor: (c) => c.primary,
@@ -106,7 +105,6 @@ export function AuthScreen({ onOpenWelcomeStory }: Props = {}) {
                 title: t('auth.pillar1Title'),
               },
               {
-                animation: 'float',
                 description: t('auth.pillar2Desc'),
                 icon: 'users',
                 iconColor: (c) => c.inkLine,
@@ -114,7 +112,6 @@ export function AuthScreen({ onOpenWelcomeStory }: Props = {}) {
                 title: t('auth.pillar2Title'),
               },
               {
-                animation: 'chime',
                 description: t('auth.pillar3Desc'),
                 icon: 'shield-check',
                 iconColor: (c) => c.inkLine,

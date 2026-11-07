@@ -44,7 +44,7 @@ typography:
     lineHeight: 1.4
 motion:
   durations:
-    feedback: "160ms"
+    feedback: "140ms"
     state-change: "200ms"
     drawer: "280ms"
   easing:
@@ -131,7 +131,7 @@ Bantay is the way into the chat, so wherever he appears large he comes with an e
 
 Quiet and crisp, following Emil Kowalski's rules:
 
-- Press feedback: scale 0.97 over 160 ms, strong ease-out (`PressableScale`).
+- Press feedback: scale 0.97 over 140 ms, strong ease-out (`PressableScale`).
 - Expanding a section: height and opacity over 200 ms ease-out (`Disclosure`).
 - Recording a dose: the ink checkmark draws itself over 200 ms (`DrawnCheck`).
 - Celebrate only when the whole day is recorded.
