@@ -2,7 +2,7 @@
 
 ## Status
 
-Alaga is an Expo 57 and React Native 0.86 TypeScript side project. The feature paths through Milestone 6 are implemented: account sessions, patient creation, confirmed medication schedules, the attributable Today care log, private local reminders, a family-care Home, and caregiver invitations run through a local Node HTTP API, PostgreSQL 17, and device notification scheduling. Only synthetic data is in scope. This is not a release-readiness claim: the physical-device, accessibility and layout checks in `manual-test-checklist.md` still require recorded execution.
+Alaga is an Expo 57 and React Native 0.86 TypeScript project. The feature paths through Milestone 6 are implemented: account sessions, patient creation, confirmed medication schedules, the attributable Today care log, private local reminders, a family-care Home, and caregiver invitations run through a local Node HTTP API, PostgreSQL 17, and device notification scheduling. Only synthetic data is in scope. This is not a release-readiness claim: the physical-device, accessibility and layout checks in `manual-test-checklist.md` still require recorded execution.
 
 ## Product invariant
 
@@ -80,7 +80,7 @@ On 2026-08-25, the product owner identified the missing dashboard and insufficie
 
 Home now answers, without a corporate analytics layout: who is being cared for, what is next, what needs attention, how today is progressing and what safe action is available. Milestone 6 adds the care-circle invitation path and makes overdue items without a final care record visible to every accepted caregiver. English/Filipino selection and settings remain unnumbered roadmap work.
 
-### Side-project planning handoff — 2026-08-26
+### Scope planning handoff — 2026-08-26
 
 The product owner cancelled the proposed private pilot and confirmed that no real hosting or real patient data will be used. The approved order is:
 
@@ -193,4 +193,4 @@ Each large dependent slice starts only after the previous slice’s validation i
 - AI vision provider and image-retention window.
 - Remote caregiver escalation and push delivery architecture.
 
-These decisions remain deferred while Alaga is a synthetic-data side project. They need explicit treatment before any public, pilot or clinical deployment. The prototype is not a diagnostic or treatment system.
+These decisions remain deferred while Alaga uses synthetic data only. They need explicit treatment before any public, pilot or clinical deployment. The prototype is not a diagnostic or treatment system.

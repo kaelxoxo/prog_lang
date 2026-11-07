@@ -14,6 +14,7 @@ import {
 import { AppIcon } from '../../components/AppIcon';
 import {
   cardPress,
+  cardTitle,
   gentleSpring,
   instant,
   radii,
@@ -275,7 +276,7 @@ export function CareStreakBadge({
           >
             <AppIcon color={colors.flame} name="flame" size={16} />
           </View>
-          <Text style={styles.eyebrowText}>{t('home.streakEyebrow')}</Text>
+          <Text accessibilityRole="header" numberOfLines={2} style={styles.cardTitle}>{t('home.streakTitle')}</Text>
         </View>
 
         {milestoneAchieved ? (
@@ -390,6 +391,7 @@ const createStyles = (colors: AppColors) =>
     eyebrowGroup: {
       flexDirection: 'row',
       alignItems: 'center',
+      flexShrink: 1,
       gap: 6,
     },
     flameIconWrap: {
@@ -405,12 +407,10 @@ const createStyles = (colors: AppColors) =>
       borderWidth: 1,
       borderColor: colors.flameLight,
     },
-    eyebrowText: {
-      color: colors.muted,
-      fontSize: 11,
-      fontWeight: '800',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase',
+    cardTitle: {
+      ...cardTitle,
+      color: colors.ink,
+      flexShrink: 1,
     },
     celebrationChip: {
       flexDirection: 'row',

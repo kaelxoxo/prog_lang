@@ -2,7 +2,7 @@
 
 ## Services
 
-Alaga is a local side project. Use synthetic information only; the current setup is not intended for real patient or medication data.
+Alaga runs locally. Use synthetic information only; the current setup is not intended for real patient or medication data.
 
 Milestones 2 through 6 use three local layers:
 
@@ -65,7 +65,7 @@ General internet access is not enough for the local prototype: the phone must be
 
 Automatic discovery applies to local LAN development. If the phone is on a different network from the computer, or the Wi-Fi isolates clients, deploy the API behind HTTPS or use an authenticated development tunnel; a private computer address cannot be reached across unrelated networks.
 
-For the approved side-project scope, unrelated-network access is not supported. Use Android Emulator, a shared private LAN, or USB debugging instead of deploying the API.
+In the current scope, unrelated-network access is not supported. Use Android Emulator, a shared private LAN, or USB debugging instead of deploying the API.
 
 ### Android USB fallback
 

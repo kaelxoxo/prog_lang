@@ -3,7 +3,7 @@ import { AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, Text, View 
 import Svg, { Circle, G } from 'react-native-svg';
 
 import { AppIcon } from '../../components/AppIcon';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { cardTitle, radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
 
@@ -112,7 +112,7 @@ export function AdherenceProgressRing({
       <Animated.View style={[styles.card, { transform: [{ scale: cardScale }] }]}>
         {/* Card Header */}
         <View style={styles.cardHeader}>
-          <Text style={styles.cardEyebrow}>ADHERENCE</Text>
+          <Text accessibilityRole="header" numberOfLines={2} style={styles.cardTitle}>{t('home.progressTitle')}</Text>
           <AppIcon color={colors.muted} name="chevron-right" size={14} />
         </View>
 
@@ -192,12 +192,10 @@ const createStyles = (colors: AppColors) =>
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    cardEyebrow: {
-      color: colors.muted,
-      fontSize: 11,
-      fontWeight: '800',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase',
+    cardTitle: {
+      ...cardTitle,
+      color: colors.ink,
+      flexShrink: 1,
     },
     ringContainer: {
       position: 'relative',

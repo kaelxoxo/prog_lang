@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppIcon } from '../../components/AppIcon';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { cardTitle, radii, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
 import { actionableAt, type DoseOccurrence } from '../today/types';
@@ -75,7 +75,7 @@ export function NextDueCard({
       >
         <Animated.View style={[styles.card, styles.celebrationCard, { transform: [{ scale: cardScale }] }]}>
           <View style={styles.cardHeader}>
-            <Text style={styles.celebrationEyebrow}>TODAY'S CARE</Text>
+            <Text accessibilityRole="header" numberOfLines={2} style={styles.cardTitle}>{t('home.nextDoseTitle')}</Text>
             <AppIcon color={colors.successDark} name="sparkles" size={14} />
           </View>
 
@@ -83,7 +83,7 @@ export function NextDueCard({
             <View style={styles.celebrationIconWrap}>
               <AppIcon color={colors.successDark} name="circle-check-big" size={32} />
             </View>
-            <Text style={styles.celebrationTitle}>{t('home.caughtUp')}</Text>
+            <Text style={styles.celebrationStatus}>{t('home.caughtUp')}</Text>
             <Text numberOfLines={2} style={styles.celebrationSubtext}>
               All scheduled doses recorded
             </Text>
@@ -109,7 +109,7 @@ export function NextDueCard({
       >
         <Animated.View style={[styles.card, { transform: [{ scale: cardScale }] }]}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardEyebrow}>SCHEDULE</Text>
+            <Text accessibilityRole="header" numberOfLines={2} style={styles.cardTitle}>{t('home.nextDoseTitle')}</Text>
             <AppIcon color={colors.muted} name="chevron-right" size={14} />
           </View>
 
@@ -117,7 +117,7 @@ export function NextDueCard({
             <View style={styles.emptyIconWrap}>
               <AppIcon color={colors.primaryDark} name="pill" size={24} />
             </View>
-            <Text style={styles.emptyTitle}>{t('home.noMoreDoses')}</Text>
+            <Text style={styles.emptyStatus}>{t('home.noMoreDoses')}</Text>
             <Text style={styles.emptySubtext}>{t('home.reviewToday')}</Text>
           </View>
 
@@ -132,29 +132,20 @@ export function NextDueCard({
   return (
     <View style={styles.cardWrapper}>
       <View style={[styles.card, isAttention ? styles.attentionCardBorder : null]}>
-        {/* Card Header with Timing Pill */}
-        <View style={styles.cardHeader}>
-          <View style={styles.eyebrowRow}>
-            <AppIcon
-              color={isAttention ? colors.warning : colors.primaryDark}
-              name={isAttention ? 'circle-alert' : 'clock-3'}
-              size={13}
-            />
-            <Text
-              style={[
-                styles.cardEyebrow,
-                isAttention ? { color: colors.warning } : { color: colors.primaryDark },
-              ]}
-            >
-              {isAttention ? 'OVERDUE' : 'NEXT DUE'}
-            </Text>
-          </View>
+        {/* The card's single heading, then the timing pill */}
+        <Text accessibilityRole="header" numberOfLines={2} style={styles.cardTitle}>
+          {t(isAttention ? 'home.overdueDoseTitle' : 'home.nextDoseTitle')}
+        </Text>
 
-          <View style={[styles.timePill, isAttention ? styles.timePillAttention : styles.timePillNormal]}>
-            <Text style={[styles.timePillText, isAttention ? styles.timePillTextAttention : styles.timePillTextNormal]}>
-              {friendlyTime(actionableAt(targetDose), localeTag)}
-            </Text>
-          </View>
+        <View style={[styles.timePill, isAttention ? styles.timePillAttention : styles.timePillNormal]}>
+          <AppIcon
+            color={isAttention ? colors.warning : colors.primaryDark}
+            name={isAttention ? 'circle-alert' : 'clock-3'}
+            size={12}
+          />
+          <Text style={[styles.timePillText, isAttention ? styles.timePillTextAttention : styles.timePillTextNormal]}>
+            {friendlyTime(actionableAt(targetDose), localeTag)}
+          </Text>
         </View>
 
         {/* Medicine Details */}
@@ -232,17 +223,16 @@ const createStyles = (colors: AppColors) =>
       justifyContent: 'space-between',
       gap: 4,
     },
-    eyebrowRow: {
+    cardTitle: {
+      ...cardTitle,
+      color: colors.ink,
+      flexShrink: 1,
+    },
+    timePill: {
+      alignSelf: 'flex-start',
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-    },
-    cardEyebrow: {
-      fontSize: 11,
-      fontWeight: '800',
-      letterSpacing: 0.6,
-    },
-    timePill: {
       borderRadius: radii.full,
       paddingHorizontal: 8,
       paddingVertical: 3,
@@ -269,10 +259,9 @@ const createStyles = (colors: AppColors) =>
     },
     medName: {
       color: colors.ink,
-      fontSize: 18,
-      fontWeight: '900',
-      letterSpacing: -0.4,
-      lineHeight: 22,
+      fontSize: 15,
+      fontWeight: '800',
+      lineHeight: 20,
     },
     medStrength: {
       color: colors.muted,
@@ -318,16 +307,10 @@ const createStyles = (colors: AppColors) =>
       justifyContent: 'center',
       marginBottom: 4,
     },
-    celebrationEyebrow: {
+    celebrationStatus: {
       color: colors.successDark,
-      fontSize: 11,
+      fontSize: 14,
       fontWeight: '800',
-      letterSpacing: 0.6,
-    },
-    celebrationTitle: {
-      color: colors.successDark,
-      fontSize: 16,
-      fontWeight: '900',
       textAlign: 'center',
     },
     celebrationSubtext: {
@@ -359,10 +342,10 @@ const createStyles = (colors: AppColors) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    emptyTitle: {
+    emptyStatus: {
       color: colors.ink,
-      fontSize: 15,
-      fontWeight: '800',
+      fontSize: 14,
+      fontWeight: '700',
       textAlign: 'center',
     },
     emptySubtext: {

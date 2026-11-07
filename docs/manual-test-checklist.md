@@ -1,10 +1,10 @@
 # Alaga mobile smoke-test checklist
 
-Use synthetic test accounts and patient profiles only. Android is the current side-project target. Run iOS checks later when a suitable macOS/iOS environment is available, and record them separately rather than implying that Windows or an Android export exercised iOS.
+Use synthetic test accounts and patient profiles only. Android is the current target. Run iOS checks later when a suitable macOS/iOS environment is available, and record them separately rather than implying that Windows or an Android export exercised iOS.
 
-## Side-project boundary
+## Synthetic-data boundary
 
-- [x] The persistent notice says this is a side-project build and permits synthetic information only. (Verified on emulator: banner displayed in English and Filipino "Side-project build. Gumamit lamang ng synthetic na impormasyon.")
+- [ ] The persistent notice permits synthetic information only, in English ("Use synthetic information only.") and Filipino ("Gumamit lamang ng synthetic na impormasyon.").
 - [x] No real person, account, medicine, prescription, timetable or label image is used. (Deterministic synthetic dataset: Maya Santos, Paolo Santos, Lola Rosa (Synthetic), synthetic-ocr-label.png).
 - [x] Resetting demo data requires the explicit destructive confirmation flag and refuses non-development database names. (Verified in server/src/resetSyntheticDatabase.ts).
 

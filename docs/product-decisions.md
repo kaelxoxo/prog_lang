@@ -2,9 +2,9 @@
 
 This note records confirmed product decisions and later planning handoffs. It is the reference for subsequent design and implementation work; proposals are labelled explicitly until approved.
 
-## Side-project boundary
+## Project boundary
 
-On 2026-08-26, the product owner confirmed that Alaga remains a student side project. There is no family pilot, public beta or hosted production service in the current scope.
+On 2026-08-26, the product owner confirmed that there is no family pilot, public beta or hosted production service in the current scope. On 2026-11-07, the owner dropped the "side project" framing: Alaga is treated as a real project, and the scope rules below still apply.
 
 - Use synthetic accounts, people, medicines, schedules, invitations and images only.
 - Keep the local API and PostgreSQL architecture; do not add paid hosting or promise access across unrelated networks.

@@ -6,7 +6,7 @@ When the user asks **"what to do next"**, **"what are the goals for today"**, or
 
 ## Product boundary
 
-Alaga remains a student portfolio side project for synthetic data. Do not expand the roadmap into real patient data, a public pilot, paid hosting, clinical claims, remote push delivery, or production operations unless the user explicitly changes the project boundary.
+Alaga uses synthetic data only. Do not expand the roadmap into real patient data, a public pilot, paid hosting, clinical claims, remote push delivery, or production operations unless the user explicitly changes the project boundary.
 
 The current target is Android. Use `Alaga_API_36` as the default test device. Physical-phone, tethering, router, and LAN troubleshooting are not roadmap work unless the user explicitly asks to return to them.
 
@@ -139,7 +139,7 @@ These are not current work. Re-evaluate them only after Milestones 0–3:
 - Add iOS validation when a macOS/iOS test environment exists.
 - Revisit the compatible Expo/tooling update that resolves the transitive `uuid` audit advisory without a breaking downgrade.
 
-Still deferred outside the current side-project scope: real-data use, verified email delivery, account recovery, offline writes/conflict resolution, remote caregiver push, hosted infrastructure, app-store release, analytics, and clinical validation.
+Still deferred outside the current scope: real-data use, verified email delivery, account recovery, offline writes/conflict resolution, remote caregiver push, hosted infrastructure, app-store release, analytics, and clinical validation.
 
 ## Current recommendation
 

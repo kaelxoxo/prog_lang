@@ -74,7 +74,7 @@ Milestones 0, 1, 2, 3, and the Complete Application-Wide UI/UX Revamp across all
 
 ## Project boundary
 
-Alaga remains a student side project. Do not plan a pilot, public users, production hosting or real-data workflows. Use synthetic accounts, people, medicines, prescriptions, timetables and images only. The supported development paths are Android Emulator, Expo Go on a shared private LAN, or an Android device connected through USB port reversal.
+Do not plan a pilot, public users, production hosting or real-data workflows. Use synthetic accounts, people, medicines, prescriptions, timetables and images only. The supported development paths are Android Emulator, Expo Go on a shared private LAN, or an Android device connected through USB port reversal.
 
 ## Completed milestone: English/Filipino Settings
 
@@ -151,7 +151,7 @@ The temporary Android review captures (`alaga-after-home.*`, `alaga-connectivity
 
 ## Next milestone: portfolio presentation
 
-Finish the side-project presentation layer without expanding into hosting or pilot preparation:
+Finish the presentation layer without expanding into hosting or pilot preparation:
 
 1. Tighten the README around the problem, safety boundaries, architecture and local demo path.
 2. Run the pending localization/device checks with synthetic data and fix any clipping or unclear Filipino copy found on-device.
@@ -159,7 +159,7 @@ Finish the side-project presentation layer without expanding into hosting or pil
 4. Document a repeatable local demo route.
 5. Prepare an Android demo build if it materially improves the portfolio handoff.
 
-The app still intentionally stops short of full localization. Translate the disclosed remaining surfaces only when the portfolio demo route actually exercises them; do not add a localization dependency for this two-locale side project.
+The app still intentionally stops short of full localization. Translate the disclosed remaining surfaces only when the portfolio demo route actually exercises them; do not add a localization dependency for two locales.
 
 ### Portfolio progress: 2026-08-28
 

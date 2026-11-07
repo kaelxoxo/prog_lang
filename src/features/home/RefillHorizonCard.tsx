@@ -15,6 +15,7 @@ import { AppIcon } from '../../components/AppIcon';
 import {
   buttonPress,
   cardPress,
+  cardTitle,
   gentleSpring,
   instant,
   radii,
@@ -169,13 +170,8 @@ export function RefillHorizonCard({
               size={14}
             />
           </View>
-          <Text
-            style={[
-              styles.eyebrowText,
-              isLowSupply ? styles.eyebrowTextWarning : styles.eyebrowTextNormal,
-            ]}
-          >
-            {t('home.horizonEyebrow')}
+          <Text accessibilityRole="header" numberOfLines={2} style={styles.cardTitle}>
+            {t('home.horizonTitle')}
           </Text>
         </View>
 
@@ -344,6 +340,7 @@ const createStyles = (colors: AppColors) =>
     eyebrowGroup: {
       flexDirection: 'row',
       alignItems: 'center',
+      flexShrink: 1,
       gap: 6,
     },
     iconBadge: {
@@ -359,17 +356,10 @@ const createStyles = (colors: AppColors) =>
     iconBadgeWarning: {
       backgroundColor: colors.warningTint,
     },
-    eyebrowText: {
-      fontSize: 11,
-      fontWeight: '800',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase',
-    },
-    eyebrowTextNormal: {
-      color: colors.muted,
-    },
-    eyebrowTextWarning: {
-      color: colors.warning,
+    cardTitle: {
+      ...cardTitle,
+      color: colors.ink,
+      flexShrink: 1,
     },
     warningPill: {
       flexDirection: 'row',
@@ -413,10 +403,9 @@ const createStyles = (colors: AppColors) =>
     },
     medicationName: {
       color: colors.ink,
-      fontSize: 17,
-      fontWeight: '900',
-      letterSpacing: -0.3,
-      lineHeight: 22,
+      fontSize: 15,
+      fontWeight: '800',
+      lineHeight: 20,
     },
     dosageText: {
       color: colors.muted,

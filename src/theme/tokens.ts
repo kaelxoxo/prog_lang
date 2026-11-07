@@ -130,6 +130,13 @@ export const radii = {
   full: 9999,
 } as const;
 
+// A card has exactly one heading, in this style; every other text in the card stays smaller.
+export const cardTitle = {
+  fontSize: 17,
+  fontWeight: '800',
+  letterSpacing: -0.3,
+} as const;
+
 // Emil Kowalski Motion & Interaction Tokens
 export const springs = {
   tightSpring: { tension: 180, friction: 12 },

@@ -42,7 +42,19 @@ _Avoid_: Pill drop, medicine event, reminder item
 
 **Not Recorded**:
 The factual, non-judgmental status of a past scheduled dose that has not yet been logged by any caregiver.
-_Avoid_: Missed, failed, unrecorded, non-compliant
+_Avoid_: Missed, failed, unrecorded, non-compliant, overdue
+
+**Due Now**:
+A Dose Occurrence whose scheduled time is within the next two hours, or has passed while it is still Not Recorded. Home shows only Due Now doses.
+_Avoid_: Upcoming, pending, active dose
+
+**Later Today**:
+The Dose Occurrences scheduled for the rest of today that are not yet Due Now. Recording one of them is an early recording and needs an explicit confirmation.
+_Avoid_: Future doses, queue, backlog
+
+**Time Slot**:
+All of a patient's Dose Occurrences that share one scheduled time on one day (for example, 8:00 AM). Not Recorded doses are grouped by Time Slot.
+_Avoid_: Batch, round, med pass
 
 **Refill Horizon**:
 The estimated days remaining of available medication supply before a prescription requires reordering or restocking.
