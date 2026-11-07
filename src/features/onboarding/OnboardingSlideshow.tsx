@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 
 import { AppIcon } from '../../components/AppIcon';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { PressableScale } from '../../components/PressableScale';
+import { radii, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
 import type { CopyKey } from '../settings/translations';
@@ -115,38 +116,16 @@ export function OnboardingSlideshow({ onComplete }: Props) {
         accessibilityRole="progressbar"
         style={styles.storyBarsContainer}
       >
-        {SLIDES.map((slide, idx) => {
-          const isPassed = idx < activeIndex;
-          const isActive = idx === activeIndex;
-          const barColor =
-            activeIndex === 0
-              ? colors.sun
-              : activeIndex === 1
-                ? colors.success
-                : colors.primary;
-
-          return (
-            <View key={slide.id} style={styles.storyBarTrack}>
-              <View
-                style={[
-                  styles.storyBarFill,
-                  (isPassed || isActive) && {
-                    backgroundColor: isPassed ? colors.primaryDark : barColor,
-                    width: '100%',
-                  },
-                ]}
-              />
-            </View>
-          );
-        })}
+        {SLIDES.map((slide, idx) => (
+          <View key={slide.id} style={styles.storyBarTrack}>
+            <View style={[styles.storyBarFill, idx <= activeIndex && styles.storyBarFilled]} />
+          </View>
+        ))}
       </View>
 
       {/* Accessible Header with Brand and Skip */}
       <View style={styles.header}>
-        <View style={styles.brandGroup}>
-          <View style={styles.brandDot} />
-          <Text style={styles.brandTitle}>Alaga</Text>
-        </View>
+        <Text style={styles.brandTitle}>Alaga</Text>
 
         <Pressable
           accessibilityHint="Skips the welcome introduction and goes directly to account setup"
@@ -174,13 +153,6 @@ export function OnboardingSlideshow({ onComplete }: Props) {
         renderItem={({ item, index }) => {
           const slideTitle = t(item.titleKey) || item.defaultTitle;
           const slideDesc = t(item.descKey) || item.defaultDesc;
-          const accentColor =
-            index === 0
-              ? colors.sun
-              : index === 1
-                ? colors.successDark
-                : colors.primary;
-
           return (
             <View style={[styles.slide, { width: windowWidth }]}>
               {/* Mascot Animated Stage: Open Crisp Canvas with Contact Shadow */}
@@ -190,7 +162,7 @@ export function OnboardingSlideshow({ onComplete }: Props) {
 
               {/* Direct Canvas Typography: No Cards, No Bubbles */}
               <View style={styles.textBlock}>
-                <Text style={[styles.categoryEyebrow, { color: accentColor }]}>
+                <Text style={styles.categoryEyebrow}>
                   {item.tag}
                 </Text>
 
@@ -209,7 +181,7 @@ export function OnboardingSlideshow({ onComplete }: Props) {
 
       {/* Docked Bottom Action Bar */}
       <View style={styles.footer}>
-        <Pressable
+        <PressableScale
           accessibilityLabel={
             isLastSlide
               ? t('onboarding.getStarted')
@@ -217,11 +189,7 @@ export function OnboardingSlideshow({ onComplete }: Props) {
           }
           accessibilityRole="button"
           onPress={handleNext}
-          style={({ pressed }) => [
-            styles.primaryButton,
-            isLastSlide && styles.getStartedButton,
-            pressed && styles.buttonPressed,
-          ]}
+          style={styles.primaryButton}
         >
           <Text style={styles.primaryButtonText}>
             {isLastSlide ? t('onboarding.getStarted') : t('onboarding.next')}
@@ -231,7 +199,7 @@ export function OnboardingSlideshow({ onComplete }: Props) {
             name={isLastSlide ? 'check' : 'arrow-right'}
             size={18}
           />
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
@@ -251,10 +219,10 @@ const createStyles = (colors: AppColors) =>
       paddingTop: spacing.xs,
     },
     storyBarTrack: {
-      backgroundColor: 'rgba(0, 0, 0, 0.08)',
+      backgroundColor: colors.line,
       borderRadius: 2,
       flex: 1,
-      height: 4,
+      height: 3,
       overflow: 'hidden',
     },
     storyBarFill: {
@@ -262,6 +230,10 @@ const createStyles = (colors: AppColors) =>
       borderRadius: 2,
       height: '100%',
       width: '0%',
+    },
+    storyBarFilled: {
+      backgroundColor: colors.primary,
+      width: '100%',
     },
     header: {
       alignItems: 'center',
@@ -271,22 +243,11 @@ const createStyles = (colors: AppColors) =>
       paddingTop: spacing.xs,
       zIndex: 10,
     },
-    brandGroup: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: 6,
-    },
-    brandDot: {
-      backgroundColor: colors.sun,
-      borderRadius: 4,
-      height: 8,
-      width: 8,
-    },
     brandTitle: {
-      color: colors.ink,
+      ...typography.hero,
       fontSize: 22,
-      fontWeight: '900',
-      letterSpacing: -0.6,
+      lineHeight: 28,
+      color: colors.ink,
     },
     skipButton: {
       alignItems: 'center',
@@ -303,9 +264,9 @@ const createStyles = (colors: AppColors) =>
       opacity: 0.6,
     },
     skipText: {
-      color: colors.muted,
+      ...typography.bodyEmphasis,
       fontSize: 14,
-      fontWeight: '700',
+      color: colors.muted,
     },
     flatList: {
       flex: 1,
@@ -329,24 +290,19 @@ const createStyles = (colors: AppColors) =>
       width: '100%',
     },
     categoryEyebrow: {
-      fontSize: 12,
-      fontWeight: '800',
-      letterSpacing: 1.2,
+      ...typography.caption,
+      color: colors.muted,
       marginBottom: spacing.xs,
-      textTransform: 'uppercase',
     },
     slideTitle: {
+      ...typography.title1,
       color: colors.ink,
-      fontSize: 26,
-      fontWeight: '900',
-      letterSpacing: -0.8,
-      lineHeight: 34,
       marginBottom: spacing.sm,
       textAlign: 'center',
     },
     slideDescription: {
+      ...typography.body,
       color: colors.muted,
-      fontSize: 15,
       lineHeight: 23,
       textAlign: 'center',
     },
@@ -357,25 +313,16 @@ const createStyles = (colors: AppColors) =>
     },
     primaryButton: {
       alignItems: 'center',
-      backgroundColor: colors.primaryDark,
-      borderRadius: radii.full,
+      backgroundColor: colors.primary,
+      borderRadius: radii.md,
       flexDirection: 'row',
       gap: spacing.xs,
       justifyContent: 'center',
-      minHeight: 54,
+      minHeight: 52,
       width: '100%',
     },
-    getStartedButton: {
-      backgroundColor: colors.primary,
-    },
-    buttonPressed: {
-      opacity: 0.9,
-      transform: [{ scale: 0.985 }],
-    },
     primaryButtonText: {
+      ...typography.headline,
       color: colors.white,
-      fontSize: 16,
-      fontWeight: '800',
-      letterSpacing: 0.2,
     },
   });

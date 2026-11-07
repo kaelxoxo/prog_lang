@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { AppIcon } from '../../components/AppIcon';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import { usePatient } from './PatientProvider';
@@ -57,9 +57,7 @@ export function CareHeader({ accountName, onChangePerson, onOpenSettings, patien
             onPress={onChangePerson}
             style={({ pressed }) => [styles.avatarButton, pressed && styles.actionButtonPressed]}
           >
-            <View style={styles.avatarMini}>
-              <Text style={styles.avatarMiniLabel}>{initialsFor(name)}</Text>
-            </View>
+            <Text style={styles.avatarMiniLabel}>{initialsFor(name)}</Text>
           </Pressable> : null}
           {onOpenSettings ? (
             <Pressable
@@ -88,9 +86,7 @@ export function CareHeader({ accountName, onChangePerson, onOpenSettings, patien
             <View style={styles.identityCopy}>
               <Text style={styles.eyebrow}>{isProfessional ? t('shell.peopleYouCareFor') : t('care.caringFor')}</Text>
               <Text numberOfLines={fontScale > 1.3 ? 3 : 2} style={styles.patientName}>{name}</Text>
-              <View style={styles.relationshipPill}>
-                <Text numberOfLines={1} style={styles.relationship}>{patient.relationshipLabel}</Text>
-              </View>
+              <Text numberOfLines={1} style={styles.relationship}>{patient.relationshipLabel}</Text>
               {fontScale > 1.3 ? changeAction : null}
             </View>
             {fontScale <= 1.3 ? changeAction : null}
@@ -106,9 +102,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   accountCopy: { minWidth: 0, flex: 1, gap: 2 },
   brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.sun },
-  brand: { color: colors.ink, fontSize: 24, fontWeight: '900', letterSpacing: -0.7 },
-  greeting: { maxWidth: 320, color: colors.muted, fontSize: 13, fontWeight: '600' },
+  brandDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
+  brand: { ...typography.title1, color: colors.ink },
+  greeting: { ...typography.caption, maxWidth: 320, color: colors.muted },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   avatarButton: {
     width: 48,
@@ -117,30 +113,18 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
+    borderColor: colors.controlBorder,
+    backgroundColor: colors.canvasSubtle,
   },
-  avatarMini: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 18,
-    backgroundColor: colors.sun,
-  },
-  avatarMiniLabel: { color: colors.ink, fontSize: 13, fontWeight: '900' },
+  avatarMiniLabel: { ...typography.caption, color: colors.ink, fontWeight: '700' },
   settingsButton: {
     width: 48,
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
   },
-  settingsButtonPressed: { backgroundColor: colors.mist },
-  actionButtonPressed: { opacity: 0.85, backgroundColor: colors.mist },
+  actionButtonPressed: { opacity: 0.72, backgroundColor: colors.canvasSubtle },
   patientBar: { width: '100%' },
   patientButton: {
     minHeight: 76,
@@ -150,42 +134,34 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     gap: 14,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: radii.lg,
-    backgroundColor: colors.white,
-    paddingHorizontal: 16,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
     paddingVertical: 12,
   },
-  patientButtonPressed: { opacity: 0.85, backgroundColor: colors.mist },
+  patientButtonPressed: { backgroundColor: colors.canvasSubtle },
   avatar: {
     width: 48,
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 24,
-    backgroundColor: colors.sun,
+    borderWidth: 1,
+    borderColor: colors.controlBorder,
+    backgroundColor: colors.canvasSubtle,
   },
-  avatarLabel: { color: colors.ink, fontSize: 16, fontWeight: '900' },
+  avatarLabel: { ...typography.headline, color: colors.ink },
   identityCopy: { minWidth: 0, flex: 1, gap: 2 },
-  eyebrow: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  patientName: { color: colors.ink, fontSize: 19, fontWeight: '900', letterSpacing: -0.3 },
-  relationshipPill: {
-    alignSelf: 'flex-start',
-    borderRadius: radii.full,
-    backgroundColor: colors.mist,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 2,
-  },
-  relationship: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  eyebrow: { ...typography.caption, color: colors.muted },
+  patientName: { ...sectionTitle, color: colors.ink },
+  relationship: { ...typography.caption, color: colors.muted },
   changeAction: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderRadius: radii.full,
-    backgroundColor: colors.primaryTint,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: spacing.xs,
   },
-  changeLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
+  changeLabel: { ...typography.caption, color: colors.primaryDark, fontWeight: '700' },
 });
 

@@ -1,308 +1,149 @@
 ---
 name: Alaga
-description: A modern, low-stress Filipino family care log with Bantay 2.0, emerald and mint palette, and Emil Kowalski craft invariants.
+description: The family care notebook. Paper, ink and narra; serif titles; ruled sections; quiet motion; Bantay the guard dog.
 colors:
-  canvas: "#F4F8F5"
-  canvas-subtle: "#EAF2ED"
-  card-surface: "#FFFFFF"
-  primary-evergreen: "#1B4D3E"
-  primary-dark: "#12352B"
-  primary-light: "#52B788"
-  mint-tint: "#D8F3DC"
-  mint-wash: "#E8F5E9"
-  secondary-emerald: "#2D6A4F"
-  accent-flame: "#FF7A00"
-  flame-light: "#FF9E00"
-  sun-warm: "#FF9E00"
-  text-ink: "#122620"
-  muted-forest: "#5C7168"
-  border-line: "#E2ECE5"
-  mist-fill: "#EAF2ED"
-  warning: "#D97706"
-  warning-tint: "#FEF3C7"
-  danger: "#DC2626"
-  danger-tint: "#FEE2E2"
-  dark-canvas: "#0D1F18"
-  dark-surface: "#142E24"
-  dark-border: "#1E4234"
-  dark-ink: "#E8F5E9"
+  paper: "#F6F1E7"
+  paper-shaded: "#EFE8DA"
+  paper-raised: "#FBF8F1"
+  ink: "#1F1B16"
+  ink-muted: "#675D52"
+  rule: "#E3DACB"
+  narra: "#8A3B22"
+  narra-dark: "#6E2E1A"
+  narra-tint: "#F1E1D6"
+  ochre: "#8A5E0F"
+  ochre-tint: "#F5E9CC"
+  danger: "#A63A2A"
+  bantay-cap: "#2D6A4F"
+  night-paper: "#17140F"
+  night-raised: "#211D17"
+  night-ink: "#F3EDE2"
+  night-narra: "#E39A78"
 typography:
-  display:
-    fontFamily: "System"
-    fontSize: "31px"
-    fontWeight: 800
-    lineHeight: 1.23
-    letterSpacing: "-0.5px"
-  headline:
-    fontFamily: "System"
-    fontSize: "26px"
-    fontWeight: 800
+  hero:
+    fontFamily: "Source Serif 4 Bold"
+    fontSize: "30px"
     lineHeight: 1.2
   title:
-    fontFamily: "System"
-    fontSize: "20px"
-    fontWeight: 800
+    fontFamily: "Source Serif 4 SemiBold"
+    fontSize: "24px"
     lineHeight: 1.25
+  section:
+    fontFamily: "Source Serif 4 SemiBold"
+    fontSize: "20px"
+    lineHeight: 1.3
   body:
     fontFamily: "System"
     fontSize: "15px"
-    fontWeight: 500
+    fontWeight: 400
     lineHeight: 1.45
-  label:
+  caption:
     fontFamily: "System"
     fontSize: "13px"
-    fontWeight: 700
+    fontWeight: 500
     lineHeight: 1.4
-rounded:
-  xs: "6px"
-  sm: "10px"
-  md: "14px"
-  squircle: "18px"
-  lg: "22px"
-  xl: "30px"
-  full: "9999px"
 motion:
   durations:
-    instant: "100ms"
-    feedback: "150ms"
-    state-change: "260ms"
-    drawer: "320ms"
+    feedback: "160ms"
+    state-change: "200ms"
+    drawer: "280ms"
+  easing:
+    out: "cubic-bezier(0.23, 1, 0.32, 1)"
+    in-out: "cubic-bezier(0.77, 0, 0.175, 1)"
+    drawer: "cubic-bezier(0.32, 0.72, 0, 1)"
   scales:
+    button-press: 0.97
     card-press: 0.98
-    button-press: 0.96
-    icon-press: 0.92
-  springs:
-    tight:
-      tension: 180
-      friction: 12
-    gentle:
-      tension: 140
-      friction: 7
-    snappy:
-      tension: 220
-      friction: 14
-components:
-  button-primary:
-    backgroundColor: "{colors.primary-evergreen}"
-    textColor: "{colors.card-surface}"
-    rounded: "{rounded.md}"
-    height: "52px"
-    padding: "8px 18px"
-  button-action:
-    backgroundColor: "{colors.secondary-emerald}"
-    textColor: "{colors.card-surface}"
-    rounded: "{rounded.xl}"
-    height: "48px"
-    padding: "8px 16px"
-  input:
-    backgroundColor: "{colors.card-surface}"
-    textColor: "{colors.text-ink}"
-    borderColor: "{colors.border-line}"
-    rounded: "{rounded.md}"
-    height: "52px"
-    padding: "8px 16px"
-  card-elevation:
-    backgroundColor: "{colors.card-surface}"
-    borderColor: "{colors.border-line}"
-    rounded: "{rounded.lg}"
-    padding: "16px"
-  squircle-action:
-    backgroundColor: "{colors.card-surface}"
-    borderColor: "{colors.border-line}"
-    rounded: "{rounded.squircle}"
-    padding: "14px"
 ---
 
 # Design System: Alaga
 
-## 1. Overview & Creative North Star
+Source of truth for values is `src/theme/tokens.ts`; this document explains the intent.
 
-**Creative North Star: "The Reassuring Kitchen-Table Care Log"**
+## 1. North Star: the family care notebook
 
-Alaga is designed for family members, caregivers, and elders managing daily medicines together. The interface pairs clinical-grade precision with the comfort of a trusted family notebook. In this evolution, the system adopts a crisp, modern **Emerald & Mint healthcare palette**, an expressive **Bantay 2.0 companion identity**, a unified **4-tab floating navigation dock**, high-frequency **6-item squircle actions**, and **Emil Kowalski craft invariants**.
+Alaga looks like the shared notebook (*kuwaderno*) a family keeps by the medicine shelf: paper, ink, a few ruled lines, and handwriting-calm structure. It must not look like a template dashboard, a hospital system, or a wellness toy (see `PRODUCT.md` anti-references).
 
-The experience eliminates medical alarmism:
-- The cared-for person remains named at all times.
-- Information hierarchy favors immediate comprehension over visual noise.
-- Interactions are tactile, responsive, and grounded in physical spring dynamics.
-- Visual clarity is established through crisp edge definition and border elevation rather than heavy, muddy drop shadows.
+- One signature colour: **narra**, the red-brown of Philippine hardwood furniture. Everything else is paper and ink.
+- Green appears only on Bantay's caregiver cap.
+- Typography carries hierarchy, not tinted boxes.
 
----
+## 2. Colour
 
-## 2. Color Architecture: Emerald & Mint Healthcare Palette
+| Role | Light | Night ink |
+|---|---|---|
+| Paper (canvas) | `#F6F1E7` | `#17140F` |
+| Raised paper (sheets, the few boxes) | `#FBF8F1` / `#FFFDF8` | `#211D17` / `#2A251E` |
+| Ink (text) | `#1F1B16` | `#F3EDE2` |
+| Muted ink | `#675D52` | `#B3A898` |
+| Ruled line | `#E3DACB` | `#332D24` |
+| Narra (primary actions, active tab) | `#8A3B22` | `#E39A78` |
+| Ochre (Not Recorded) | `#8A5E0F` | `#E2B65A` |
+| Danger (errors only) | `#A63A2A` | `#EE8B78` |
 
-The palette anchors on deep forest evergreen structure, luminous emerald reassurance, soothing mint washes, and a focused flame accent for streaks and urgency cues.
+Rules:
+- **Recorded** doses read as ink: an ink checkmark, never a green fill.
+- **Not Recorded** reads as ochre text plus a marker; never red, never the word "overdue" or "missed".
+- No pastel tint blobs behind icons. A tint is allowed only behind text that needs it (e.g. a selected chip).
+- Never hardcode a colour in a component; contrast is checked by `node scripts/verify_tokens_contrast.mjs`.
 
-### Primary Structure & Canvas
-- **Deep Forest Evergreen (`#1B4D3E`)**: The foundational brand anchor. Used for primary CTAs, active headers, patient identity framing, and hero containers.
-- **Primary Dark (`#12352B`)**: Deepest forest evergreen for pressed states, high-contrast text, and dark-surface boundaries.
-- **Background Canvas (`#F4F8F5`)**: An airy mint-tinted neutral foundation that prevents glare and softens reading fatigue without dimming contrast.
-- **Card / Surface (`#FFFFFF`)**: Crisp white elevation for working cards, inputs, and medication tiles.
+## 3. Typography
 
-### Mint Accents & Washes
-- **Primary Light / Mint Accent (`#52B788`)**: Fresh mint green for active progress rings, secondary highlights, and dark-mode brand contrast.
-- **Mint Tint (`#D8F3DC`)**: Soft, clean mint wash for active pill capsules, taken dose confirmations, and badge fills.
-- **Mint Wash (`#E8F5E9`)**: Subtle background tint for companion speech bubbles, alert banners, and selected states.
+- **Source Serif 4** (loaded in `App.tsx`) for screen titles (`typography.hero`, `title1`) and section titles (`sectionTitle`). The weight lives in the family name; never set `fontWeight` on a serif style.
+- The platform font for everything else, so large system text keeps working.
+- Sentence case everywhere. No uppercase eyebrow labels.
+- **One title per section or card.** Numbers and readouts are content, not titles.
+- Medicine names, strengths and times are never all-caps or under 14px.
 
-### Secondary & Accents
-- **Secondary / Accent Emerald (`#2D6A4F`)**: Used for verified states, taken dose checkboxes, confirmed notifications, and secondary actions.
-- **Accent Warm / Flame (`#FF7A00`)**: Vibrant streak flame and vital attention cue. Used sparingly to mark unbroken medication adherence streaks and critical warnings.
-- **Sunlight Ochre (`#FF9E00`)**: Warm highlight for Bantay companion aura, identity markers, and celebratory milestones.
+## 4. Layout: ruled sections, not cards
 
-### Inks & Dividers (WCAG AA Compliance)
-- **Deep Forest Ink (`#122620`)**: Deep slate pine for primary typography. Reaches > 14:1 contrast ratio against `#FFFFFF` and `#F4F8F5`, exceeding WCAG AAA standards.
-- **Muted Forest Slate (`#5C7168`)**: Secondary text, metadata timestamps, and inactive iconography. Maintained above 4.5:1 contrast against `#FFFFFF` and `#F4F8F5` for full WCAG AA compliance.
-- **Subtle Mint Line (`#E2ECE5`)**: 1px crisp divider and card boundary.
-- **Mist (`#EAF2ED`)**: Subtle fill for quick action squircle backdrops and inactive chip buttons.
+- Content sits on the paper in sections separated by hairline ruled lines.
+- A box (raised paper, 1px rule border) only for an item that needs action, a form field, or a sheet.
+- Zero drop shadows.
+- Touch targets at least 48dp; primary buttons at least 52dp tall.
 
-### System Semantic States
-- **Success (`#2D6A4F`, tint `#D8F3DC`, border `#B7E4C7`)**: Dose logged, taken on time, prescription saved.
-- **Warning (`#D97706`, tint `#FEF3C7`)**: Expiring supply, scheduled dose window nearing end.
-- **Danger / Error (`#DC2626`, tint `#FEE2E2`)**: Missed dose, critical interaction conflict, invalid input.
+## 5. Home and Today
 
-### Dark Theme Architecture
-Deep pine and midnight forest tones ensure high legibility and zero OLED glare:
-- **Canvas**: `#0D1F18` (deep pine night canvas)
-- **Surface / Cards**: `#142E24` (elevated pine surface)
-- **Borders / Lines**: `#1E4234` (crisp pine divider)
-- **Primary Ink**: `#E8F5E9` (crisp mint cream text, > 12:1 contrast against `#142E24`)
-- **Muted Ink**: `#8EAA9D` (legible sage subtitle text, > 4.5:1 contrast)
-- **Primary / Brand**: `#52B788` (luminous mint for dark mode visibility)
+- **Home** answers "what do I do right now": greeting, Bantay's one-line status, a one-line progress and Care Streak, **Due now** (Not Recorded doses grouped by Time Slot, plus anything within the next two hours), a collapsible **Recorded** line, a collapsible **Later today** row, and **Refill Horizon** rows only when stock runs out within seven days.
+- **Today** shows the whole day under Morning / Afternoon / Evening, Time Slots inside; sections that are entirely Later Today start collapsed.
+- Recording a Later Today dose asks for confirmation (early recording).
 
----
+## 6. Bantay
 
-## 3. Elevation & Craft: Zero Drop Shadows
+Bantay (Tagalog: *guard*) is the family's caregiver dog: brown coat, green caregiver cap. He is drawn in code (`BantayMascotSvg.tsx`) and animated from sprite sheets rendered from that drawing (`npm run mascot:sprites`, output in `assets/bantay/`). The app icon and splash use the same bust.
 
-Alaga adheres strictly to the **Zero Drop Shadows** invariant:
-- **No Muddy Shadows**: Drop shadows render inconsistently and create visual mud on mobile displays. Box shadows with blurs are replaced entirely by crisp structural borders.
-- **Border Elevation**: Surfaces achieve separation using a crisp 1px border (`#E2ECE5` in light mode, `#1E4234` in dark mode) paired with `#FFFFFF` elevation over the `#F4F8F5` airy canvas.
-- **Tonal Layering**: Nested components use tonal shifts (`#EAF2ED` mist or `#D8F3DC` mint tint) to communicate hierarchy without vertical elevation gimmicks.
+Animations are character motion, never pop-in emoji or sparkles:
 
----
+| State | Motion |
+|---|---|
+| idle | slow breathing, a blink every few seconds, an occasional tail wag |
+| attention | ears perk, head tilts toward the list (doses to record) |
+| thinking | head tilt, paw to chin (Ask Bantay is answering) |
+| celebrate | small hop, fast tail wag, happy closed eyes (whole day recorded) |
 
-## 4. Radii & Spatial Hierarchy
+The sprite sheets are stand-ins; final hand-drawn sheets replace the PNG and JSON in `assets/bantay/` without code changes.
 
-Alaga uses a graduated continuous-curvature scale:
-- **xs (`6px`)**: Small badge tags, notification dots, status chips.
-- **sm (`10px`)**: Secondary action pills, metadata tags.
-- **md (`14px`)**: Inputs, primary buttons, dosage items.
-- **squircle (`18px`)**: Signature continuous-curvature radius for high-frequency action tiles, companion banners, and interactive drawers.
-- **lg (`22px`)**: Main medication cards, hero care panels, modal containers.
-- **xl (`30px`)**: Floating bottom navigation dock, large bottom sheets.
-- **full (`9999px`)**: Circular FABs, avatars, active tab capsules, progress rings.
+## 7. Motion
 
----
+Quiet and crisp, following Emil Kowalski's rules:
 
-## 5. Bantay 2.0 Branding: The Family Healthcare Companion
+- Press feedback: scale 0.97 over 160 ms, strong ease-out (`PressableScale`).
+- Expanding a section: height and opacity over 200 ms ease-out (`Disclosure`).
+- Recording a dose: the ink checkmark draws itself over 200 ms (`DrawnCheck`).
+- Celebrate only when the whole day is recorded.
+- No bounce; springs in `tokens.ts` are critically damped. UI animations stay under 300 ms.
+- Reduced motion: fades only, sprites hold their first frame.
 
-"Bantay" (Tagalog for *guardian* or *sentinel*) is the warm, vigilant healthcare companion dog of Alaga.
+## 8. Accessibility
 
-### Companion Identity & Principles
-1. **Empathetic Vigilance**: Bantay observes schedules and alerts caregivers with warmth, never clinical coldness or alarmist panic.
-2. **Contextual Expressions**:
-   - `idle`: Calm, observant companion ready to assist.
-   - `celebration`: Joyful ears up and tail wag when doses are completed or streaks hit.
-   - `thinking`: Attentive focus when reading prescription labels (OCR) or cross-referencing medicine safety.
-   - `alert`: Gentle head tilt and focused posture when doses require caregiver attention.
-3. **Companion Hero Card**:
-   - Prominently anchored on the Home screen with a peeking bust illustration, subtle aura glow (`#FF9E00` / `#D8F3DC`), and a speech bubble delivering actionable, person-specific updates.
-   - Speech bubble includes a directional tail, title row with live status, and one-tap interaction to open the full assistant sheet.
-4. **Care Setup Scenes** (post-signup onboarding only, `SetupBantay`): the canonical full-body Bantay with scene-specific arms and flat props — `letter` (envelope opens, heart floats up), `self` (paw on chest, weekly pillbox), `family` (house-shaped heart held to the chest), `professional` (cap salute, clipboard), `waiting` (beside a mailbox, slow tail wag), `writing` (notebook; pen strokes as the user types), `sending` (paper plane thrown per invitation added), `stamp` (paw-print stamp on a checklist). Each has its own ≤500ms entrance and ambient loop; Bantay stays silent and has no tap reaction here. Reduce motion shows each scene's final frame; keyboard-open or large text crops to a bust framing.
+- WCAG AA contrast for all text, verified by the contrast script.
+- State is never conveyed by colour alone ("Not recorded" is always written).
+- Text grows to 200% without clipping; rows reflow rather than truncate medicine names.
 
----
+## 9. Do and don't
 
-## 6. Navigation: 4-Tab Floating Navigation Dock
-
-Alaga consolidates primary navigation into a single **4-tab floating navigation dock**:
-- **Anchored Floating Dock**:
-  - Floats centered above the device safe area (`Math.max(insets.bottom, 12)`).
-  - Rounded with `30px` radius (`xl`) and framed with a 1px border (`#E2ECE5`) on pure white background (`#FFFFFF`).
-  - Zero drop shadow; separation is achieved through border contrast and background canvas differentiation.
-- **4 Key Destinations & Controls**:
-  1. **Home**: Care summary, Bantay companion hero card, streak counter, and squircle action grid.
-  2. **Today**: Timeline of scheduled doses, adherence rings, and dosage logging controls.
-  3. **Medicines**: Medicine cabinet, prescription management, supply counters, and dosage instructions.
-  4. **Integrated '+' Action (Quick Action Drawer)**: A prominent circular FAB button (`48dp`, `full` radius) in `#1B4D3E` with white icon that triggers the 6-item squircle action drawer.
-- **Interactive Feedback**:
-  - Active tab displays an animated pill capsule (`#EAF2EC` in light mode, `#24342F` in dark mode) with `0.98` scale down on press and spring restoration.
-
----
-
-## 7. Actions: 6-Item Squircle Action Grid
-
-High-frequency care actions are structured into a clean **6-item squircle grid** (`18px` radius):
-1. **Log Dose**: Instant dosage recording for scheduled or PRN (as-needed) medicines.
-2. **Add Medicine**: Quick modal to add new medication manually with schedule recurrence.
-3. **Scan Rx / Label**: Fast camera/photo OCR flow to parse prescription labels and packaging into drafted meds.
-4. **Ask Bantay**: Immediate access to the conversational assistant for drug interactions, side effects, and guidance.
-5. **View Timeline / Vitals**: Full daily care log, vitals recording, and historical dose compliance.
-6. **Care Circle / Share**: Invite family members, coordinate shifts, and export doctor reports.
-
-Each squircle tile features:
-- Solid `#FFFFFF` surface with 1px `#E2ECE5` border.
-- Distinct mint/emerald tint icon wrap (`44x44` dp, `12px` radius).
-- High-contrast title (`15px`, bold `#122620`) and secondary helper description (`12px`, `#5C7168`).
-- Tactile press feedback (`0.98` scale with `gentleSpring`).
-
----
-
-## 8. Emil Kowalski Motion & Interaction Craft Invariants
-
-Alaga enforces Emil Kowalski's core principles of micro-interactions and motion craft:
-
-### 1. The 100/300/500 Rule
-- **100ms (Instant Micro-Feedback)**:
-  - Button and card press-ins acknowledge touch in under 100ms (`Easing.out(Easing.quad)`).
-  - Never leave a user wondering if their tap registered.
-- **300ms (State Transitions & Modals)**:
-  - In-page state switches, tab switches, and drawer reveals complete in under 300ms (feedback: 150ms, state change: 260ms, drawer enter: 320ms).
-  - Sub-300ms ease-out transitions prevent the interface from feeling sluggish or heavy.
-- **500ms (Complex Choreography)**:
-  - Multi-stage layout shifts (e.g. OCR camera scan result transitions) are capped at 500ms total sequence time.
-
-### 2. Micro-Interaction Press Scales
-Every interactive touchpoint provides subtle tactile physical feedback:
-- **`cardPress: 0.98`**: Subtle scale compression for medication cards, squircle tiles, and banners.
-- **`buttonPress: 0.96`**: Pronounced scale compression for primary buttons and the floating navigation '+' FAB.
-- **`iconPress: 0.92`**: Snappy compression for small icon buttons and close triggers.
-
-### 3. Spring Dynamics
-Transitions use calibrated spring physics instead of linear animations:
-- **`tightSpring`** (`{ tension: 180, friction: 12 }`): For crisp toggle flips, small badges, and modal dismissals.
-- **`gentleSpring`** (`{ tension: 140, friction: 7 }`): For press-out releases and card bounce-backs.
-- **`snappySpring`** (`{ tension: 220, friction: 14 }`): For celebratory milestones, streak counters, and Bantay expression shifts.
-
-### 4. Zero-Lag Handoff
-- Animations run strictly on native driver threads (`useNativeDriver: true`).
-- No heavy computations or blocking re-renders occur during active gesture tracking.
-
----
-
-## 9. Accessibility & Inclusivity Invariants
-
-1. **The Read-It-Once Rule**:
-   - Medicine names, dosage strengths (e.g., "500 mg"), times (e.g., "8:00 AM"), and instructions never use low-contrast type, all-caps, or fonts under `14px`.
-2. **WCAG AA Compliance**:
-   - All text achieves at least 4.5:1 contrast against its background.
-   - Critical icons (pill, check, alert) always pair with an accessible text label.
-3. **One-Handed & Large Text Resilience**:
-   - Primary action buttons maintain at least `52px` vertical touch height.
-   - Text containers expand gracefully without clipping when system font size scales up to 200%.
-
----
-
-## 10. Do's and Don'ts
-
-### Do:
-- **Do** name the patient explicitly before presenting or confirming dose actions.
-- **Do** use crisp 1px borders (`#E2ECE5`) and white elevation rather than drop shadows.
-- **Do** use `#1B4D3E` and `#2D6A4F` for reassuring clinical structure, reserving `#FF7A00` for streaks and urgent warnings.
-- **Do** provide instant `100ms` press-in feedback with `0.98` or `0.96` scale on all touchables.
-- **Do** keep drawer and modal transitions sub-300ms ease-out.
-
-### Don't:
-- **Don't** use muddy drop shadows or heavy blur layers.
-- **Don't** use generic cold hospital blues or clinical gray palettes.
-- **Don't** show alarmist red warning banners for standard reminders.
-- **Don't** display decorative uppercase typography for critical prescription details.
-- **Don't** omit the person's name on dose logging or review sheets.
+- **Do** name the person before showing their care information.
+- **Do** keep one title per section, in serif.
+- **Don't** add tinted icon squircles, card grids, gradients, or drop shadows.
+- **Don't** use uppercase labels, emoji in copy, or alarmist red for routine reminders.
+- **Don't** introduce a second accent colour; narra is the only one.

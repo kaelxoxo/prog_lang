@@ -1284,8 +1284,6 @@ export function createAppServer(
         const body = await readJson(request);
         const input = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
         const queryText = textField(input.query, 'Assistant query', 500);
-        const rawLocale = input.locale;
-        const locale = rawLocale === 'fil' ? 'fil' : 'en';
         const currentLocalTime = typeof input.currentLocalTime === 'string' ? input.currentLocalTime : undefined;
         let todayDate = typeof input.todayDate === 'string' && input.todayDate ? validatedLocalDate(input.todayDate) : undefined;
 
@@ -1354,7 +1352,6 @@ export function createAppServer(
 
           return queryAssistant({
             query: queryText,
-            locale,
             currentLocalTime,
             todayDate,
             patient: {

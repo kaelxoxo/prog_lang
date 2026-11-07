@@ -3,7 +3,7 @@ import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
 import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 
 import { colors, durations, springs } from '../../theme/tokens';
-import { BantayMascotSvg, type BantayExpression } from './BantayMascotSvg';
+import { BantayMascotSvg, bantayPalette, type BantayExpression } from './BantayMascotSvg';
 
 export type SetupBantayPose =
   | 'letter'
@@ -23,10 +23,7 @@ type Props = {
   accessibilityLabel: string;
 };
 
-const coat = '#D9944D';
-const coatDark = '#C77C36';
-const muzzle = '#FDF5EB';
-const eye = '#2D1C10';
+const { coat, eye, ink, muzzle } = bantayPalette;
 const outline = colors.primary;
 const mint = colors.primaryTint;
 const ochre = colors.sun;
@@ -47,13 +44,19 @@ const PoseArms = memo(function PoseArms({ pose }: { pose: SetupBantayPose }) {
       <Path
         d={family ? 'M40 74 Q33 67 39 62 L46 68 Q44 74 48 80 Z' : chest ? 'M41 73 Q43 83 56 81 L57 86 Q37 91 35 76 Z' : 'M40 74 Q38 86 47 94 L52 89 Q47 81 48 74 Z'}
         fill={coat}
+        stroke={ink}
+        strokeLinejoin="round"
+        strokeWidth="1.3"
       />
-      <Ellipse cx={family ? 41 : chest ? 56 : 49} cy={family ? 64 : chest ? 82 : 91} rx="5" ry="4" fill={muzzle} />
+      <Ellipse cx={family ? 41 : chest ? 56 : 49} cy={family ? 64 : chest ? 82 : 91} rx="5" ry="4" fill={muzzle} stroke={ink} strokeWidth="1.1" />
       <Path
         d={salute ? 'M79 73 Q88 61 77 25 L71 30 Q80 60 69 76 Z' : family ? 'M80 74 Q87 67 81 62 L74 68 Q76 74 72 80 Z' : 'M80 74 Q85 86 75 94 L69 89 Q76 80 72 74 Z'}
         fill={coat}
+        stroke={ink}
+        strokeLinejoin="round"
+        strokeWidth="1.3"
       />
-      <Ellipse cx={salute ? 76 : family ? 79 : 72} cy={salute ? 27 : family ? 64 : 91} rx="5" ry="4" fill={muzzle} />
+      <Ellipse cx={salute ? 76 : family ? 79 : 72} cy={salute ? 27 : family ? 64 : 91} rx="5" ry="4" fill={muzzle} stroke={ink} strokeWidth="1.1" />
     </G>
   );
 });
@@ -66,7 +69,7 @@ const Dog = memo(function Dog({ pose, size }: { pose: SetupBantayPose; size: num
       variant="full"
       size={size}
       expression={faces[pose]}
-      pose={{ hideFrontPaws: !waiting, hideTail: waiting, layer: waiting ? undefined : <PoseArms pose={pose} /> }}
+      scene={{ hideFrontPaws: !waiting, hideTail: waiting, layer: waiting ? undefined : <PoseArms pose={pose} /> }}
     />
   );
 });
@@ -95,11 +98,8 @@ const Prop = memo(function Prop({ pose }: { pose: SetupBantayPose }) {
 const EnvelopeFlap = memo(function EnvelopeFlap() {
   return <Svg width="100%" height="100%" viewBox="0 0 32 13"><Path d="M1 11 L16 1 L31 11" fill={mint} stroke={outline} strokeWidth="1.4" strokeLinejoin="round" /></Svg>;
 });
-const Heart = memo(function Heart() {
-  return <Svg width="100%" height="100%" viewBox="0 0 18 17"><Path d="M9 16 C3 11 0 8 2 4 C4 1 8 2 9 5 C11 1 16 1 17 5 C18 9 14 12 9 16 Z" fill={ochre} /></Svg>;
-});
 const Tail = memo(function Tail() {
-  return <Svg width="100%" height="100%" viewBox="0 0 30 33"><Path d="M0 28 Q26 26 23 4 Q18 1 16 11 Q15 24 0 28 Z" fill={coatDark} /></Svg>;
+  return <Svg width="100%" height="100%" viewBox="0 0 30 33"><Path d="M1 28 Q26 26 23 4 Q18 1 16 11 Q15 24 1 28 Z" fill={coat} stroke={ink} strokeLinejoin="round" strokeWidth="1.3" /></Svg>;
 });
 const Pen = memo(function Pen() {
   return <Svg width="100%" height="100%" viewBox="0 0 22 26"><Path d="M3 23 L18 3 L21 6 L6 25 Z" fill={ochre} stroke={outline} strokeWidth="1.3" /><Path d="M3 23 L6 25" stroke={eye} strokeWidth="2" /></Svg>;
@@ -203,7 +203,6 @@ function PoseScene({ pose, size, compact, reactionKey, reduceMotion }: Omit<Prop
 
   const enterScale = enter.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] });
   const detailY = detail.interpolate({ inputRange: [0, 1], outputRange: [pose === 'stamp' ? -10 * unit : 7 * unit, 0] });
-  const letterHeartY = detail.interpolate({ inputRange: [0, 1], outputRange: [4 * unit, -26 * unit] });
   const sway = loop.interpolate({ inputRange: [0, 1], outputRange: ['-4deg', '4deg'] });
   const gentleTilt = loop.interpolate({ inputRange: [0, 1], outputRange: ['-2deg', '2deg'] });
   const peek = loop.interpolate({ inputRange: [0, 1], outputRange: [0, 2 * unit] });
@@ -218,7 +217,6 @@ function PoseScene({ pose, size, compact, reactionKey, reduceMotion }: Omit<Prop
     <View style={{ width: size * 1.25, height: size * (compact ? 88 / 120 : 1), overflow: 'hidden' }}>
       {pose === 'waiting' && !compact && <Animated.View style={[box({ x: 79, y: 62, width: 29, height: 33 }), { transform: [{ rotate: sway }] }]}><Tail /></Animated.View>}
       <Animated.View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={{ width: size * 1.25, height: size, top: -offsetY * unit, transform: [{ translateX: pose === 'waiting' ? peek : 0 }, { scale: enterScale }] }}><Dog pose={pose} size={size} /></Animated.View>
-      {pose === 'letter' && <Animated.View style={[box({ x: 84, y: 74, width: 14, height: 14 }), { opacity: detail, transform: [{ translateY: letterHeartY }, { rotate: gentleTilt }] }]}><Heart /></Animated.View>}
       {pose !== 'sending' && <Animated.View style={[box(prop), { opacity: enter, transform: [{ translateY: detailY }, { scale: enter.interpolate({ inputRange: [0, 1], outputRange: compact ? [0.78, 0.85] : [0.92, 1] }) }, { rotate: pose === 'waiting' ? '0deg' : gentleTilt }] }]}><Prop pose={pose} /></Animated.View>}
       {pose === 'letter' && <Animated.View style={[box({ x: 48, y: 75, width: 30, height: 12 }), { transform: [{ rotateX: detail.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '65deg'] }) }] }]}><EnvelopeFlap /></Animated.View>}
       {pose === 'writing' && <Animated.View style={[box({ x: 69, y: 76, width: 20, height: 24 }), { transform: [{ translateX: penX }, { translateY: penY }, { rotate: gentleTilt }] }]}><Pen /></Animated.View>}

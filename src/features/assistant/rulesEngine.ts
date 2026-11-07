@@ -1,7 +1,6 @@
 import {
   type AssistantActionableDose,
   type AssistantDoseContext,
-  type AssistantLocale,
   type AssistantMedicationDraft,
   type LocalEvaluationContext,
   type LocalEvaluationResult,
@@ -9,10 +8,10 @@ import {
 } from './types';
 import { detectOffTopicRequest, offTopicDecline } from './topicGuardrail';
 
-function formatFriendlyTime(value: string | Date, locale: AssistantLocale): string {
+function formatFriendlyTime(value: string | Date): string {
   try {
     const date = typeof value === 'string' ? new Date(value) : value;
-    return new Intl.DateTimeFormat(locale === 'fil' ? 'fil-PH' : 'en-US', {
+    return new Intl.DateTimeFormat('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       timeZone: 'Asia/Manila',
@@ -34,10 +33,8 @@ function getDoseEffectiveTime(dose: AssistantDoseContext): number {
   return new Date(target).getTime();
 }
 
-function defaultQuickReplies(locale: AssistantLocale): string[] {
-  return locale === 'fil'
-    ? ['+ Magdagdag ng gamot', 'Ano ang susunod na gamot?', 'Buod ng araw na ito']
-    : ['+ Add medicine', "What's due next?", "Today's summary"];
+function defaultQuickReplies(): string[] {
+  return ['+ Add medicine', "What's due next?", "Today's summary"];
 }
 
 function generateDraftId(): string {
@@ -60,7 +57,7 @@ export function parseTimeTo24h(hour: number, minute: number, meridiemOrPeriod?: 
 export function extractExactTimes(text: string): string[] {
   const times: string[] = [];
 
-  // Match Filipino 'alas 8 ng umaga', 'alas-8 ng gabi', 'alas 9'
+  // Match Tagalog clock phrases 'alas 8 ng umaga', 'alas-8 ng gabi', 'alas 9'
   const tagalogTimeRegex = /\balas[- ]?(\d{1,2})(?::(\d{2}))?\s*(?:ng\s+(umaga|hapon|gabi|madaling\s*araw))?\b/gi;
   let match: RegExpExecArray | null;
   while ((match = tagalogTimeRegex.exec(text)) !== null) {
@@ -406,20 +403,20 @@ const PRESCRIPTION_PATTERNS = [
 ];
 
 export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvaluationResult {
-  const { query, locale, patient, medications, timeline, now } = context;
+  const { query, patient, medications, timeline, now } = context;
   const trimmed = query.trim();
-  const patientName = patient?.displayName || (locale === 'fil' ? 'ang pasyente' : 'the patient');
+  const patientName = patient?.displayName || 'the patient';
 
   // 0. Topic scope: Bantay only helps with the patient's medicines and care in Alaga.
   if (detectOffTopicRequest(trimmed)) {
     return {
       handled: true,
-      answer: offTopicDecline(patientName, locale),
+      answer: offTopicDecline(patientName),
       actionableDose: null,
       medicationDraft: null,
       pendingDraft: context.pendingDraftState ?? null,
       expression: 'idle',
-      suggestedQuickReplies: defaultQuickReplies(locale),
+      suggestedQuickReplies: defaultQuickReplies(),
       source: 'local_rules',
     };
   }
@@ -446,16 +443,14 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
       : DOSAGE_MODIFICATION_PATTERNS.some((pattern) => pattern.test(trimmed));
 
   if (isDiagnosisQuery || isDosageQuery) {
-    const answer = locale === 'fil'
-      ? `Para sa anumang pagbabago sa gamot, dosage, o medikal na kalagayan, mangyaring sumangguni agad sa doktor o healthcare provider ni ${patientName}. Hindi po ako maaaring magbigay ng diagnosis o magbago ng niresetang gamot.`
-      : `For any adjustments to medicines, dosage changes, or health concerns, please consult ${patientName}'s doctor or healthcare provider directly. I cannot diagnose conditions or modify prescribed doses.`;
+    const answer = `For any adjustments to medicines, dosage changes, or health concerns, please consult ${patientName}'s doctor or healthcare provider directly. I cannot diagnose conditions or modify prescribed doses.`;
 
     return {
       handled: true,
       answer,
       actionableDose: null,
       expression: 'idle',
-      suggestedQuickReplies: defaultQuickReplies(locale),
+      suggestedQuickReplies: defaultQuickReplies(),
       source: 'local_rules',
     };
   }
@@ -467,9 +462,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
   // Check cancellation intent when draft is pending
   const isCancelIntent = /^(?:cancel|itigil|ihinto|wag\s+na\s+lang|huwag\s+na\s+lang|ayaw\s+na|stop)$/i.test(trimmed);
   if (hasPendingDraft && isCancelIntent) {
-    const answer = locale === 'fil'
-      ? `Kinansela ko ang pagdagdag ng gamot para kay ${patientName}.`
-      : `I cancelled adding the medicine for ${patientName}.`;
+    const answer = `I cancelled adding the medicine for ${patientName}.`;
 
     return {
       handled: true,
@@ -478,7 +471,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
       medicationDraft: null,
       pendingDraft: null,
       expression: 'idle',
-      suggestedQuickReplies: defaultQuickReplies(locale),
+      suggestedQuickReplies: defaultQuickReplies(),
       source: 'local_rules',
     };
   }
@@ -500,13 +493,9 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
 
     if (!canManage) {
       const managerName = context.primaryCareManagerName ?? (context.patient?.primaryCareManagerName as string | undefined);
-      const answer = locale === 'fil'
-        ? (managerName
-          ? `Tanging ang mga tagapamahala ng pangangalaga ang maaaring magdagdag ng bagong gamot para kay ${patientName}. Mangyaring makipag-ugnayan kay ${managerName}.`
-          : `Tanging ang mga tagapamahala ng pangangalaga ang maaaring magdagdag ng bagong gamot para kay ${patientName}. Mangyaring makipag-ugnayan sa pangunahing tagapamahala ng pangangalaga.`)
-        : (managerName
-          ? `Only primary care managers can add new medicines for ${patientName}. Please coordinate with ${managerName}.`
-          : `Only primary care managers can add new medicines for ${patientName}. Please coordinate with the primary care manager.`);
+      const answer = managerName
+        ? `Only primary care managers can add new medicines for ${patientName}. Please coordinate with ${managerName}.`
+        : `Only primary care managers can add new medicines for ${patientName}. Please coordinate with the primary care manager.`;
 
       return {
         handled: true,
@@ -515,7 +504,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
         medicationDraft: null,
         pendingDraft: null,
         expression: 'idle',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
@@ -525,9 +514,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
       trimmed,
     );
     if (isPromptOnly && !hasPendingDraft) {
-      const answer = locale === 'fil'
-        ? `Anong gamot ang nais mong idagdag para kay ${patientName}?`
-        : `What medicine would you like to add for ${patientName}?`;
+      const answer = `What medicine would you like to add for ${patientName}?`;
 
       return {
         handled: true,
@@ -549,7 +536,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
           route: 'Oral',
         },
         expression: 'thinking',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
@@ -594,9 +581,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
     } else {
       const displayName = detectedNewName || extractMedicineName(trimmed);
       if (!displayName) {
-        const answer = locale === 'fil'
-          ? `Anong gamot ang nais mong idagdag para kay ${patientName}?`
-          : `What medicine would you like to add for ${patientName}?`;
+        const answer = `What medicine would you like to add for ${patientName}?`;
 
         return {
           handled: true,
@@ -605,7 +590,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
           medicationDraft: null,
           pendingDraft: null,
           expression: 'idle',
-          suggestedQuickReplies: defaultQuickReplies(locale),
+          suggestedQuickReplies: defaultQuickReplies(),
           source: 'local_rules',
         };
       }
@@ -636,9 +621,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
     const hasStrength = draftToProcess.strengthValue !== null;
 
     if (!hasTimes && !hasStrength) {
-      const answer = locale === 'fil'
-        ? `Anong oras at dosage dapat inumin ni ${patientName} ang ${draftToProcess.displayName}?`
-        : `What time and dosage should ${patientName} take for ${draftToProcess.displayName}?`;
+      const answer = `What time and dosage should ${patientName} take for ${draftToProcess.displayName}?`;
 
       return {
         handled: true,
@@ -647,7 +630,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
         medicationDraft: null,
         pendingDraft: draftToProcess,
         expression: 'thinking',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
@@ -656,9 +639,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
       const strengthPart = draftToProcess.strengthValue
         ? ` ${draftToProcess.strengthValue}${draftToProcess.strengthUnit}`
         : '';
-      const answer = locale === 'fil'
-        ? `Anong oras dapat inumin ni ${patientName} ang ${draftToProcess.displayName}${strengthPart}?`
-        : `What time should ${patientName} take ${draftToProcess.displayName}${strengthPart}?`;
+      const answer = `What time should ${patientName} take ${draftToProcess.displayName}${strengthPart}?`;
 
       return {
         handled: true,
@@ -667,15 +648,13 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
         medicationDraft: null,
         pendingDraft: draftToProcess,
         expression: 'thinking',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
 
     if (!hasStrength) {
-      const answer = locale === 'fil'
-        ? `Ano ang dosage o lakas para sa ${draftToProcess.displayName} (hal., 500mg, 1 tableta)?`
-        : `What is the dosage or strength for ${draftToProcess.displayName} (e.g., 500mg, 1 tablet)?`;
+      const answer = `What is the dosage or strength for ${draftToProcess.displayName} (e.g., 500mg, 1 tablet)?`;
 
       return {
         handled: true,
@@ -684,7 +663,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
         medicationDraft: null,
         pendingDraft: draftToProcess,
         expression: 'thinking',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
@@ -710,11 +689,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
     }
 
     const answer = duplicate
-      ? locale === 'fil'
-        ? `Inihanda ko ang draft para sa ${draftToProcess.displayName}. Paalala: Ang ${duplicate.displayName} ay nasa listahan na ng aktibong gamot ni ${patientName}.`
-        : `I prepared a draft for ${draftToProcess.displayName}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`
-      : locale === 'fil'
-      ? `Narito ang draft para sa ${draftToProcess.displayName}. Pakisuri at kumpirmahin.`
+      ? `I prepared a draft for ${draftToProcess.displayName}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`
       : `Here is the draft for ${draftToProcess.displayName}. Please review and confirm.`;
 
     return {
@@ -724,7 +699,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
       medicationDraft: draftToProcess,
       pendingDraft: null,
       expression: 'idle',
-      suggestedQuickReplies: defaultQuickReplies(locale),
+      suggestedQuickReplies: defaultQuickReplies(),
       source: 'local_rules',
     };
   }
@@ -732,15 +707,13 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
   // 2. Next Dose Intent
   if (NEXT_DOSE_PATTERNS.some((pattern) => pattern.test(trimmed))) {
     if (timeline.length === 0) {
-      const answer = locale === 'fil'
-        ? `Walang nakaiskedyul na gamot si ${patientName} para sa araw na ito.`
-        : `${patientName} has no medicines scheduled for today.`;
+      const answer = `${patientName} has no medicines scheduled for today.`;
       return {
         handled: true,
         answer,
         actionableDose: null,
         expression: 'idle',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
@@ -750,15 +723,13 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
       .sort((a, b) => getDoseEffectiveTime(a) - getDoseEffectiveTime(b));
 
     if (uncompletedDoses.length === 0) {
-      const answer = locale === 'fil'
-        ? `Lahat ng gamot para sa araw na ito ay naitala na! Mahusay ang pag-aalaga mo kay ${patientName}.`
-        : `All doses for today have already been recorded! Great job caring for ${patientName} today.`;
+      const answer = `All doses for today have already been recorded! Great job caring for ${patientName} today.`;
       return {
         handled: true,
         answer,
         actionableDose: null,
         expression: 'celebration',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
@@ -768,18 +739,14 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
     const upcomingDose = uncompletedDoses.find((d) => getDoseEffectiveTime(d) >= currentTime - 60_000);
     const targetDose = upcomingDose || uncompletedDoses[0];
     const isOverdue = getDoseEffectiveTime(targetDose) < currentTime - 60_000;
-    const timeFormatted = formatFriendlyTime(targetDose.scheduledFor, locale);
+    const timeFormatted = formatFriendlyTime(targetDose.scheduledFor);
     const doseDescription = formatDoseLine(targetDose);
 
     let answer = '';
     if (isOverdue) {
-      answer = locale === 'fil'
-        ? `May hindi pa naitatalang gamot si ${patientName} na ${targetDose.medicationName} (${doseDescription}) na nakaiskedyul noong ${timeFormatted} na kailangang suriin.`
-        : `${patientName} has an unrecorded dose of ${targetDose.medicationName} (${doseDescription}) scheduled for ${timeFormatted} that needs review.`;
+      answer = `${patientName} has an unrecorded dose of ${targetDose.medicationName} (${doseDescription}) scheduled for ${timeFormatted} that needs review.`;
     } else {
-      answer = locale === 'fil'
-        ? `Ang susunod na gamot ni ${patientName} ay ${targetDose.medicationName} (${doseDescription}) sa ganap na ${timeFormatted}.`
-        : `${patientName}'s next scheduled dose is ${targetDose.medicationName} (${doseDescription}) at ${timeFormatted}.`;
+      answer = `${patientName}'s next scheduled dose is ${targetDose.medicationName} (${doseDescription}) at ${timeFormatted}.`;
     }
 
     return {
@@ -787,7 +754,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
       answer,
       actionableDose: toActionableDose(targetDose),
       expression: 'idle',
-      suggestedQuickReplies: defaultQuickReplies(locale),
+      suggestedQuickReplies: defaultQuickReplies(),
       source: 'local_rules',
     };
   }
@@ -796,15 +763,13 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
   if (SUMMARY_PATTERNS.some((pattern) => pattern.test(trimmed))) {
     const total = timeline.length;
     if (total === 0) {
-      const answer = locale === 'fil'
-        ? `Walang nakaiskedyul na gamot para kay ${patientName} ngayong araw.`
-        : `There are no scheduled doses for ${patientName} today.`;
+      const answer = `There are no scheduled doses for ${patientName} today.`;
       return {
         handled: true,
         answer,
         actionableDose: null,
         expression: 'idle',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
@@ -814,22 +779,18 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
     const pending = timeline.filter((d) => d.status === 'not_recorded' || d.status === 'snoozed').length;
 
     if (taken === total) {
-      const answer = locale === 'fil'
-        ? `Buod para kay ${patientName} ngayong araw: lahat ng ${total} na inumin ay naitalang nainom na! Napakahusay ng pag-aalaga.`
-        : `Today's summary for ${patientName}: all ${total} scheduled doses have been taken! Excellent care today.`;
+      const answer = `Today's summary for ${patientName}: all ${total} scheduled doses have been taken! Excellent care today.`;
       return {
         handled: true,
         answer,
         actionableDose: null,
         expression: 'celebration',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
 
-    const answer = locale === 'fil'
-      ? `Buod para kay ${patientName} ngayong araw: ${taken} sa ${total} na inumin ang naitalang nainom, ${skipped} ang nilaktawan, at ${pending} ang naghihintay ng tala.`
-      : `Today's summary for ${patientName}: ${taken} of ${total} doses recorded as taken, ${skipped} skipped, and ${pending} pending review.`;
+    const answer = `Today's summary for ${patientName}: ${taken} of ${total} doses recorded as taken, ${skipped} skipped, and ${pending} pending review.`;
 
     const pendingDose = timeline.find((d) => d.status === 'not_recorded' || d.status === 'snoozed');
 
@@ -838,7 +799,7 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
       answer,
       actionableDose: pendingDose ? toActionableDose(pendingDose) : null,
       expression: 'idle',
-      suggestedQuickReplies: defaultQuickReplies(locale),
+      suggestedQuickReplies: defaultQuickReplies(),
       source: 'local_rules',
     };
   }
@@ -856,51 +817,45 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
   const isRecordedOrTakenCheck = /\b(record|recorded|tala|naitala|nainom|naipainom|taken|given)\b/i.test(queryLower);
   if (!isFoodOrAdministrationInquiry && !isMissedDoseInquiry && (isStatusQuery || (matchedDose && isRecordedOrTakenCheck))) {
     if (matchedDose) {
-      const actor = matchedDose.recordedByName || (locale === 'fil' ? 'isang tagapag-alaga' : 'a caregiver');
-      const timeTaken = matchedDose.recordedAt ? formatFriendlyTime(matchedDose.recordedAt, locale) : formatFriendlyTime(matchedDose.scheduledFor, locale);
+      const actor = matchedDose.recordedByName || 'a caregiver';
+      const timeTaken = matchedDose.recordedAt ? formatFriendlyTime(matchedDose.recordedAt) : formatFriendlyTime(matchedDose.scheduledFor);
 
       if (matchedDose.status === 'taken') {
-        const answer = locale === 'fil'
-          ? `Oo, naitala na ang ${matchedDose.medicationName} bilang nainom ni ${actor} noong ${timeTaken}.`
-          : `Yes, ${matchedDose.medicationName} was recorded as taken by ${actor} at ${timeTaken}.`;
+        const answer = `Yes, ${matchedDose.medicationName} was recorded as taken by ${actor} at ${timeTaken}.`;
         return {
           handled: true,
           answer,
           actionableDose: null,
           expression: 'idle',
-          suggestedQuickReplies: defaultQuickReplies(locale),
+          suggestedQuickReplies: defaultQuickReplies(),
           source: 'local_rules',
         };
       }
 
       if (matchedDose.status === 'skipped') {
         const reasonPart = matchedDose.reason
-          ? (locale === 'fil' ? ` Dahilan: ${matchedDose.reason}.` : ` Reason: ${matchedDose.reason}.`)
+          ? ` Reason: ${matchedDose.reason}.`
           : '';
-        const answer = locale === 'fil'
-          ? `Ang ${matchedDose.medicationName} ay minarkahang nilaktawan ni ${actor} noong ${timeTaken}.${reasonPart}`
-          : `${matchedDose.medicationName} was marked as skipped by ${actor} at ${timeTaken}.${reasonPart}`;
+        const answer = `${matchedDose.medicationName} was marked as skipped by ${actor} at ${timeTaken}.${reasonPart}`;
         return {
           handled: true,
           answer,
           actionableDose: null,
           expression: 'idle',
-          suggestedQuickReplies: defaultQuickReplies(locale),
+          suggestedQuickReplies: defaultQuickReplies(),
           source: 'local_rules',
         };
       }
 
       // not_recorded or snoozed
-      const schedTime = formatFriendlyTime(matchedDose.scheduledFor, locale);
-      const answer = locale === 'fil'
-        ? `Hindi pa naitatala ang ${matchedDose.medicationName} ngayong araw. Ito ay nakaiskedyul sa ganap na ${schedTime}.`
-        : `${matchedDose.medicationName} has not been recorded yet today. It is scheduled for ${schedTime}.`;
+      const schedTime = formatFriendlyTime(matchedDose.scheduledFor);
+      const answer = `${matchedDose.medicationName} has not been recorded yet today. It is scheduled for ${schedTime}.`;
       return {
         handled: true,
         answer,
         actionableDose: toActionableDose(matchedDose),
         expression: 'idle',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
@@ -912,15 +867,13 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
     });
 
     if (matchedMed) {
-      const answer = locale === 'fil'
-        ? `Ang ${matchedMed.displayName} ay nasa listahan ng gamot ni ${patientName}, ngunit walang nakaiskedyul na inumin para sa araw na ito.`
-        : `${matchedMed.displayName} is in ${patientName}'s medicine list, but has no scheduled doses for today.`;
+      const answer = `${matchedMed.displayName} is in ${patientName}'s medicine list, but has no scheduled doses for today.`;
       return {
         handled: true,
         answer,
         actionableDose: null,
         expression: 'idle',
-        suggestedQuickReplies: defaultQuickReplies(locale),
+        suggestedQuickReplies: defaultQuickReplies(),
         source: 'local_rules',
       };
     }
@@ -928,15 +881,13 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
 
   // 5. Prescription Guidance Intent
   if (PRESCRIPTION_PATTERNS.some((pattern) => pattern.test(trimmed))) {
-    const answer = locale === 'fil'
-      ? `Upang magdagdag o mamahala ng reseta para kay ${patientName}, pumunta sa Medicines tab. Maaari kang magdagdag nang manu-mano o mag-scan ng label o timetable gamit ang camera.`
-      : `To add or manage prescriptions for ${patientName}, go to the Medicines tab. You can add medicines manually or scan prescription labels and timetables with your camera.`;
+    const answer = `To add or manage prescriptions for ${patientName}, go to the Medicines tab. You can add medicines manually or scan prescription labels and timetables with your camera.`;
     return {
       handled: true,
       answer,
       actionableDose: null,
       expression: 'idle',
-      suggestedQuickReplies: defaultQuickReplies(locale),
+      suggestedQuickReplies: defaultQuickReplies(),
       source: 'local_rules',
     };
   }

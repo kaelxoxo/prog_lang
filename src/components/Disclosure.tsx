@@ -1,14 +1,10 @@
 import { useState, type ReactNode } from 'react';
-import { LayoutAnimation, Platform, StyleSheet, UIManager, View, type StyleProp, type ViewStyle } from 'react-native';
+import { LayoutAnimation, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useReducedMotion } from '../lib/useReducedMotion';
 import { durations } from '../theme/tokens';
 import { AppIcon } from './AppIcon';
 import { PressableScale } from './PressableScale';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 type Props = {
   /** Read by screen readers for the header row, e.g. "Later today, 6 doses, next at 6:00 PM". */

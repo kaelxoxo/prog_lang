@@ -14,7 +14,7 @@ import { SyntheticDataNotice } from './src/components/SyntheticDataNotice';
 import { MainTabs } from './src/features/navigation/MainTabs';
 import { PatientProvider, usePatient } from './src/features/patients/PatientProvider';
 import { configureNotifications } from './src/features/reminders/notifications';
-import { LocaleProvider, useLocale } from './src/features/settings/LocaleProvider';
+import { useLocale } from './src/features/settings/LocaleProvider';
 import { spacing, type AppColors } from './src/theme/tokens';
 import { useTheme, useThemedStyles } from './src/theme/useTheme';
 
@@ -159,14 +159,12 @@ export default function App() {
       <SafeAreaView style={styles.app}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <QueryClientProvider client={queryClient}>
-          <LocaleProvider>
-            <SyntheticDataNotice />
-            <View style={styles.content}>
-              <AuthProvider>
-                <AppContent />
-              </AuthProvider>
-            </View>
-          </LocaleProvider>
+          <SyntheticDataNotice />
+          <View style={styles.content}>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </View>
         </QueryClientProvider>
       </SafeAreaView>
     </SafeAreaProvider>

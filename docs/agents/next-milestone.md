@@ -4,6 +4,10 @@ This is the canonical resume point for roadmap work. It records the state throug
 
 The longer-term priority order and definitions of done live in `docs/agents/app-roadmap.md`. When the user asks **"what to do next"** or whether to focus on testing, UI/UX, or backend work, read the live checkpoint below first, then resume the earliest incomplete milestone in that roadmap.
 
+## Language: English only (2026-11-07)
+
+Filipino was removed on 2026-11-07 (see `docs/product-decisions.md`). The app and Bantay's replies are English only; Settings has no language picker and no locale is persisted. All copy lives in the `english` dictionary in `src/features/settings/translations.ts` and is read through `useLocale().t`; dates and times format with `localeTag` (`en-PH`) and `Asia/Manila`. Bantay still understands Tagalog/Taglish questions. Re-adding Filipino later means a second dictionary plus a picker. Older entries below that mention English/Filipino settings describe the app before this decision.
+
 ## Today's goal and live resume checkpoint: 2026-08-30
 
 When the user asks **"what are the goals for today"** in a new session, read this section first and continue from the current stop point unless the user gives newer instructions.
@@ -76,34 +80,9 @@ Milestones 0, 1, 2, 3, and the Complete Application-Wide UI/UX Revamp across all
 
 Do not plan a pilot, public users, production hosting or real-data workflows. Use synthetic accounts, people, medicines, prescriptions, timetables and images only. The supported development paths are Android Emulator, Expo Go on a shared private LAN, or an Android device connected through USB port reversal.
 
-## Completed milestone: English/Filipino Settings
+## Removed milestone: English/Filipino Settings
 
-The core interface now has a persisted English/Filipino preference:
-
-- Settings opens from every main care tab while the bottom navigation remains Home, Today and Medicines.
-- Native uses Expo SecureStore and web uses localStorage under the same locale boundary.
-- The selected language updates navigation, the active-patient safety header, authentication, Home, Today, seven-day history, dose actions and medicine lists.
-- Locale-aware Philippine dates and times use `en-PH` or `fil-PH` while retaining `Asia/Manila` where care timing requires it.
-- Typed interpolation preserves patient names, medicine wording, dose units, notes, correction reasons and other source data instead of translating or rewriting it.
-- Settings explicitly labels the remaining translation as partial: person management, medicine forms, invitations, reminder controls and technical error details remain English.
-
-Automated verification at the handoff:
-
-- `npm.cmd run typecheck` passed.
-- `npm.cmd run test:server` passed all 13 tests, including the source-wording localization regression test.
-- `npx.cmd expo-doctor` passed 21 of 21 checks.
-- `npm.cmd run export:android` passed with a clean Android bundle.
-- The notification scan found none of `warnOfExpoGoPushUsage`, `addPushTokenListener` or `DevicePushTokenAutoRegistration`.
-
-The localization milestone did not include a physical device check. No browser backend, Android device or emulator was connected, so the following remain physically unverified:
-
-- changing language through Settings and surviving a web reload;
-- SecureStore persistence across an Android restart;
-- Settings layout at large system text sizes;
-- TalkBack radio-state announcements;
-- representative English/Filipino copy in Expo Go and an Android development build.
-
-Use `docs/manual-test-checklist.md` section “Milestone 9: English and Filipino settings” for that pass. Never imply the Android export exercised device runtime behavior.
+The persisted English/Filipino preference (SecureStore/localStorage key `alaga.locale`, the Settings language radio group and its coverage note) was completed in Milestone 9 and removed on 2026-11-07. What remains from it: typed `t()` interpolation that preserves patient names, medicine wording, dose units, notes, correction reasons and other source data verbatim, guarded by `server/tests/localization.test.ts`.
 
 ## Completed hardening: live runtime handoff
 
@@ -144,7 +123,7 @@ Work stopped at the user's request after the five-part Impeccable improvement pa
 - Verification completed before stopping: typecheck passed, all 18 tests passed, Expo Doctor passed 21/21, and the clean Android export plus notification scan passed.
 - The user asked not to repeat the live connection probe after restarting Expo. Do not claim the new automated Android checker itself received a final green live run.
 - Remaining P1 work: physical TalkBack grouping/focus-order refinement and 1.5–2× text adaptation for PatientSwitcher, DoseTimeline, and medicine action rows.
-- Remaining P2 work: reduce repeated header chrome and complete Filipino coverage in patient management, reminders, OCR, and the medicine editor.
+- Remaining P2 work: reduce repeated header chrome.
 - Detailed evidence: `.impeccable/critique/2026-08-27T13-15-20Z__src.md`.
 
 The temporary Android review captures (`alaga-after-home.*`, `alaga-connectivity*.xml`, and `alaga-final-current.png`) were reviewed and removed during the portfolio cleanup because they were diagnostic, contained stale connection state, or were not suitable for presentation. The written critique reports remain as evidence.
@@ -154,12 +133,10 @@ The temporary Android review captures (`alaga-after-home.*`, `alaga-connectivity
 Finish the presentation layer without expanding into hosting or pilot preparation:
 
 1. Tighten the README around the problem, safety boundaries, architecture and local demo path.
-2. Run the pending localization/device checks with synthetic data and fix any clipping or unclear Filipino copy found on-device.
+2. Run the pending device checks with synthetic data and fix any clipping or unclear copy found on-device.
 3. Capture synthetic-data screenshots only after those checks pass.
 4. Document a repeatable local demo route.
 5. Prepare an Android demo build if it materially improves the portfolio handoff.
-
-The app still intentionally stops short of full localization. Translate the disclosed remaining surfaces only when the portfolio demo route actually exercises them; do not add a localization dependency for two locales.
 
 ### Portfolio progress: 2026-08-28
 

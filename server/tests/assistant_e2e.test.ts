@@ -1,21 +1,14 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import sharp from 'sharp';
-
 import { lightColors, darkColors, spacing, radii } from '../../src/theme/tokens';
-import { translations, localeTag, translate, type Locale, type CopyKey } from '../../src/features/settings/translations';
+import { translate } from '../../src/features/settings/translations';
 
 // ============================================================================
 // E2E Test Suite for "Ask Bantay" In-App Contextual AI Care Assistant
 // Covering Tiers 1-4 as specified in TEST_INFRA.md and PROJECT.md
 // ============================================================================
-
-const ROOT_DIR = path.resolve(__dirname, '../..');
-const ASSETS_DIR = path.join(ROOT_DIR, 'assets');
 
 // Authoritative Interface Contracts from PROJECT.md
 interface DoseTimelineItem {
@@ -36,7 +29,6 @@ interface DoseTimelineItem {
 
 interface AssistantQueryRequest {
   query: string;
-  locale: 'en' | 'fil';
   currentLocalTime?: string;
   todayDate?: string;
 }
@@ -94,7 +86,6 @@ function contrastRatio(hex1: string, hex2: string): number {
 // Authoritative local rules evaluator derived from PROJECT.md & ORIGINAL_REQUEST.md
 function evaluateLocalRulesContract(
   query: string,
-  locale: 'en' | 'fil',
   patientName: string,
   timeline: DoseTimelineItem[],
   nowIso: string,
@@ -112,10 +103,7 @@ function evaluateLocalRulesContract(
     if (timeline.length === 0) {
       return {
         handled: true,
-        answer:
-          locale === 'fil'
-            ? `Walang kumpirmadong gamot na nakatakda para kay ${patientName} ngayong araw.`
-            : `${patientName} has no confirmed medicines scheduled for today.`,
+        answer: `${patientName} has no confirmed medicines scheduled for today.`,
         actionableDose: null,
         expression: 'idle',
       };
@@ -127,10 +115,7 @@ function evaluateLocalRulesContract(
     if (unhandled.length === 0) {
       return {
         handled: true,
-        answer:
-          locale === 'fil'
-            ? `Naitala na ang lahat ng gamot para kay ${patientName} ngayong araw!`
-            : `All scheduled doses for ${patientName} are recorded today!`,
+        answer: `All scheduled doses for ${patientName} are recorded today!`,
         actionableDose: null,
         expression: 'celebration',
       };
@@ -142,16 +127,10 @@ function evaluateLocalRulesContract(
 
     return {
       handled: true,
-      answer:
-        locale === 'fil'
-          ? `Ang susunod na gamot para kay ${patientName} ay ${doseDesc} nang ${timeStr}.`
-          : `${patientName} has ${doseDesc} scheduled at ${timeStr}.`,
+      answer: `${patientName} has ${doseDesc} scheduled at ${timeStr}.`,
       actionableDose: next,
       expression: 'idle',
-      suggestedQuickReplies: [
-        locale === 'fil' ? 'Itala bilang Naibigay' : 'Record Taken',
-        locale === 'fil' ? 'Buod ngayong araw' : "Today's summary",
-      ],
+      suggestedQuickReplies: ['Record Taken', "Today's summary"],
     };
   }
 
@@ -161,10 +140,7 @@ function evaluateLocalRulesContract(
     if (total === 0) {
       return {
         handled: true,
-        answer:
-          locale === 'fil'
-            ? `Walang kumpirmadong gamot na nakatakda para kay ${patientName} ngayong araw.`
-            : `${patientName} has no confirmed medicines scheduled for today.`,
+        answer: `${patientName} has no confirmed medicines scheduled for today.`,
         expression: 'idle',
       };
     }
@@ -174,14 +150,9 @@ function evaluateLocalRulesContract(
     const isAllDone = handled === total;
     return {
       handled: true,
-      answer:
-        locale === 'fil'
-          ? isAllDone
-            ? `Lahat ay tapos na ngayong araw! Naitala na ang lahat ng ${total} dose para kay ${patientName}.`
-            : `${handled} sa ${total} dose ang naitala para kay ${patientName} ngayong araw.`
-          : isAllDone
-            ? `All done for today! All ${total} doses recorded for ${patientName}.`
-            : `${handled} of ${total} doses recorded for ${patientName} today.`,
+      answer: isAllDone
+        ? `All done for today! All ${total} doses recorded for ${patientName}.`
+        : `${handled} of ${total} doses recorded for ${patientName} today.`,
       expression: isAllDone ? 'celebration' : 'idle',
     };
   }
@@ -193,7 +164,7 @@ function evaluateLocalRulesContract(
     const item = timeline.find((d) => d.medicationName.toLowerCase().includes(medTarget));
     if (item) {
       if (item.status === 'taken') {
-        const byWho = item.recordedByName || (locale === 'fil' ? 'isang tagapag-alaga' : 'a caregiver');
+        const byWho = item.recordedByName || 'a caregiver';
         const when = item.recordedAt
           ? item.recordedAt.includes('T')
             ? item.recordedAt.split('T')[1].slice(0, 5)
@@ -201,19 +172,13 @@ function evaluateLocalRulesContract(
           : 'earlier';
         return {
           handled: true,
-          answer:
-            locale === 'fil'
-              ? `Oo, naitala ni ${byWho} ang ${item.medicationName} nang ${when}.`
-              : `Yes, ${byWho} recorded ${item.medicationName} at ${when}.`,
+          answer: `Yes, ${byWho} recorded ${item.medicationName} at ${when}.`,
           expression: 'idle',
         };
       } else {
         return {
           handled: true,
-          answer:
-            locale === 'fil'
-              ? `Hindi pa naitatala ang ${item.medicationName} para kay ${patientName}.`
-              : `${item.medicationName} has not been recorded yet for ${patientName}.`,
+          answer: `${item.medicationName} has not been recorded yet for ${patientName}.`,
           actionableDose: item,
           expression: 'idle',
         };
@@ -226,10 +191,7 @@ function evaluateLocalRulesContract(
   if (medicalSafetyRefusal.test(q)) {
     return {
       handled: true,
-      answer:
-        locale === 'fil'
-          ? 'Nagbibigay si Bantay ng impormasyon mula sa mga kumpirmadong tala lamang. Para sa mga pagbabago sa gamot o payong medikal, kumonsulta sa iyong doktor.'
-          : 'Bantay provides schedule information from confirmed records only. For dosage adjustments or medical advice, please consult your doctor or healthcare provider.',
+      answer: 'Bantay provides schedule information from confirmed records only. For dosage adjustments or medical advice, please consult your doctor or healthcare provider.',
       expression: 'idle',
     };
   }
@@ -462,7 +424,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
         },
       ];
 
-      const result = evaluateLocalRulesContract("What's due next?", 'en', 'Lola Rosa', mockTimeline, '2026-09-12T14:00:00Z');
+      const result = evaluateLocalRulesContract("What's due next?", 'Lola Rosa', mockTimeline, '2026-09-12T14:00:00Z');
       assert.equal(result.handled, true);
       assert.match(result.answer ?? '', /Metformin 500mg/);
       assert.equal(result.actionableDose?.occurrenceId, 'occ-2');
@@ -502,7 +464,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
         },
       ];
 
-      const result = evaluateLocalRulesContract("Today's summary", 'en', 'Lola Rosa', mockTimeline, '2026-09-12T13:00:00Z');
+      const result = evaluateLocalRulesContract("Today's summary", 'Lola Rosa', mockTimeline, '2026-09-12T13:00:00Z');
       assert.equal(result.handled, true);
       assert.match(result.answer ?? '', /1 of 2 doses recorded/);
     });
@@ -526,7 +488,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
         },
       ];
 
-      const result = evaluateLocalRulesContract('Did someone record Amlodipine?', 'en', 'Lola Rosa', mockTimeline, '2026-09-12T10:00:00Z');
+      const result = evaluateLocalRulesContract('Did someone record Amlodipine?', 'Lola Rosa', mockTimeline, '2026-09-12T10:00:00Z');
       assert.equal(result.handled, true);
       assert.match(result.answer ?? '', /Yes, Paolo recorded Amlodipine/);
     });
@@ -534,13 +496,11 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
     it('T1.3.4 (BACKEND-ENDPOINT-CONTRACT): POST /patients/:patientId/assistant/query schema satisfies request and response contracts', () => {
       const requestPayload: AssistantQueryRequest = {
         query: 'What precautions should I take with Amlodipine?',
-        locale: 'en',
         currentLocalTime: '2026-09-12T10:00:00Z',
         todayDate: '2026-09-12',
       };
 
       assert.equal(typeof requestPayload.query, 'string');
-      assert.ok(requestPayload.locale === 'en' || requestPayload.locale === 'fil');
 
       const mockResponse: AssistantQueryResponse = {
         answer: 'Take Amlodipine with or without food as instructed by your doctor.',
@@ -557,7 +517,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
     });
 
     it('T1.3.5 (SAFETY-INVARIANT-REFUSAL): Assistant strictly refuses dosage modifications and directs to healthcare provider', () => {
-      const result = evaluateLocalRulesContract('Can I double the dose of Amlodipine?', 'en', 'Lola Rosa', [], '2026-09-12T10:00:00Z');
+      const result = evaluateLocalRulesContract('Can I double the dose of Amlodipine?', 'Lola Rosa', [], '2026-09-12T10:00:00Z');
       assert.equal(result.handled, true);
       assert.match(result.answer ?? '', /consult your doctor|healthcare provider/i);
       assert.match(result.answer ?? '', /confirmed records only/i);
@@ -651,18 +611,8 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
     });
 
     // -----------------------------------------------------------------------
-    // F5: Dynamic Mascot Expressions & Motion (5 tests)
+    // F5: Dynamic Mascot Expressions & Motion
     // -----------------------------------------------------------------------
-
-    it('T1.5.1 (IDLE-EXPRESSION): Idle state operates 3.0s breathing cadence and soft blinks with valid asset', async () => {
-      const welcomeGifPath = path.join(ASSETS_DIR, 'mascot-welcome.gif');
-      assert.ok(fs.existsSync(welcomeGifPath), 'mascot-welcome.gif must exist in assets/');
-
-      const meta = await sharp(welcomeGifPath, { animated: true }).metadata();
-      const totalDuration = (meta.delay ?? []).reduce((a, b) => a + b, 0);
-
-      assert.ok(totalDuration >= 2800 && totalDuration <= 3200, `Total animation duration must calibrate to ~3000ms (was ${totalDuration}ms)`);
-    });
 
     it('T1.5.2 (THINKING-EXPRESSION): Thinking state defines curious head tilt (-5.0deg) and alert vertical stretch', () => {
       const thinkingTransform = {
@@ -672,24 +622,6 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
 
       assert.equal(thinkingTransform.rotate, '-5.0deg');
       assert.equal(thinkingTransform.scaleY, 1.04);
-    });
-
-    it('T1.5.3 (CELEBRATION-EXPRESSION): Celebration state activates mascot-heart.gif with care heart and shield', async () => {
-      const heartGifPath = path.join(ASSETS_DIR, 'mascot-heart.gif');
-      assert.ok(fs.existsSync(heartGifPath), 'mascot-heart.gif must exist in assets/');
-
-      const meta = await sharp(heartGifPath).metadata();
-      assert.equal(meta.format, 'gif');
-      assert.ok(meta.hasAlpha === true || meta.channels === 4, 'Heart gif must possess alpha transparency');
-    });
-
-    it('T1.5.4 (REDUCE-MOTION-FALLBACK): Accessibility reduceMotion gracefully falls back to static high-resolution PNG', async () => {
-      const staticPngPath = path.join(ASSETS_DIR, 'mascot.png');
-      assert.ok(fs.existsSync(staticPngPath), 'mascot.png must exist in assets/');
-
-      const meta = await sharp(staticPngPath).metadata();
-      assert.equal(meta.format, 'png');
-      assert.ok((meta.width ?? 0) >= 320, 'Static PNG must provide high-resolution assets >= 320px');
     });
 
     it('T1.5.5 (TALKBACK-ANNOUNCEMENTS): Mascot declares accessible label matching state without double-announcements', () => {
@@ -710,39 +642,17 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
     });
 
     // -----------------------------------------------------------------------
-    // F6: Bilingual Localization & Design Invariants (5 tests)
+    // F6: Copy & Design Invariants
     // -----------------------------------------------------------------------
-
-    it('T1.6.1 (TRANSLATION-PARITY): English and Filipino dictionaries maintain strict 1:1 key parity and placeholder symmetry', () => {
-      const enKeys = Object.keys(translations.en) as CopyKey[];
-      const filKeys = Object.keys(translations.fil) as CopyKey[];
-
-      assert.equal(enKeys.length, filKeys.length, 'English and Filipino dictionaries must have equal key counts');
-
-      // Check placeholder symmetry across all shared keys
-      const extractPlaceholders = (str: string) => (str.match(/\{(\w+)\}/g) || []).sort();
-      for (const key of enKeys) {
-        const enPlaceholders = extractPlaceholders(translations.en[key]);
-        const filPlaceholders = extractPlaceholders(translations.fil[key]);
-        assert.deepEqual(
-          enPlaceholders,
-          filPlaceholders,
-          `Placeholders for key "${key}" must match between English and Filipino`,
-        );
-      }
-    });
 
     it('T1.6.2 (VERBATIM-PRESERVATION): Entity interpolation preserves patient and medicine names verbatim', () => {
       const patientName = 'Lola Rosa';
       const medicineName = 'Amlodipine';
 
-      const enString = translate('en', 'dose.recordedNotice', { medicine: medicineName, status: 'taken', patient: patientName });
-      const filString = translate('fil', 'dose.recordedNotice', { medicine: medicineName, status: 'naibigay', patient: patientName });
+      const notice = translate('dose.recordedNotice', { medicine: medicineName, status: 'taken', patient: patientName });
 
-      assert.match(enString, /Lola Rosa/);
-      assert.match(enString, /Amlodipine/);
-      assert.match(filString, /Lola Rosa/);
-      assert.match(filString, /Amlodipine/);
+      assert.match(notice, /Lola Rosa/);
+      assert.match(notice, /Amlodipine/);
     });
 
     it('T1.6.3 (FLAT-DESIGN-ZERO-SHADOWS): Design tokens enforce zero drop shadows across all UI elements', () => {
@@ -981,7 +891,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
     // -----------------------------------------------------------------------
 
     it('T2.3.1 (ZERO-MEDICATIONS-PATIENT): Patient with 0 active medications returns friendly notice', () => {
-      const result = evaluateLocalRulesContract("What's due next?", 'en', 'Lola Rosa', [], '2026-09-12T10:00:00Z');
+      const result = evaluateLocalRulesContract("What's due next?", 'Lola Rosa', [], '2026-09-12T10:00:00Z');
       assert.equal(result.handled, true);
       assert.match(result.answer ?? '', /no confirmed medicines scheduled/i);
     });
@@ -1005,7 +915,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
         },
       ];
 
-      const result = evaluateLocalRulesContract("Today's summary", 'en', 'Lola Rosa', mockTimeline, '2026-09-12T10:00:00Z');
+      const result = evaluateLocalRulesContract("Today's summary", 'Lola Rosa', mockTimeline, '2026-09-12T10:00:00Z');
       assert.equal(result.handled, true);
       assert.equal(result.expression, 'celebration');
       assert.match(result.answer ?? '', /All done for today/);
@@ -1174,12 +1084,6 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
       clearTimeout(activeTimers[0]);
     });
 
-    it('T2.5.4 (ASSET-FALLBACK-ON-CORRUPTION): If animated GIF asset fails to load, component displays static mascot.png', () => {
-      const resolveAssetSource = (isGifLoaded: boolean) => (isGifLoaded ? 'mascot-welcome.gif' : 'mascot.png');
-
-      assert.equal(resolveAssetSource(false), 'mascot.png');
-    });
-
     it('T2.5.5 (MID-QUERY-REDUCE-MOTION-TOGGLE): Toggling reduceMotion freezes transforms immediately', () => {
       const getTransforms = (reduceMotion: boolean) => (reduceMotion ? [] : [{ translateY: -3 }]);
 
@@ -1188,7 +1092,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
     });
 
     // -----------------------------------------------------------------------
-    // F6 Boundaries (5 tests)
+    // F6 Boundaries
     // -----------------------------------------------------------------------
 
     it('T2.6.1 (DIACRITICS-AND-PUNCTUATION-NAMES): Complex patient names with diacritics and quotes are preserved verbatim', () => {
@@ -1205,35 +1109,6 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
       const rendered = template.replace('{medicine}', medName);
 
       assert.equal(rendered, 'Did someone record Co-Amoxiclav 625mg (Augmentin®)?');
-    });
-
-    it('T2.6.3 (FILIPINO-GRAMMATICAL-NUMBER): Filipino translations distinguish singular and plural dose phrases', () => {
-      const formatFilipinoDoses = (count: number) =>
-        count === 1 ? '1 nakatakdang dose' : `${count} nakatakdang dose`;
-
-      assert.equal(formatFilipinoDoses(1), '1 nakatakdang dose');
-      assert.equal(formatFilipinoDoses(3), '3 nakatakdang dose');
-    });
-
-    it('T2.6.4 (MID-SESSION-LOCALE-SWITCH): Switching locale preserves chat history while translating UI chrome', () => {
-      const history = [{ sender: 'assistant', text: 'Hi Maya!' }];
-      let currentLocale: Locale = 'en';
-
-      currentLocale = 'fil';
-      const localizedTitle = currentLocale === 'fil' ? 'Magtanong kay Bantay' : 'Ask Bantay';
-
-      assert.equal(localizedTitle, 'Magtanong kay Bantay');
-      assert.equal(history.length, 1, 'History must not be wiped on locale switch');
-    });
-
-    it('T2.6.5 (MISSING-KEY-SAFE-FALLBACK): Missing translation key falls back cleanly to English string', () => {
-      const safeTranslate = (locale: Locale, key: string, fallback: string) => {
-        const dict = translations[locale] as Record<string, string>;
-        return dict[key] || translations.en[key as CopyKey] || fallback;
-      };
-
-      const result = safeTranslate('fil', 'non_existent_key', 'Fallback message');
-      assert.equal(result, 'Fallback message');
     });
   });
 
@@ -1268,7 +1143,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
       assert.equal(beacon.active, true);
 
       // 2. Open sheet & query
-      const localResult = evaluateLocalRulesContract("What's due next?", 'en', 'Lola Rosa', timeline, now);
+      const localResult = evaluateLocalRulesContract("What's due next?", 'Lola Rosa', timeline, now);
       assert.equal(localResult.handled, true);
       assert.ok(localResult.actionableDose);
 
@@ -1282,7 +1157,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
       assert.equal(beacon.active, false, 'Beacon must clear once dose recorded');
 
       // 5. Mascot triggers celebration
-      const summaryResult = evaluateLocalRulesContract("Today's summary", 'en', 'Lola Rosa', timeline, now);
+      const summaryResult = evaluateLocalRulesContract("Today's summary", 'Lola Rosa', timeline, now);
       assert.equal(summaryResult.expression, 'celebration');
     });
 
@@ -1306,11 +1181,11 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
       ];
 
       // Local query handled
-      const localRes = evaluateLocalRulesContract("Today's summary", 'en', 'Lola Rosa', timeline, '2026-09-12T09:00:00Z');
+      const localRes = evaluateLocalRulesContract("Today's summary", 'Lola Rosa', timeline, '2026-09-12T09:00:00Z');
       assert.equal(localRes.handled, true);
 
       // Medical safety prompt rejected with refusal
-      const safetyRes = evaluateLocalRulesContract('Should I change her dose to 10mg because blood pressure is high?', 'en', 'Lola Rosa', timeline, '2026-09-12T09:00:00Z');
+      const safetyRes = evaluateLocalRulesContract('Should I change her dose to 10mg because blood pressure is high?', 'Lola Rosa', timeline, '2026-09-12T09:00:00Z');
       assert.equal(safetyRes.handled, true);
       assert.match(safetyRes.answer ?? '', /consult your doctor/i);
     });
@@ -1401,20 +1276,15 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
       sharedTimeline[0].recordedAt = '2026-09-12T08:05:00Z';
 
       // Caregiver Maya queries on Device B
-      const result = evaluateLocalRulesContract('Did someone record Amlodipine?', 'en', 'Lola Rosa', sharedTimeline, '2026-09-12T08:30:00Z');
+      const result = evaluateLocalRulesContract('Did someone record Amlodipine?', 'Lola Rosa', sharedTimeline, '2026-09-12T08:30:00Z');
       assert.equal(result.handled, true);
       assert.match(result.answer ?? '', /Paolo recorded Amlodipine/);
     });
 
-    it('T3.6 (REDUCE-MOTION-BILINGUAL-INTEGRATION): Accessibility reduceMotion enabled under Filipino locale renders static mascot and Tagalog copy', () => {
-      const isReduceMotion = true;
-      const currentLocale: Locale = 'fil';
+    it('T3.6 (EMPTY-DAY-SUMMARY): The local summary for a day without medicines says so', () => {
+      const prompt = evaluateLocalRulesContract("Today's summary", 'Lola Rosa', [], '2026-09-12T10:00:00Z');
 
-      const mascotAsset = isReduceMotion ? 'mascot.png' : 'mascot-welcome.gif';
-      const prompt = evaluateLocalRulesContract("Today's summary", currentLocale, 'Lola Rosa', [], '2026-09-12T10:00:00Z');
-
-      assert.equal(mascotAsset, 'mascot.png');
-      assert.match(prompt.answer ?? '', /Walang kumpirmadong gamot/);
+      assert.match(prompt.answer ?? '', /has no confirmed medicines scheduled/);
     });
   });
 
@@ -1445,7 +1315,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
       ];
 
       // 1. Caregiver Maya checks next dose
-      const nextRes = evaluateLocalRulesContract("What's due next?", 'en', 'Lola Rosa', morningTimeline, now);
+      const nextRes = evaluateLocalRulesContract("What's due next?", 'Lola Rosa', morningTimeline, now);
       assert.equal(nextRes.handled, true);
       assert.match(nextRes.answer ?? '', /Amlodipine 5mg scheduled at 08:00/);
 
@@ -1455,7 +1325,7 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
       morningTimeline[0].recordedAt = '2026-09-12T08:02:00Z';
 
       // 3. Verify celebration response on daily completion
-      const summaryRes = evaluateLocalRulesContract("Today's summary", 'en', 'Lola Rosa', morningTimeline, '2026-09-12T08:05:00Z');
+      const summaryRes = evaluateLocalRulesContract("Today's summary", 'Lola Rosa', morningTimeline, '2026-09-12T08:05:00Z');
       assert.equal(summaryRes.expression, 'celebration');
       assert.match(summaryRes.answer ?? '', /All done for today! All 1 doses recorded/);
     });
@@ -1479,21 +1349,21 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
         },
       ];
 
-      const result = evaluateLocalRulesContract('Did someone record Calcium?', 'en', 'Lola Rosa', timeline, '2026-09-12T13:00:00Z');
+      const result = evaluateLocalRulesContract('Did someone record Calcium?', 'Lola Rosa', timeline, '2026-09-12T13:00:00Z');
       assert.equal(result.handled, true);
       assert.match(result.answer ?? '', /Yes, Paolo recorded Calcium at 12:08/);
     });
 
     it('T4.3 (SCENARIO-3-SAFETY-INVARIANT-GUARD): Safety guardrail (caregiver asks to alter dose -> assistant explicitly declines with medical consultation guidance)', () => {
       const alterationQuery = "Lola Rosa's blood pressure is 160/100. Should I give her an extra Amlodipine tablet?";
-      const result = evaluateLocalRulesContract(alterationQuery, 'en', 'Lola Rosa', [], '2026-09-12T15:00:00Z');
+      const result = evaluateLocalRulesContract(alterationQuery, 'Lola Rosa', [], '2026-09-12T15:00:00Z');
 
       assert.equal(result.handled, true);
       assert.match(result.answer ?? '', /consult your doctor|healthcare provider/i);
       assert.match(result.answer ?? '', /confirmed records only/i);
     });
 
-    it('T4.4 (SCENARIO-4-BILINGUAL-TAGALOG-COORDINATION): Bilingual Tagalog care coordination (querying in Filipino vs. English preserves pharmaceutical entities)', () => {
+    it('T4.4 (SCENARIO-4-TAGALOG-QUERY): A Tagalog query gets an English answer that preserves pharmaceutical entities', () => {
       const timeline: DoseTimelineItem[] = [
         {
           occurrenceId: 'occ-amlo',
@@ -1512,9 +1382,9 @@ describe('Ask Bantay Contextual AI Care Assistant E2E Test Suite', () => {
         },
       ];
 
-      const tagalogResult = evaluateLocalRulesContract('Ano ang susunod na gamot?', 'fil', 'Lola Rosa', timeline, '2026-09-12T14:00:00Z');
+      const tagalogResult = evaluateLocalRulesContract('Ano ang susunod na gamot?', 'Lola Rosa', timeline, '2026-09-12T14:00:00Z');
       assert.equal(tagalogResult.handled, true);
-      assert.match(tagalogResult.answer ?? '', /Ang susunod na gamot para kay Lola Rosa ay Amlodipine 5mg nang 20:00/);
+      assert.match(tagalogResult.answer ?? '', /Lola Rosa has Amlodipine 5mg scheduled at 20:00/);
 
       // Verbatim preservation check
       assert.match(tagalogResult.answer ?? '', /Amlodipine/);

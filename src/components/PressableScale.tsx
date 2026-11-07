@@ -14,8 +14,10 @@ import { durations, easing, pressScales } from '../theme/tokens';
 
 type Props = Omit<PressableProps, 'style' | 'children'> & {
   children: ReactNode;
-  /** Applied to the scaling surface (background, padding, layout). */
+  /** Applied to the scaling surface (background, padding, layout of the content). */
   style?: StyleProp<ViewStyle>;
+  /** Applied to the outer touch target; put flex/width here when the button sits in a row. */
+  containerStyle?: StyleProp<ViewStyle>;
   targetScale?: number;
 };
 
@@ -24,6 +26,7 @@ const easeOut = Easing.bezier(...easing.out);
 /** Press feedback: scales to 0.97 over 160 ms ease-out, no bounce. Reduced motion skips the scale. */
 export function PressableScale({
   children,
+  containerStyle,
   disabled,
   onPressIn,
   onPressOut,
@@ -42,6 +45,7 @@ export function PressableScale({
     <Pressable
       {...rest}
       disabled={disabled}
+      style={containerStyle}
       onPressIn={(event: GestureResponderEvent) => {
         if (!disabled && !reducedMotion) animateTo(targetScale);
         onPressIn?.(event);

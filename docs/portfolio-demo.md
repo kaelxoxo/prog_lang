@@ -36,12 +36,10 @@ This route uses deterministic synthetic data and demonstrates Alaga's safety and
 - Open the synthetic-photo import entry point, but use only a deliberately synthetic image.
 - Show that OCR produces an editable draft, preserves raw wording, and requires the normal review-and-confirm flow.
 
-### 4. Settings: demonstrate inclusion
+### 4. Ask Bantay: show grounded help
 
-- Open Settings from the current tab.
-- Switch to Filipino and show the navigation, patient context, Home, Today/history, and medicine list updating immediately.
-- Confirm that patient names, medicine wording, dose units, notes, and OCR text are not translated.
-- Switch back to English if that is the preferred closing state.
+- Open Ask Bantay and ask "What's due next?", then ask the same in Tagalog ("Ano ang susunod na gamot?").
+- Show that both get the same English answer, grounded in the recorded schedule, and that patient names and medicine wording are not rewritten.
 
 ### 5. Care circle: explain shared accountability
 
@@ -57,6 +55,6 @@ Capture only after the runtime warning check and relevant large-text check pass.
 2. Today with a populated chronological dose row and its three actions.
 3. Past 7 days with attributable synthetic history.
 4. Medicines with both confirmed medicines and the OCR experiment entry point.
-5. Filipino Settings with the selected radio state.
+5. Ask Bantay answering "What's due next?" with the in-stream dose card.
 
 Do not reuse diagnostic captures containing Expo connection warnings. Label web captures as web and Android captures as Android. Do not imply that an export or screenshot proves notification delivery, TalkBack behavior, or iOS runtime behavior.

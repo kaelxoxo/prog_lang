@@ -1,10 +1,7 @@
-export type AssistantLocale = 'en' | 'fil';
-
 export type DoseStatus = 'not_recorded' | 'taken' | 'skipped' | 'snoozed';
 
 export interface AssistantQueryRequest {
   query: string;
-  locale: AssistantLocale;
   currentLocalTime?: string;
   todayDate?: string;
 }
@@ -121,7 +118,6 @@ export interface AssistantDoseContext {
 
 export interface LocalEvaluationContext {
   query: string;
-  locale: AssistantLocale;
   patient: AssistantPatientContext;
   medications: AssistantMedicationContext[];
   timeline: AssistantDoseContext[];

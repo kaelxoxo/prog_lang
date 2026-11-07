@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { AppIcon } from '../../components/AppIcon';
 import { apiRequest, errorMessage } from '../../lib/api';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
@@ -108,23 +108,19 @@ export function MedicationPhotoImport({
   };
 
   return (
-    <View style={styles.card}>
+    <View style={styles.section}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setExpanded((current) => !current)} style={({ pressed }) => [styles.toggle, pressed && styles.pressed]}>
         <View style={styles.headerRow}>
-          <View style={styles.iconWrap}>
-            <AppIcon color={colors.primaryDark} name="camera" size={18} />
-          </View>
+          <AppIcon color={colors.primary} name="camera" size={20} />
           <View style={styles.heading}>
             <View style={styles.titleRow}>
               <Text style={styles.title}>Import from synthetic photo</Text>
-              <View style={styles.experimentalBadge}>
-                <Text style={styles.experimentalText}>Experimental</Text>
-              </View>
+              <Text style={styles.experimentalText}>Experimental</Text>
             </View>
             <Text style={styles.summary}>Local OCR & multi-medicine draft extraction</Text>
           </View>
         </View>
-        <View style={styles.togglePill}>
+        <View style={styles.toggleLink}>
           <Text style={styles.toggleLabel}>{expanded ? 'Close' : 'Try'}</Text>
           <AppIcon color={colors.primaryDark} name={expanded ? 'chevron-up' : 'chevron-down'} size={15} />
         </View>
@@ -153,7 +149,12 @@ export function MedicationPhotoImport({
           </Pressable>
 
           {imageUri ? <Image accessibilityLabel="Selected synthetic source" resizeMode="contain" source={{ uri: imageUri }} style={styles.preview} /> : null}
-          {pickerError || ocrMutation.error ? <Text accessibilityLiveRegion="assertive" style={styles.error}>{pickerError || errorMessage(ocrMutation.error)}</Text> : null}
+          {pickerError || ocrMutation.error ? (
+            <View style={styles.errorRow}>
+              <AppIcon color={colors.error} name="alert-circle" size={15} />
+              <Text accessibilityLiveRegion="assertive" style={styles.error}>{pickerError || errorMessage(ocrMutation.error)}</Text>
+            </View>
+          ) : null}
 
           {activeDraft ? (
             <View style={styles.result}>
@@ -161,9 +162,7 @@ export function MedicationPhotoImport({
                 <Text accessibilityRole="header" style={styles.resultTitle}>
                   {drafts.length > 1 ? `${drafts.length} medicines found` : 'Draft text found'}
                 </Text>
-                <View style={styles.confidenceBadge}>
-                  <Text style={styles.confidence}>{activeDraft.confidence}% OCR confidence</Text>
-                </View>
+                <Text style={styles.confidence}>{activeDraft.confidence}% OCR confidence</Text>
               </View>
 
               {drafts.length > 1 ? (
@@ -183,21 +182,20 @@ export function MedicationPhotoImport({
                           onPress={() => setSelectedDraftIndex(index)}
                           style={({ pressed }) => [
                             styles.multiPill,
-                            isReviewed && styles.multiPillReviewed,
                             selectedDraftIndex === index && styles.multiPillSelected,
                             pressed && styles.pressed,
                           ]}
                         >
+                          {isReviewed ? <AppIcon color={colors.ink} name="check" size={14} /> : null}
                           <Text style={[
                             styles.multiPillIndex,
                             isReviewed && styles.multiPillIndexReviewed,
                             selectedDraftIndex === index && styles.multiPillIndexSelected,
                           ]}>
-                            {isReviewed ? '✓ ' : ''}#{index + 1}
+                            #{index + 1}
                           </Text>
                           <Text numberOfLines={1} style={[
                             styles.multiPillText,
-                            isReviewed && styles.multiPillTextReviewed,
                             selectedDraftIndex === index && styles.multiPillTextSelected,
                           ]}>
                             {d.displayName || `Item ${index + 1}`}
@@ -210,8 +208,8 @@ export function MedicationPhotoImport({
               ) : null}
 
               {activeDraft.pndfVerified ? (
-                <View style={styles.pndfBadge}>
-                  <AppIcon color={colors.successDark} name="circle-check-big" size={14} />
+                <View style={styles.pndfRow}>
+                  <AppIcon color={colors.ink} name="check" size={14} />
                   <Text style={styles.pndfText}>
                     Philippine Formulary (PNDF) Verified{activeDraft.pndfGenericName ? `: ${activeDraft.pndfGenericName}` : ''}
                   </Text>
@@ -219,7 +217,7 @@ export function MedicationPhotoImport({
               ) : null}
 
               {activeDraft.lasaWarning ? (
-                <View style={styles.lasaWarningBox}>
+                <View style={styles.lasaWarning}>
                   <View style={styles.lasaHeadingRow}>
                     <AppIcon color={colors.warning} name="alert-triangle" size={15} />
                     <Text style={styles.lasaHeading}>Look-Alike / Sound-Alike (LASA) Alert</Text>
@@ -229,8 +227,11 @@ export function MedicationPhotoImport({
               ) : null}
 
               {activeDraft.timingClarification ? (
-                <View style={styles.timingClarificationBox}>
-                  <Text style={styles.timingClarificationHeading}>Timing Clarification</Text>
+                <View style={styles.timingClarification}>
+                  <View style={styles.timingHeadingRow}>
+                    <AppIcon color={colors.primary} name="clock" size={15} />
+                    <Text style={styles.timingClarificationHeading}>Timing Clarification</Text>
+                  </View>
                   <Text style={styles.timingClarificationText}>{activeDraft.timingClarification}</Text>
                 </View>
               ) : null}
@@ -263,46 +264,24 @@ export function MedicationPhotoImport({
 }
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
-  card: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
+  // A ruled section on the paper; the toggle row is the action target.
+  section: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: colors.line,
-    backgroundColor: colors.white,
-    padding: spacing.md,
+    paddingVertical: spacing.sm,
   },
   toggle: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   headerRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.full,
-    backgroundColor: colors.primaryTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   heading: { flex: 1, gap: 2 },
-  titleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  title: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  experimentalBadge: {
-    borderRadius: radii.full,
-    backgroundColor: colors.warningTint,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  experimentalText: { color: colors.warning, fontSize: 11, fontWeight: '800' },
-  summary: { color: colors.muted, fontSize: 12 },
-  togglePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: radii.full,
-    backgroundColor: colors.primaryTint,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  toggleLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
-  content: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, marginTop: spacing.md, paddingTop: spacing.md },
-  body: { maxWidth: 560, color: colors.muted, fontSize: 13, lineHeight: 19 },
+  titleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: spacing.sm },
+  title: { ...sectionTitle, color: colors.ink },
+  experimentalText: { ...typography.caption, color: colors.warning },
+  summary: { ...typography.caption, color: colors.muted },
+  toggleLink: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  toggleLabel: { ...typography.bodyEmphasis, color: colors.primaryDark, fontWeight: '700' },
+  content: { gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, marginTop: spacing.sm, paddingTop: spacing.md, paddingBottom: spacing.sm },
+  body: { ...typography.body, maxWidth: 560, color: colors.muted },
   sourceChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   sourceChoice: {
     minHeight: 48,
@@ -311,86 +290,62 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radii.full,
-    backgroundColor: colors.canvas,
+    borderColor: colors.controlBorder,
+    borderRadius: radii.md,
     paddingHorizontal: spacing.md,
   },
   sourceChoiceSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
-  sourceLabel: { color: colors.muted, fontSize: 13, fontWeight: '700' },
-  sourceLabelSelected: { color: colors.primaryDark, fontWeight: '900' },
+  sourceLabel: { ...typography.bodyEmphasis, color: colors.muted },
+  sourceLabelSelected: { color: colors.primaryDark, fontWeight: '700' },
   chooseButton: {
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    borderRadius: radii.full,
-    backgroundColor: colors.ink,
+    gap: spacing.sm,
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.lg,
   },
-  chooseButtonPressed: { opacity: 0.82 },
-  chooseLabel: { color: colors.white, fontSize: 14, fontWeight: '800' },
+  chooseButtonPressed: { backgroundColor: colors.primaryDark },
+  chooseLabel: { ...typography.bodyEmphasis, color: colors.white, fontWeight: '700' },
   disabled: { opacity: 0.58 },
-  preview: { width: '100%', height: 180, borderRadius: radii.md, backgroundColor: colors.mist },
-  error: { color: colors.error, fontSize: 14, lineHeight: 20 },
-  result: { gap: spacing.md, borderRadius: radii.md, backgroundColor: colors.warningTint, padding: spacing.md },
-  multiSelector: { gap: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.line, paddingBottom: spacing.sm },
-  multiSelectorHeading: { color: colors.ink, fontSize: 13, fontWeight: '800' },
+  preview: { width: '100%', height: 180, borderRadius: radii.md, backgroundColor: colors.canvasSubtle },
+  errorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs },
+  error: { ...typography.body, flex: 1, color: colors.error },
+  // Kept as a quiet inset box: the draft holds the Discard / Review actions.
+  result: { gap: spacing.md, borderRadius: radii.md, backgroundColor: colors.canvasSubtle, padding: spacing.md },
+  multiSelector: { gap: spacing.xs, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, paddingBottom: spacing.sm },
+  multiSelectorHeading: { ...typography.bodyEmphasis, color: colors.ink },
   multiPills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  multiPill: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.line, borderRadius: radii.full, backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
-  multiPillSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
-  multiPillReviewed: { borderColor: colors.successDark, backgroundColor: colors.successTint },
-  multiPillIndex: { color: colors.muted, fontSize: 12, fontWeight: '800' },
-  multiPillIndexSelected: { color: colors.primaryDark, fontWeight: '900' },
-  multiPillIndexReviewed: { color: colors.successDark, fontWeight: '900' },
-  multiPillText: { maxWidth: 160, color: colors.ink, fontSize: 12, fontWeight: '700' },
-  multiPillTextSelected: { color: colors.primaryDark, fontWeight: '900' },
-  multiPillTextReviewed: { color: colors.successDark, fontWeight: '800' },
-  timingClarificationBox: { gap: 4, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primaryTint, padding: spacing.sm },
-  timingClarificationHeading: { color: colors.primaryDark, fontSize: 12, fontWeight: '900' },
-  timingClarificationText: { color: colors.ink, fontSize: 13, lineHeight: 19 },
-  pndfBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: radii.full,
-    backgroundColor: colors.successTint,
-    borderWidth: 1,
-    borderColor: colors.success,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    alignSelf: 'flex-start',
-  },
-  pndfText: { color: colors.successDark, fontSize: 12, fontWeight: '800' },
-  lasaWarningBox: {
-    gap: 4,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.warning,
-    backgroundColor: colors.warningTint,
-    padding: spacing.sm,
-  },
+  multiPill: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  multiPillSelected: { borderColor: colors.primary },
+  multiPillIndex: { ...typography.caption, color: colors.muted },
+  multiPillIndexSelected: { color: colors.primaryDark, fontWeight: '700' },
+  multiPillIndexReviewed: { color: colors.ink },
+  multiPillText: { ...typography.caption, maxWidth: 160, color: colors.ink, fontWeight: '600' },
+  multiPillTextSelected: { color: colors.primaryDark, fontWeight: '700' },
+  timingClarification: { gap: spacing.xs },
+  timingHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  timingClarificationHeading: { ...typography.caption, color: colors.primaryDark, fontWeight: '700' },
+  timingClarificationText: { ...typography.body, color: colors.ink },
+  pndfRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pndfText: { ...typography.caption, flexShrink: 1, color: colors.ink },
+  lasaWarning: { gap: spacing.xs },
   lasaHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  lasaHeading: { color: colors.warning, fontSize: 12, fontWeight: '900' },
-  lasaText: { color: colors.ink, fontSize: 13, lineHeight: 19 },
+  lasaHeading: { ...typography.caption, color: colors.warning, fontWeight: '700' },
+  lasaText: { ...typography.body, color: colors.ink },
   resultHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  resultTitle: { color: colors.ink, fontSize: 18, fontWeight: '900' },
-  confidenceBadge: {
-    borderRadius: radii.full,
-    backgroundColor: colors.white,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  confidence: { color: colors.warning, fontSize: 12, fontWeight: '800' },
-  warning: { color: colors.warning, fontSize: 13, lineHeight: 20 },
-  rawText: { gap: spacing.xs, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
-  rawLabel: { color: colors.muted, fontSize: 12, fontWeight: '800' },
-  rawValue: { color: colors.ink, fontSize: 14, lineHeight: 20 },
+  resultTitle: { ...typography.headline, color: colors.ink },
+  confidence: { ...typography.caption, color: colors.warning },
+  warning: { ...typography.caption, color: colors.warning },
+  rawText: { gap: spacing.xs, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: spacing.md },
+  rawLabel: { ...typography.caption, color: colors.muted },
+  rawValue: { ...typography.body, color: colors.ink },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   discardButton: { minHeight: 48, minWidth: 100, flex: 1, alignItems: 'center', justifyContent: 'center' },
-  discardLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
-  reviewButton: { minHeight: 48, minWidth: 180, flex: 2, alignItems: 'center', justifyContent: 'center', borderRadius: radii.full, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
-  reviewLabel: { color: colors.white, fontSize: 14, fontWeight: '800' },
+  discardLabel: { ...typography.bodyEmphasis, color: colors.primaryDark, fontWeight: '700' },
+  reviewButton: { minHeight: 48, minWidth: 180, flex: 2, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.primary, paddingHorizontal: spacing.md },
+  reviewLabel: { ...typography.bodyEmphasis, color: colors.white, fontWeight: '700' },
   pressed: { opacity: 0.72 },
 });

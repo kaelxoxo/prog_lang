@@ -54,7 +54,7 @@ Every medication and dose table includes `patient_id`. Cross-patient references 
 
 ### Navigation, Home and reminders
 
-The bottom navigation contains only implemented destinations: **Home**, **Today** and **Medicines**. Home provides the active person's next dose, overdue items without a final care record, today's progress, safe navigation actions, incoming invitations and owner care-circle management. Today owns scheduled dose occurrences and care-history actions; Medicines owns confirmed medicine setup and editing.
+The bottom navigation contains only implemented destinations: **Home**, **Today** and **Medicines**, plus a + button that opens quick actions (record a dose, add a medicine, scan a prescription, ask Bantay). Home is one notebook page answering "what do I do right now": Bantay's one-line status, today's recorded progress and Care Streak, Due Now doses (Not Recorded doses grouped by Time Slot, then doses due within two hours), today's Recorded doses, Later Today doses (recorded early only after confirmation), the Refill Horizon for medicines with seven or fewer days of stock, incoming invitations and owner care-circle management. Today owns scheduled dose occurrences and care-history actions; Medicines owns confirmed medicine setup and editing.
 
 An owner can create a seven-day invitation for a normalized email address, choose whether the caregiver may manage medicines, cancel a pending invitation and revoke an active caregiver. A signed-in account sees and may accept only invitations matching its account email. Invitation rows and account email joins remain behind security-definer functions; the API role cannot read them directly. Acceptance creates a caregiver membership, and revocation immediately removes patient access without deleting attributed care history.
 
@@ -112,7 +112,7 @@ Each large dependent slice starts only after the previous slice’s validation i
 - A user can register, sign in, restore a valid session and sign out.
 - A new account receives a directed empty state and can create its first patient profile.
 - An account with several authorized patients can switch between them.
-- Home names the active person and shows the next dose, overdue items without a final record, and today's recorded progress.
+- Home names the active person and shows Due Now doses, Not Recorded doses grouped by Time Slot, and today's recorded progress.
 - The active patient is always prominent on the Today screen.
 - A user can open, dismiss and use the patient picker.
 - Selecting a patient changes the patient name and patient-scoped status together.

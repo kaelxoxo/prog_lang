@@ -34,7 +34,20 @@
           "microphonePermission": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F6F1E7",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#17140F"
+          }
+        }
+      ]
     ]
   }
 }

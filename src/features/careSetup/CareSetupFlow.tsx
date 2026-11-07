@@ -6,9 +6,10 @@ import {
 } from 'react-native';
 
 import { AppIcon } from '../../components/AppIcon';
+import { PressableScale } from '../../components/PressableScale';
 import { ApiError, apiRequest, errorMessage } from '../../lib/api';
 import { confirmAction } from '../../lib/confirm';
-import { durations, radii, spacing, type AppColors } from '../../theme/tokens';
+import { cardPress, durations, radii, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { SetupBantay, type SetupBantayPose } from '../assistant/SetupBantay';
 import { useAuth, type CareSetup } from '../auth/AuthProvider';
@@ -36,46 +37,42 @@ function SetupButton({ label, onPress, disabled = false, secondary = false }: {
 }) {
   const { styles } = useThemedStyles(createStyles);
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       aria-disabled={disabled}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, secondary ? styles.secondaryButton : styles.primaryButton,
-        disabled && styles.disabled, pressed && !disabled && styles.pressed]}
+      style={[styles.button, secondary ? styles.secondaryButton : styles.primaryButton, disabled && styles.disabled]}
     >
       <Text style={secondary ? styles.secondaryLabel : styles.primaryLabel}>{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
 function ChoiceRow({ value, selected, disabled, onPress }: { value: Choice; selected: boolean; disabled: boolean; onPress: () => void }) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
-  const scale = useRef(new Animated.Value(1)).current;
   const details = choiceDetails[value];
   return (
-    <Pressable
+    <PressableScale
       accessibilityLabel={`${t(details.title)}. ${t(details.description)}`}
       accessibilityRole="radio"
       aria-checked={selected}
       aria-disabled={disabled}
       disabled={disabled}
       onPress={onPress}
-      onPressIn={() => Animated.timing(scale, { toValue: 0.98, duration: durations.instant, useNativeDriver: true }).start()}
-      onPressOut={() => Animated.timing(scale, { toValue: 1, duration: durations.instant, useNativeDriver: true }).start()}
+      style={styles.choice}
+      targetScale={cardPress}
     >
-      <Animated.View style={[styles.choice, { transform: [{ scale }] }]}>
-        <AppIcon color={selected ? colors.primary : colors.muted} name={details.icon} size={22} />
-        <View style={styles.choiceCopy}>
-          <Text style={[styles.choiceTitle, selected && styles.choiceTitleSelected]}>{t(details.title)}</Text>
-          <Text style={styles.choiceDescription}>{t(details.description)}</Text>
-        </View>
-        <View style={[styles.radio, selected && styles.radioSelected]}>
-          {selected ? <View style={styles.radioDot} /> : null}
-        </View>
-      </Animated.View>
-    </Pressable>
+      <AppIcon color={selected ? colors.primary : colors.inkLine} name={details.icon} size={22} />
+      <View style={styles.choiceCopy}>
+        <Text style={[styles.choiceTitle, selected && styles.choiceTitleSelected]}>{t(details.title)}</Text>
+        <Text style={styles.choiceDescription}>{t(details.description)}</Text>
+      </View>
+      <View style={[styles.radio, selected && styles.radioSelected]}>
+        {selected ? <View style={styles.radioDot} /> : null}
+      </View>
+    </PressableScale>
   );
 }
 
@@ -426,27 +423,27 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   progressFill: { backgroundColor: colors.primary },
   scrollContent: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, width: '100%', maxWidth: 560, alignSelf: 'center' },
   back: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: spacing.xs, alignSelf: 'flex-start' },
-  backText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+  backText: { ...typography.bodyEmphasis, color: colors.muted },
   mascot: { alignItems: 'center', justifyContent: 'center', minHeight: 168, marginTop: spacing.sm, marginBottom: spacing.lg },
   compactMascot: { minHeight: 100, marginBottom: spacing.sm },
-  title: { color: colors.ink, fontSize: 27, fontWeight: '800', lineHeight: 34, letterSpacing: -0.6, marginBottom: spacing.sm },
-  body: { color: colors.muted, fontSize: 15, lineHeight: 23, marginBottom: spacing.lg },
+  title: { ...typography.title1, color: colors.ink, marginBottom: spacing.sm },
+  body: { ...typography.body, color: colors.muted, marginBottom: spacing.lg },
   choices: { gap: spacing.xs },
   // No card chrome: rows sit directly on the canvas; selection shows as a filled radio and emphasized title.
   choice: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 64, paddingVertical: spacing.sm },
   choiceCopy: { flex: 1, gap: spacing.xs },
-  choiceTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
-  choiceTitleSelected: { color: colors.primary, fontWeight: '800' },
+  choiceTitle: { ...typography.headline, color: colors.ink },
+  choiceTitleSelected: { color: colors.primaryDark },
   radio: { height: 24, width: 24, borderRadius: radii.full, borderWidth: 2, borderColor: colors.controlBorder,
     alignItems: 'center', justifyContent: 'center' },
   radioSelected: { borderColor: colors.primary },
   radioDot: { height: 12, width: 12, borderRadius: radii.full, backgroundColor: colors.primary },
-  choiceDescription: { color: colors.muted, fontSize: 14, lineHeight: 19 },
+  choiceDescription: { ...typography.body, fontSize: 14, lineHeight: 19, color: colors.muted },
   invitation: { paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line, gap: spacing.sm },
   invitationLine: { color: colors.ink, fontSize: 16, lineHeight: 24, fontWeight: '600' },
   invitationActions: { gap: spacing.sm },
   form: { gap: spacing.md },
-  label: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+  label: { ...typography.bodyEmphasis, color: colors.ink },
   input: { backgroundColor: colors.white, color: colors.ink, minHeight: 52, borderWidth: 1, borderColor: colors.controlBorder,
     borderRadius: radii.md, paddingHorizontal: spacing.md, fontSize: 16 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 56 },
@@ -454,21 +451,20 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
   addedRow: { borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.sm, gap: spacing.xs },
-  addedText: { color: colors.ink, fontSize: 14 },
+  addedText: { ...typography.body, fontSize: 14, color: colors.ink },
   shareButton: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: spacing.sm, alignSelf: 'flex-start' },
-  shareLabel: { color: colors.primary, fontSize: 14, fontWeight: '700' },
-  emailHighlight: { color: colors.ink, fontSize: 20, fontWeight: '800', paddingVertical: spacing.md },
-  error: { color: colors.error, fontSize: 14, lineHeight: 20, marginTop: spacing.md },
+  shareLabel: { ...typography.bodyEmphasis, color: colors.primaryDark },
+  emailHighlight: { ...typography.headline, fontSize: 20, lineHeight: 26, color: colors.ink, paddingVertical: spacing.md },
+  error: { ...typography.body, fontSize: 14, lineHeight: 20, color: colors.error, marginTop: spacing.md },
   footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.lg, gap: spacing.sm,
     width: '100%', maxWidth: 560, alignSelf: 'center' },
   button: { minHeight: 52, borderRadius: radii.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md },
   primaryButton: { backgroundColor: colors.primary, borderColor: colors.primary },
-  secondaryButton: { backgroundColor: 'transparent', borderColor: 'transparent' },
-  primaryLabel: { color: colors.canvas === '#0D1F18' ? '#0D1F18' : '#FFFFFF', fontSize: 16, fontWeight: '800', textAlign: 'center' },
-  secondaryLabel: { color: colors.ink, fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  secondaryButton: { backgroundColor: 'transparent', borderColor: colors.controlBorder },
+  primaryLabel: { ...typography.headline, color: colors.white, textAlign: 'center' },
+  secondaryLabel: { ...typography.headline, color: colors.ink, textAlign: 'center' },
   disabled: { opacity: 0.5 },
-  pressed: { transform: [{ scale: 0.98 }] },
   quiet: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  quietText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
-  loading: { color: colors.muted, textAlign: 'center', fontSize: 14 },
+  quietText: { ...typography.bodyEmphasis, color: colors.muted },
+  loading: { ...typography.body, color: colors.muted, textAlign: 'center' },
 });

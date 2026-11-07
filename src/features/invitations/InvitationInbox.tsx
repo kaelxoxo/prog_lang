@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AppIcon } from '../../components/AppIcon';
 import { apiRequest, errorMessage } from '../../lib/api';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import { usePatient } from '../patients/PatientProvider';
@@ -63,9 +63,7 @@ export function InvitationInbox() {
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <View style={styles.iconWrap}>
-          <AppIcon color={colors.primaryDark} name="mail" size={17} />
-        </View>
+        <AppIcon color={colors.primary} name="mail" size={18} />
         <Text style={styles.eyebrow}>Care-circle invitation</Text>
       </View>
       {query.data?.invitations.map((invitation) => {
@@ -77,8 +75,8 @@ export function InvitationInbox() {
               <Text style={styles.body}>
                 {invitation.invitedByName} invited you to help keep this care log up to date.
               </Text>
-              <View style={styles.permissionBadge}>
-                <AppIcon color={colors.primaryDark} name="shield-check" size={14} />
+              <View style={styles.permissionRow}>
+                <AppIcon color={colors.inkLine} name="shield-check" size={14} />
                 <Text style={styles.permission}>
                   {invitation.canManageMedications
                     ? 'You can record care and manage medicines.'
@@ -104,7 +102,7 @@ export function InvitationInbox() {
                 onPress={() => mutation.mutate({ invitation, action: 'decline' })}
                 style={({ pressed }) => [styles.decline, pressed && styles.pressed, busy && styles.disabled]}
               >
-                <AppIcon color={colors.primaryDark} name="x" size={15} />
+                <AppIcon color={colors.ink} name="x" size={15} />
                 <Text style={styles.declineLabel}>Decline</Text>
               </Pressable>
             </View>
@@ -112,7 +110,7 @@ export function InvitationInbox() {
         );
       })}
       {mutation.error ? (
-        <View accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.mutationErrorBox}>
+        <View accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.mutationErrorRow}>
           <AppIcon color={colors.error} name="alert-circle" size={16} />
           <Text style={styles.mutationError}>{errorMessage(mutation.error)}</Text>
         </View>
@@ -124,33 +122,22 @@ export function InvitationInbox() {
 const createStyles = (colors: AppColors) => StyleSheet.create({
   section: {
     gap: spacing.md,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
-    padding: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingTop: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
-  iconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.full,
-    backgroundColor: colors.primaryTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   eyebrow: {
-    color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: '800',
+    ...typography.caption,
+    color: colors.muted,
   },
   invitation: {
     gap: spacing.md,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.line,
     paddingTop: spacing.md,
   },
@@ -158,34 +145,24 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     gap: spacing.xs,
   },
   title: {
+    ...sectionTitle,
     color: colors.ink,
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.3,
   },
   body: {
+    ...typography.body,
     maxWidth: 560,
     color: colors.ink,
-    fontSize: 14,
-    lineHeight: 21,
   },
-  permissionBadge: {
+  permissionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    alignSelf: 'flex-start',
-    borderRadius: radii.full,
-    backgroundColor: colors.mist,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
     marginTop: spacing.xs,
   },
   permission: {
+    ...typography.caption,
+    flexShrink: 1,
     color: colors.muted,
-    fontSize: 13,
-    fontWeight: '600',
   },
   actions: {
     flexDirection: 'row',
@@ -194,7 +171,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     marginTop: spacing.xs,
   },
   accept: {
-    minHeight: 48,
+    minHeight: 52,
     minWidth: 180,
     flex: 1,
     flexDirection: 'row',
@@ -202,16 +179,16 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderRadius: radii.md,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
   },
   acceptLabel: {
+    ...typography.bodyEmphasis,
     color: colors.white,
-    fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   decline: {
-    minHeight: 48,
+    minHeight: 52,
     minWidth: 100,
     flexDirection: 'row',
     alignItems: 'center',
@@ -219,20 +196,17 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     gap: 4,
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
+    borderColor: colors.ink,
     paddingHorizontal: spacing.md,
   },
   declineLabel: {
-    color: colors.primaryDark,
-    fontSize: 15,
-    fontWeight: '800',
+    ...typography.bodyEmphasis,
+    color: colors.ink,
+    fontWeight: '700',
   },
   errorBox: {
     gap: spacing.sm,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.line,
     backgroundColor: colors.errorTint,
     padding: spacing.md,
   },
@@ -242,28 +216,19 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     gap: spacing.sm,
   },
   errorText: {
+    ...typography.body,
     flex: 1,
     color: colors.error,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '600',
   },
-  mutationErrorBox: {
+  mutationErrorRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.xs,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.errorTint,
-    padding: spacing.md,
   },
   mutationError: {
+    ...typography.caption,
     flex: 1,
     color: colors.error,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '700',
   },
   retry: {
     minHeight: 48,
@@ -274,9 +239,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   retryLabel: {
+    ...typography.bodyEmphasis,
     color: colors.error,
-    fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   pressed: {
     opacity: 0.76,

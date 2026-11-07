@@ -104,7 +104,6 @@ test('Tier 1 Local Rules: canonical "What\'s due next?" returns next scheduled d
   const now = new Date('2026-09-12T07:00:00+08:00');
   const context: LocalEvaluationContext = {
     query: "What's due next?",
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa' },
     medications: [],
     timeline: [
@@ -131,11 +130,10 @@ test('Tier 1 Local Rules: canonical "What\'s due next?" returns next scheduled d
   assert.equal(result.actionableDose?.medicationName, 'Amlodipine');
 });
 
-test('Tier 1 Local Rules: canonical "Ano ang susunod na gamot?" in Filipino returns Tagalog response', () => {
+test('Tier 1 Local Rules: Tagalog "Ano ang susunod na gamot?" gets the next dose in English', () => {
   const now = new Date('2026-09-12T07:00:00+08:00');
   const context: LocalEvaluationContext = {
     query: 'Ano ang susunod na gamot?',
-    locale: 'fil',
     patient: { id: 'p1', displayName: 'Lola Rosa' },
     medications: [],
     timeline: [
@@ -157,7 +155,7 @@ test('Tier 1 Local Rules: canonical "Ano ang susunod na gamot?" in Filipino retu
   const result = evaluateLocalQuery(context);
   assert.equal(result.handled, true);
   assert.equal(result.source, 'local_rules');
-  assert.match(result.answer || '', /Ang susunod na gamot ni Lola Rosa ay Amlodipine/);
+  assert.match(result.answer || '', /Lola Rosa's next scheduled dose is Amlodipine/);
   assert.equal(result.actionableDose?.occurrenceId, 'occ-1');
 });
 
@@ -165,7 +163,6 @@ test('Tier 1 Local Rules: celebration state triggers when all doses for today ar
   const now = new Date('2026-09-12T21:00:00+08:00');
   const context: LocalEvaluationContext = {
     query: "What's due next?",
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa' },
     medications: [],
     timeline: [
@@ -188,7 +185,7 @@ test('Tier 1 Local Rules: celebration state triggers when all doses for today ar
   assert.equal(result.actionableDose, null);
 });
 
-test('Tier 1 Local Rules: "Today\'s summary" calculates counts correctly in EN and FIL', () => {
+test('Tier 1 Local Rules: "Today\'s summary" calculates counts correctly for English and Tagalog queries', () => {
   const now = new Date('2026-09-12T12:00:00+08:00');
   const timeline: LocalEvaluationContext['timeline'] = [
     {
@@ -219,7 +216,6 @@ test('Tier 1 Local Rules: "Today\'s summary" calculates counts correctly in EN a
 
   const enRes = evaluateLocalQuery({
     query: "Today's summary",
-    locale: 'en',
     patient: { displayName: 'Lola Rosa' },
     medications: [],
     timeline,
@@ -228,23 +224,21 @@ test('Tier 1 Local Rules: "Today\'s summary" calculates counts correctly in EN a
   assert.equal(enRes.handled, true);
   assert.match(enRes.answer || '', /1 of 3 doses recorded as taken, 1 skipped, and 1 pending review/);
 
-  const filRes = evaluateLocalQuery({
+  const tagalogRes = evaluateLocalQuery({
     query: 'Buod ng araw na ito',
-    locale: 'fil',
     patient: { displayName: 'Lola Rosa' },
     medications: [],
     timeline,
     now,
   });
-  assert.equal(filRes.handled, true);
-  assert.match(filRes.answer || '', /1 sa 3 na inumin ang naitalang nainom, 1 ang nilaktawan, at 1 ang naghihintay ng tala/);
+  assert.equal(tagalogRes.handled, true);
+  assert.match(tagalogRes.answer || '', /1 of 3 doses recorded as taken, 1 skipped, and 1 pending review/);
 });
 
 test('Tier 1 Local Rules: Caregiver attribution check returns who recorded the dose and when', () => {
   const now = new Date('2026-09-12T12:00:00+08:00');
   const context: LocalEvaluationContext = {
     query: 'Did someone record Amlodipine?',
-    locale: 'en',
     patient: { displayName: 'Lola Rosa' },
     medications: [],
     timeline: [
@@ -265,20 +259,18 @@ test('Tier 1 Local Rules: Caregiver attribution check returns who recorded the d
   assert.equal(result.handled, true);
   assert.match(result.answer || '', /recorded as taken by Paolo Santos/);
 
-  const filContext: LocalEvaluationContext = {
+  const tagalogContext: LocalEvaluationContext = {
     ...context,
     query: 'Sino ang nagtala ng Amlodipine?',
-    locale: 'fil',
   };
-  const filResult = evaluateLocalQuery(filContext);
-  assert.equal(filResult.handled, true);
-  assert.match(filResult.answer || '', /naitala na ang Amlodipine bilang nainom ni Paolo Santos/);
+  const tagalogResult = evaluateLocalQuery(tagalogContext);
+  assert.equal(tagalogResult.handled, true);
+  assert.match(tagalogResult.answer || '', /recorded as taken by Paolo Santos/);
 });
 
 test('Tier 1 Local Rules: Prescription help directs user to Medicines tab', () => {
   const context: LocalEvaluationContext = {
     query: 'Help with prescription',
-    locale: 'en',
     patient: { displayName: 'Lola Rosa' },
     medications: [],
     timeline: [],
@@ -289,15 +281,14 @@ test('Tier 1 Local Rules: Prescription help directs user to Medicines tab', () =
   assert.equal(result.handled, true);
   assert.match(result.answer || '', /Medicines tab/);
 
-  const filResult = evaluateLocalQuery({ ...context, query: 'Tulong sa reseta', locale: 'fil' });
-  assert.equal(filResult.handled, true);
-  assert.match(filResult.answer || '', /Medicines tab/);
+  const tagalogResult = evaluateLocalQuery({ ...context, query: 'Tulong sa reseta' });
+  assert.equal(tagalogResult.handled, true);
+  assert.match(tagalogResult.answer || '', /Medicines tab/);
 });
 
 test('Tier 1 Local Rules: Medical safety invariant rejects dosage modification and directs to doctor', () => {
   const context: LocalEvaluationContext = {
     query: 'Can I increase Lola Rosa dose to two tablets?',
-    locale: 'en',
     patient: { displayName: 'Lola Rosa' },
     medications: [],
     timeline: [],
@@ -308,19 +299,17 @@ test('Tier 1 Local Rules: Medical safety invariant rejects dosage modification a
   assert.equal(result.handled, true);
   assert.match(result.answer || '', /please consult Lola Rosa's doctor or healthcare provider directly/);
 
-  const filResult = evaluateLocalQuery({
+  const tagalogResult = evaluateLocalQuery({
     ...context,
     query: 'Pwede bang dagdagan ang dose ng gamot?',
-    locale: 'fil',
   });
-  assert.equal(filResult.handled, true);
-  assert.match(filResult.answer || '', /sumangguni agad sa doktor o healthcare provider ni Lola Rosa/);
+  assert.equal(tagalogResult.handled, true);
+  assert.match(tagalogResult.answer || '', /please consult Lola Rosa's doctor or healthcare provider directly/);
 });
 
 test('Tier 1 Local Rules: Conversational query returns handled: false for Tier 2 fallback', () => {
   const context: LocalEvaluationContext = {
     query: 'Does Lola Rosa like drinking warm water before her morning pills?',
-    locale: 'en',
     patient: { displayName: 'Lola Rosa' },
     medications: [],
     timeline: [],
@@ -335,7 +324,6 @@ test('Tier 1 Local Rules: parses "Add Metformin 500mg once daily at 8:00 AM" int
   const now = new Date('2026-09-12T07:00:00+08:00');
   const context: LocalEvaluationContext = {
     query: 'Add Metformin 500mg once daily at 8:00 AM',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -359,7 +347,6 @@ test('Tier 1 Local Rules: parses "Dagdag ng Paracetamol 500mg bawat 6 na oras" i
   const now = new Date('2026-09-12T07:00:00+08:00');
   const context: LocalEvaluationContext = {
     query: 'Dagdag ng Paracetamol 500mg bawat 6 na oras',
-    locale: 'fil',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -375,14 +362,13 @@ test('Tier 1 Local Rules: parses "Dagdag ng Paracetamol 500mg bawat 6 na oras" i
   assert.equal(result.medicationDraft.strengthUnit, 'mg');
   assert.equal(result.medicationDraft.scheduleKind, 'interval');
   assert.equal(result.medicationDraft.intervalHours, 6);
-  assert.match(result.answer || '', /Narito ang draft para sa Paracetamol/);
+  assert.match(result.answer || '', /Here is the draft for Paracetamol/);
 });
 
 test('Tier 1 Local Rules: parses "Lola needs to take Losartan 50mg every night at 9pm"', () => {
   const now = new Date('2026-09-12T07:00:00+08:00');
   const context: LocalEvaluationContext = {
     query: 'Lola needs to take Losartan 50mg every night at 9pm',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -403,7 +389,6 @@ test('Tier 1 Local Rules: parses direct statement without "add" keyword "Metform
   const now = new Date('2026-09-12T07:00:00+08:00');
   const context: LocalEvaluationContext = {
     query: 'Metformin 500mg daily at 8:00 AM',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -426,7 +411,6 @@ test('Tier 1 Local Rules: "+ Add medicine" chip initializes pending draft, follo
   // Turn 1: user taps "+ Add medicine" chip
   const turn1 = evaluateLocalQuery({
     query: '+ Add medicine',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -441,7 +425,6 @@ test('Tier 1 Local Rules: "+ Add medicine" chip initializes pending draft, follo
   // Turn 2: user responds with medicine details
   const turn2 = evaluateLocalQuery({
     query: 'Metformin 500mg daily at 8:00 AM',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -461,7 +444,6 @@ test('Tier 1 Local Rules: multi-turn flow asks for missing time, then completes 
   // Turn 1: user provides med and strength but no time
   const turn1Context: LocalEvaluationContext = {
     query: 'Add Metformin 500mg',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -479,7 +461,6 @@ test('Tier 1 Local Rules: multi-turn flow asks for missing time, then completes 
   // Turn 2: user replies with the time
   const turn2Context: LocalEvaluationContext = {
     query: 'at 8:00 AM',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -501,7 +482,6 @@ test('Tier 1 Local Rules: multi-turn flow asks for missing dose, then completes 
   // Turn 1: user provides med and time but no dose
   const turn1Context: LocalEvaluationContext = {
     query: 'Add Metformin at 8:00 AM',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -519,7 +499,6 @@ test('Tier 1 Local Rules: multi-turn flow asks for missing dose, then completes 
   // Turn 2: user replies with dose
   const turn2Context: LocalEvaluationContext = {
     query: '500mg',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -536,11 +515,10 @@ test('Tier 1 Local Rules: multi-turn flow asks for missing dose, then completes 
   assert.deepEqual(turn2.medicationDraft.times, ['08:00']);
 });
 
-test('Tier 1 Local Rules: rejects non-managers with care manager attribution in EN and FIL', () => {
+test('Tier 1 Local Rules: rejects non-managers with care manager attribution for English and Tagalog requests', () => {
   const now = new Date('2026-09-12T07:00:00+08:00');
   const enContext: LocalEvaluationContext = {
     query: 'Add Metformin 500mg at 8:00 AM',
-    locale: 'en',
     patient: {
       id: 'p1',
       displayName: 'Lola Rosa',
@@ -561,18 +539,17 @@ test('Tier 1 Local Rules: rejects non-managers with care manager attribution in 
     /Only primary care managers can add new medicines for Lola Rosa\. Please coordinate with Maya Santos\./,
   );
 
-  const filContext: LocalEvaluationContext = {
+  const tagalogContext: LocalEvaluationContext = {
     ...enContext,
     query: 'Magdagdag ng Metformin 500mg sa 8am',
-    locale: 'fil',
   };
 
-  const filResult = evaluateLocalQuery(filContext);
-  assert.equal(filResult.handled, true);
-  assert.equal(filResult.medicationDraft, null);
+  const tagalogResult = evaluateLocalQuery(tagalogContext);
+  assert.equal(tagalogResult.handled, true);
+  assert.equal(tagalogResult.medicationDraft, null);
   assert.match(
-    filResult.answer || '',
-    /Tanging ang mga tagapamahala ng pangangalaga ang maaaring magdagdag ng bagong gamot para kay Lola Rosa\. Mangyaring makipag-ugnayan kay Maya Santos\./,
+    tagalogResult.answer || '',
+    /Only primary care managers can add new medicines for Lola Rosa\. Please coordinate with Maya Santos\./,
   );
 });
 
@@ -580,7 +557,6 @@ test('Tier 1 Local Rules: flags duplicate medication against active patient medi
   const now = new Date('2026-09-12T07:00:00+08:00');
   const context: LocalEvaluationContext = {
     query: 'Add Metformin 500mg at 8:00 AM',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [
       {
@@ -608,7 +584,7 @@ test('Tier 1 Local Rules: flags duplicate medication against active patient medi
   assert.match(result.answer || '', /already in Lola Rosa's active medicines/);
 });
 
-test('Tier 1 Local Rules: cancels pending draft on cancel keyword in EN and FIL', () => {
+test('Tier 1 Local Rules: cancels pending draft on English and Tagalog cancel keywords', () => {
   const now = new Date('2026-09-12T07:00:00+08:00');
   const pending = {
     id: 'draft-1',
@@ -625,7 +601,6 @@ test('Tier 1 Local Rules: cancels pending draft on cancel keyword in EN and FIL'
 
   const enContext: LocalEvaluationContext = {
     query: 'cancel',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -639,17 +614,16 @@ test('Tier 1 Local Rules: cancels pending draft on cancel keyword in EN and FIL'
   assert.equal(enResult.medicationDraft, null);
   assert.match(enResult.answer || '', /cancelled adding the medicine/i);
 
-  const filContext: LocalEvaluationContext = {
+  const tagalogContext: LocalEvaluationContext = {
     ...enContext,
     query: 'wag na lang',
-    locale: 'fil',
   };
 
-  const filResult = evaluateLocalQuery(filContext);
-  assert.equal(filResult.handled, true);
-  assert.equal(filResult.pendingDraft, null);
-  assert.equal(filResult.medicationDraft, null);
-  assert.match(filResult.answer || '', /kinansela ko ang pagdagdag ng gamot/i);
+  const tagalogResult = evaluateLocalQuery(tagalogContext);
+  assert.equal(tagalogResult.handled, true);
+  assert.equal(tagalogResult.pendingDraft, null);
+  assert.equal(tagalogResult.medicationDraft, null);
+  assert.match(tagalogResult.answer || '', /cancelled adding the medicine/i);
 });
 
 test('Tier 1 Local Rules: switches to a new medicine cleanly when a draft is already pending', () => {
@@ -669,7 +643,6 @@ test('Tier 1 Local Rules: switches to a new medicine cleanly when a draft is alr
 
   const context: LocalEvaluationContext = {
     query: 'Add Losartan 50mg at 8:00 AM',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],
@@ -741,23 +714,22 @@ test('Tier 1 Local Rules: supports broader dosage forms and units (inhaler, spra
 // ============================================================================
 
 test('Gemini Assistant: safety invariants reject diagnosis and dosage change pre-check', () => {
-  const decline1 = checkMedicalSafetyInvariants('Can I double the dose of Amlodipine?', 'Lola Rosa', 'en');
+  const decline1 = checkMedicalSafetyInvariants('Can I double the dose of Amlodipine?', 'Lola Rosa');
   assert.ok(decline1);
   assert.match(decline1, /consult Lola Rosa's doctor/);
 
-  const decline2 = checkMedicalSafetyInvariants('She has chest pain and nausea, what is this?', 'Lola Rosa', 'en');
+  const decline2 = checkMedicalSafetyInvariants('She has chest pain and nausea, what is this?', 'Lola Rosa');
   assert.ok(decline2);
   assert.match(decline2, /cannot diagnose conditions/);
 
-  const declineFil = checkMedicalSafetyInvariants('Masakit ang dibdib at nahihilo si Lola, ano ang sakit niya?', 'Lola Rosa', 'fil');
-  assert.ok(declineFil);
-  assert.match(declineFil, /sumangguni agad sa doktor/);
+  const declineTagalog = checkMedicalSafetyInvariants('Masakit ang dibdib at nahihilo si Lola, ano ang sakit niya?', 'Lola Rosa');
+  assert.ok(declineTagalog);
+  assert.match(declineTagalog, /consult Lola Rosa's doctor/);
 });
 
 test('Gemini Assistant: context building serializes active meds, schedules, and history', () => {
   const params: AssistantQueryParams = {
     query: 'Hello Bantay',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa' },
     caregiver: { id: 'c1', displayName: 'Maya Santos' },
     medications: [
@@ -817,7 +789,6 @@ test('Gemini Assistant: system prompt enforces invariants and companion tone', (
 test('Gemini Assistant: missing API key returns reassuring fallback response', async () => {
   const params: AssistantQueryParams = {
     query: 'What time should I prepare lunch for Lola Rosa?',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa' },
     caregiver: { id: 'c1', displayName: 'Maya Santos' },
     medications: [],
@@ -838,7 +809,6 @@ test('Gemini Assistant: simulated API failure returns fallback gracefully', asyn
 
   const params: AssistantQueryParams = {
     query: 'Tell me about Lola Rosa medication schedule',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa' },
     caregiver: { id: 'c1', displayName: 'Maya Santos' },
     medications: [],
@@ -870,7 +840,6 @@ test('Gemini Assistant: valid API response parses candidates and attaches action
 
   const params: AssistantQueryParams = {
     query: 'What is scheduled for tonight?',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa' },
     caregiver: { id: 'c1', displayName: 'Maya Santos' },
     medications: [],
@@ -939,7 +908,6 @@ test('Gemini Assistant: tool call propose_medication_draft builds structured Ass
 
   const params: AssistantQueryParams = {
     query: 'Please add Aspirin 81mg every morning at 8am',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     caregiver: { id: 'c1', displayName: 'Maya Santos' },
     medications: [],
@@ -960,7 +928,6 @@ test('Gemini Assistant: tool call propose_medication_draft builds structured Ass
 test('Gemini Assistant: permission pre-check rejects non-managers for add medicine intent', async () => {
   const params: AssistantQueryParams = {
     query: 'Add Metformin 500mg at 8:00 AM',
-    locale: 'en',
     patient: {
       id: 'p1',
       displayName: 'Lola Rosa',
@@ -1037,7 +1004,7 @@ test('HTTP Route: POST /patients/:patientId/assistant/query executes successfull
     {
       method: 'POST',
       token,
-      body: { query: "What's due next?", locale: 'en' },
+      body: { query: "What's due next?" },
     },
   );
 
@@ -1058,7 +1025,7 @@ test('HTTP Route: POST /patients/:patientId/assistant/query executes successfull
   assert.equal(matched?.canManageMedications, true);
 });
 
-test('HTTP Route: POST /api/assistant/query alias works with patientId in body', async () => {
+test('HTTP Route: POST /api/assistant/query alias works with patientId in body and ignores a legacy locale field', async () => {
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const password = 'test-password-123';
   const owner = await api<AuthResult>('/auth/register', {
@@ -1157,7 +1124,7 @@ test('HTTP Route: non-manager caregiver receives primary care manager name from 
     {
       method: 'POST',
       token: caregiver.body.token,
-      body: { query: 'Add Metformin 500mg at 8:00 AM', locale: 'en' },
+      body: { query: 'Add Metformin 500mg at 8:00 AM' },
     },
   );
   assert.equal(queryResult.status, 200);
@@ -1180,16 +1147,15 @@ test('HTTP Route: non-manager caregiver receives primary care manager name from 
     'Only primary care managers can add new medicines for Lola Rosa. Please coordinate with Maya Santos.',
   );
 
-  const filGuardrailResponse = await queryGeminiAssistant({
+  const tagalogGuardrailResponse = await queryGeminiAssistant({
     ...lastAssistantQueryParams,
-    locale: 'fil',
     query: 'Magdagdag ng Metformin 500mg sa 8am',
   });
-  assert.equal(filGuardrailResponse.source, 'local_rules');
-  assert.equal(filGuardrailResponse.model, 'permission_guardrail');
-  assert.equal(filGuardrailResponse.medicationDraft, null);
+  assert.equal(tagalogGuardrailResponse.source, 'local_rules');
+  assert.equal(tagalogGuardrailResponse.model, 'permission_guardrail');
+  assert.equal(tagalogGuardrailResponse.medicationDraft, null);
   assert.equal(
-    filGuardrailResponse.answer,
-    'Tanging ang mga tagapamahala ng pangangalaga ang maaaring magdagdag ng bagong gamot para kay Lola Rosa. Mangyaring makipag-ugnayan kay Maya Santos.',
+    tagalogGuardrailResponse.answer,
+    'Only primary care managers can add new medicines for Lola Rosa. Please coordinate with Maya Santos.',
   );
 });

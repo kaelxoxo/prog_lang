@@ -28,8 +28,9 @@ Any future real release would prioritize a family member caring for their parent
 
 ## Language
 
-- The interface will support English and Filipino, selected by the user.
-- English is the initial implementation language, especially for timetable and medicine fields commonly written in English in the Philippines.
+- On 2026-11-07, the owner removed Filipino for now: the app and Bantay's replies are English only, and Settings has no language picker. Filipino will be re-added later as a second dictionary in `src/features/settings/translations.ts` plus a picker; every screen already reads its copy through `t()`, so no screen needs rewriting.
+- English is the implementation language, especially for timetable and medicine fields commonly written in English in the Philippines.
+- Bantay still understands Tagalog and Taglish phrasing in questions and prescription instructions (for example "alas 8 ng umaga" or "bawat 6 na oras"); only its replies are English.
 - Imported text is preserved exactly as extracted. Translation is a separate later step, so the source wording is never silently replaced.
 
 ## Medicine input
@@ -70,7 +71,7 @@ Milestone 5.5 was approved and implemented on 2026-08-26 before caregiver invita
 
 Milestone 6 uses in-app invitations tied to a normalized account email. An owner chooses whether the caregiver may also manage medicines. The invited account can accept or decline; an owner can cancel a pending invitation or revoke an accepted caregiver without deleting attributed history.
 
-The local prototype does not send invitation email and account emails are not yet externally verified. Shared “not recorded” escalation means every accepted caregiver sees overdue items on Home when they open Alaga. Remote notifications, verified identity and household rules remain later decisions.
+The local prototype does not send invitation email and account emails are not yet externally verified. Shared “not recorded” escalation means every accepted caregiver sees Not Recorded doses under Due now on Home when they open Alaga. Remote notifications, verified identity and household rules remain later decisions.
 
 ## Care Setup onboarding
 

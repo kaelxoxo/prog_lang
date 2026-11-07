@@ -1,18 +1,12 @@
+import { estimateInventoryDaysRemaining } from '../medications/inventory';
 import type { Medication } from '../medications/types';
-import type { DoseOccurrence } from '../today/types';
+import { groupByTimeSlot, isDueNow, isLaterToday, isNotRecorded, isRecorded, type TimeSlot } from '../today/doseWindows';
+import { actionableAt, type DoseOccurrence } from '../today/types';
 
 export type HistoryDay = { date: string; timeline: Pick<DoseOccurrence, 'status'>[] };
 
-export type PlanHorizon = {
-  medication: Medication;
-  endOn: string;
-  /** Calendar days left in the schedule, counting today (the last day reads as 1). */
-  daysRemaining: number;
-};
-
-function isRecorded(dose: Pick<DoseOccurrence, 'status'>) {
-  return dose.status === 'taken' || dose.status === 'skipped';
-}
+/** Home lists a medicine under Refill Horizon once its stock covers this many days or fewer. */
+export const REFILL_HORIZON_DAYS = 7;
 
 function dayNumber(localDate: string) {
   const [year, month, day] = localDate.split('-').map(Number);
@@ -47,28 +41,39 @@ export function computeCareStreak(history: HistoryDay[], today: string) {
   return streak;
 }
 
-/**
- * The active medication whose schedule ends soonest. A medication with any
- * open-ended schedule is ongoing and never has a horizon.
- */
-export function findPlanHorizon(medications: Medication[], today: string): PlanHorizon | null {
-  let soonest: PlanHorizon | null = null;
+export type HomeDoses = {
+  /** Time passed without a record, grouped by Time Slot. */
+  notRecordedSlots: TimeSlot[];
+  /** Due within the next two hours and not passed yet. */
+  dueSoon: DoseOccurrence[];
+  /** Taken or skipped today. */
+  recorded: DoseOccurrence[];
+  /** More than two hours away. */
+  laterToday: DoseOccurrence[];
+};
 
+/** Splits today's Dose Occurrences into the sections Home shows, each in time order. */
+export function sortHomeDoses(timeline: DoseOccurrence[], now: number): HomeDoses {
+  const doses = [...timeline].sort(
+    (left, right) => new Date(actionableAt(left)).getTime() - new Date(actionableAt(right)).getTime(),
+  );
+  return {
+    notRecordedSlots: groupByTimeSlot(doses.filter((dose) => isNotRecorded(dose, now))),
+    dueSoon: doses.filter((dose) => isDueNow(dose, now) && !isNotRecorded(dose, now)),
+    recorded: doses.filter(isRecorded),
+    laterToday: doses.filter((dose) => isLaterToday(dose, now)),
+  };
+}
+
+export type RefillAlert = { medication: Medication; daysLeft: number };
+
+/** Active medicines whose recorded stock lasts REFILL_HORIZON_DAYS or fewer, soonest first. */
+export function findRefillAlerts(medications: Medication[], today: string): RefillAlert[] {
+  const alerts: RefillAlert[] = [];
   for (const medication of medications) {
-    if (medication.archivedAt || medication.schedules.length === 0) continue;
-    if (medication.schedules.some((schedule) => !schedule.endOn)) continue;
-
-    const endOn = medication.schedules
-      .map((schedule) => schedule.endOn as string)
-      .sort()
-      .at(-1) as string;
-    if (endOn < today) continue;
-
-    const daysRemaining = dayNumber(endOn) - dayNumber(today) + 1;
-    if (!soonest || daysRemaining < soonest.daysRemaining) {
-      soonest = { medication, endOn, daysRemaining };
-    }
+    if (medication.archivedAt) continue;
+    const daysLeft = estimateInventoryDaysRemaining(medication, today);
+    if (daysLeft !== null && daysLeft <= REFILL_HORIZON_DAYS) alerts.push({ medication, daysLeft });
   }
-
-  return soonest;
+  return alerts.sort((left, right) => left.daysLeft - right.daysLeft);
 }

@@ -1,8 +1,9 @@
 import { type LucideIconName } from '@react-native-vector-icons/lucide';
-import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet } from 'react-native';
 
 import { AppIcon } from './AppIcon';
+import { useReducedMotion } from '../lib/useReducedMotion';
 
 export type IconAnimationKind = 'float' | 'pulse' | 'chime' | 'breathe' | 'none';
 
@@ -24,24 +25,7 @@ export function AnimatedAppIcon({
   size = 20,
 }: Props) {
   const animValue = useRef(new Animated.Value(0)).current;
-  const [reduceMotion, setReduceMotion] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      if (isMounted) setReduceMotion(enabled);
-    });
-
-    const subscription = AccessibilityInfo.addEventListener(
-      'reduceMotionChanged',
-      (enabled) => setReduceMotion(enabled),
-    );
-
-    return () => {
-      isMounted = false;
-      subscription.remove();
-    };
-  }, []);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (animation === 'none' || reduceMotion) {
@@ -89,19 +73,19 @@ export function AnimatedAppIcon({
   } else if (animation === 'pulse') {
     const scale = animValue.interpolate({
       inputRange: [0, 1],
-      outputRange: [1, 1.14],
+      outputRange: [1, 1.08],
     });
     transformStyle = { transform: [{ scale }] };
   } else if (animation === 'chime') {
     const rotate = animValue.interpolate({
       inputRange: [0, 0.5, 1],
-      outputRange: ['0deg', '8deg', '-8deg'],
+      outputRange: ['0deg', '6deg', '-6deg'],
     });
     transformStyle = { transform: [{ rotate }] };
   } else if (animation === 'breathe') {
     const scale = animValue.interpolate({
       inputRange: [0, 1],
-      outputRange: [0.97, 1.06],
+      outputRange: [0.98, 1.04],
     });
     const opacity = animValue.interpolate({
       inputRange: [0, 1],

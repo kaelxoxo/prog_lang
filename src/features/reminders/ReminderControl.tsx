@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AppIcon } from '../../components/AppIcon';
 import { apiRequest, errorMessage } from '../../lib/api';
 import { useCurrentTime } from '../../lib/useCurrentTime';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
@@ -106,11 +106,9 @@ export function ReminderControl({ patient }: { patient: Patient }) {
   if (Platform.OS === 'web') return null;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.section}>
       <View style={styles.headerRow}>
-        <View style={styles.iconWrap}>
-          <AppIcon color={colors.primaryDark} name="bell" size={18} />
-        </View>
+        <AppIcon color={colors.inkLine} name="bell" size={20} />
         <View style={styles.copy}>
           <Text style={styles.title}>{t('reminders.title')}</Text>
           <Text style={styles.body}>{t(enabled && permission ? 'reminders.onBody' : 'reminders.offBody')}</Text>
@@ -122,44 +120,34 @@ export function ReminderControl({ patient }: { patient: Patient }) {
             disabled={!ready || saving}
             onValueChange={(value) => void (value ? enable() : disable())}
             thumbColor={enabled && permission ? colors.white : colors.muted}
-            trackColor={{ false: colors.mist, true: colors.success }}
+            trackColor={{ false: colors.controlBorder, true: colors.primary }}
             value={enabled && permission}
           />
         </View>
       </View>
       {query.isFetching ? <Text accessibilityLiveRegion="polite" style={styles.status}>{t('reminders.refreshing')}</Text> : null}
       {query.error || syncError ? <Text accessibilityLiveRegion="assertive" style={styles.error}>{syncError || errorMessage(query.error)}</Text> : null}
-      {!permission && (enabled || syncError) ? <Pressable accessibilityRole="link" onPress={() => void Linking.openSettings()} style={styles.settings}><Text style={styles.settingsLabel}>{t('reminders.openSettings')}</Text></Pressable> : null}
+      {!permission && (enabled || syncError) ? <Pressable accessibilityRole="link" onPress={() => void Linking.openSettings()} style={({ pressed }) => [styles.settings, pressed && styles.pressed]}><Text style={styles.settingsLabel}>{t('reminders.openSettings')}</Text></Pressable> : null}
     </View>
   );
 }
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
-  card: {
+  section: {
     gap: spacing.sm,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
-    padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingVertical: spacing.lg,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  iconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.full,
-    backgroundColor: colors.primaryTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   copy: { flex: 1, gap: 2 },
-  title: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  body: { color: colors.muted, fontSize: 13, lineHeight: 18 },
-  status: { width: '100%', color: colors.successDark, fontSize: 12, fontWeight: '700', marginTop: 4 },
-  error: { width: '100%', color: colors.error, fontSize: 12, fontWeight: '700', marginTop: 4 },
+  title: { ...typography.headline, color: colors.ink },
+  body: { ...typography.caption, color: colors.muted },
+  status: { ...typography.caption, width: '100%', color: colors.muted, marginTop: 4 },
+  error: { ...typography.caption, width: '100%', color: colors.error, marginTop: 4 },
   switchTarget: { minWidth: 52, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.76 },
   disabled: { opacity: 0.5 },
   settings: { width: '100%', minHeight: 48, alignItems: 'flex-start', justifyContent: 'center', marginTop: 4 },
-  settingsLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
+  settingsLabel: { ...typography.bodyEmphasis, color: colors.primaryDark, fontWeight: '700' },
 });
