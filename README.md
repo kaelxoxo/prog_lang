@@ -13,7 +13,6 @@ Alaga is a warm, patient-first medicine care log for families coordinating care 
 - A seven-day read-only history and reversible medicine archiving.
 - Opt-in local reminders with private lock-screen wording.
 - Reviewable local OCR drafts that preserve source wording and never turn vague instructions into exact times.
-- Persisted English and Filipino interface settings.
 - Large-text reflow, labelled icon actions, 48dp targets, light and dark themes, and patient-first safety context.
 
 ## Architecture

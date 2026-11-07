@@ -26,7 +26,6 @@ export interface LeafletChunk {
   sectionTitle: string;
   sourceTitle: string;
   content: string;
-  contentFil: string;
   keywords: string[];
   embedding: number[];
 }
@@ -134,10 +133,9 @@ function makeChunk(
   section: FormularySection,
   sectionTitle: string,
   content: string,
-  contentFil: string,
   keywords: string[],
 ): LeafletChunk {
-  const combined = `${content} ${contentFil} ${keywords.join(' ')}`;
+  const combined = `${content} ${keywords.join(' ')}`;
   const embedding = computeDeterministicEmbedding(combined);
   return {
     id,
@@ -146,7 +144,6 @@ function makeChunk(
     sectionTitle,
     sourceTitle: PNDF_SOURCE_TITLE,
     content,
-    contentFil,
     keywords,
     embedding,
   };
@@ -169,7 +166,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'purpose',
         'General Purpose & Indication',
         'Amlodipine is a dihydropyridine calcium channel blocker prescribed to treat high blood pressure (hypertension) and chronic stable chest pain (angina). It relaxes and dilates peripheral blood vessels, lowering blood pressure so blood flows more easily and reducing the workload on the heart.',
-        'Ang Amlodipine ay isang calcium channel blocker na inirereseta para sa altapresyon (mataas na presyon ng dugo) at pananakit ng dibdib (angina). Pinaluluwag nito ang mga daluyan ng dugo upang mas madaling dumaloy ang dugo at gumaan ang trabaho ng puso.',
         [
           'purpose',
           'indication',
@@ -192,7 +188,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'food_and_timing',
         'Food & Meal Timing',
         'Amlodipine can be taken with or without food. It should be taken once daily with a full glass of water, preferably at approximately the same time each day (e.g. morning or evening) to keep blood pressure steady. Avoid consuming grapefruit or drinking grapefruit juice while taking Amlodipine, as grapefruit can increase drug concentrations in the blood.',
-        'Maaaring inumin ang Amlodipine nang may laman ang tiyan o kahit walang laman (bago o pagkatapos kumain). Inumin ito isang beses bawat araw sa parehong oras kasama ang isang basong tubig. Iwasan ang suha (grapefruit) dahil maaari nitong mapataas ang bisa ng gamot sa dugo.',
         [
           'food',
           'meal',
@@ -222,7 +217,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'missed_dose',
         'Missed Dose Rules',
         'If you miss a dose of Amlodipine, take it as soon as you remember on that same day. However, if more than 12 hours have passed since the scheduled time, or if it is almost time for the next dose, skip the missed dose and resume the regular dosing schedule. Never take two doses or a double tablet to make up for a missed dose.',
-        'Kung nakalimutan ang dose ng Amlodipine, inumin ito agad sa sandaling maalala sa araw ring iyon. Subalit kung mahigit 12 oras na ang lumipas o malapit na ang susunod na iskedyul, laktawan na ang nakaligtaang dose at ipagpatuloy ang dating iskedyul. Huwag kailanman magdoble ng dose.',
         [
           'missed',
           'miss',
@@ -247,7 +241,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'administration_instructions',
         'Administration Instructions',
         'Swallow the Amlodipine tablet whole with a glass of water. Do not crush, chew, or break the tablet unless specifically advised by your doctor or pharmacist. Store in a cool, dry place below 30°C away from direct sunlight and excess moisture. Keep out of reach of children.',
-        'Lunukin nang buo ang tableta ng Amlodipine kasabay ng isang basong tubig. Huwag durugin o nguyain ang tableta maliban kung ipinayo ng doktor. Itago sa malamig at tuyong lugar na hindi lalampas sa 30°C at malayo sa direktang sikat ng araw.',
         [
           'admin',
           'administration',
@@ -283,7 +276,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'purpose',
         'General Purpose & Indication',
         'Metformin is an oral biguanide antihyperglycemic medicine used to manage type 2 diabetes mellitus. It helps control blood sugar by decreasing glucose production by the liver, decreasing intestinal glucose absorption, and increasing insulin sensitivity in muscle and peripheral tissues.',
-        'Ang Metformin ay isang gamot para sa type 2 diabetes na nagpapababa ng asukal sa dugo sa pamamagitan ng pagbawas sa produksyon ng glucose sa atay at pagpapahusay sa paggamit ng katawan sa sariling insulin.',
         [
           'purpose',
           'indication',
@@ -306,7 +298,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'food_and_timing',
         'Food & Meal Timing',
         'Metformin should always be taken with meals or immediately after eating (such as with breakfast or dinner). Taking Metformin with food is essential to minimize gastrointestinal side effects like stomach upset, nausea, abdominal cramping, and diarrhea. Avoid heavy alcohol intake while taking Metformin.',
-        'Dapat inumin ang Metformin kasabay o kaagad pagkatapos kumain (tulad ng almusal o hapunan). Mahalaga ang pag-inom nito kasabay ng pagkain upang maiwasan ang pananakit ng tiyan, pagkahilo, pagtatae, at pangangasim. Iwasan ang pag-inom ng alak.',
         [
           'food',
           'meal',
@@ -339,7 +330,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'missed_dose',
         'Missed Dose Rules',
         'If you forget to take a dose of Metformin, take it with food as soon as you remember. If it is almost time for your next scheduled dose, skip the missed dose and resume your regular dosing schedule. Do not take an extra tablet or double dose to make up for a missed dose.',
-        'Kung nakalimutang inumin ang Metformin, inumin ito kasabay ng pagkain sa sandaling maalala. Kung malapit na ang oras ng susunod na dose, laktawan na ang nakalimutan at sundin ang regular na iskedyul. Huwag magdoble ng dose.',
         [
           'missed',
           'miss',
@@ -364,7 +354,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'administration_instructions',
         'Administration Instructions',
         'Swallow Metformin tablets whole with a full glass of water. Do not crush, chew, split, or dissolve the tablets, particularly extended-release formulations, because crushing can release the medication too quickly into the bloodstream. Store below 30°C in a dry place protected from heat and moisture.',
-        'Lunukin nang buo ang tableta ng Metformin kasabay ng tubig. Huwag nguyain, durugin, o hatiin ang tableta upang hindi biglang mailabas ang gamot sa katawan. Itago sa tuyong lugar na hindi lalampas sa 30°C.',
         [
           'admin',
           'administration',
@@ -401,7 +390,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'purpose',
         'General Purpose & Indication',
         'Losartan is an Angiotensin II receptor antagonist (ARB) prescribed to treat high blood pressure (hypertension) and reduce the risk of stroke. It is also used to slow the progression of kidney disease (nephropathy) in diabetic patients with hypertension. It blocks angiotensin II, allowing blood vessels to widen and relax.',
-        'Ang Losartan ay isang Angiotensin II receptor blocker na inirereseta para sa altapresyon at upang maprotektahan ang bato sa mga pasyenteng may diabetes. Pinaluluwag nito ang mga ugat upang bumaba ang presyon ng dugo at gumaan ang sirkulasyon.',
         [
           'purpose',
           'indication',
@@ -425,7 +413,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'food_and_timing',
         'Food & Meal Timing',
         'Losartan may be taken with or without food. It should be taken at approximately the same time each day with water. Avoid using potassium supplements or salt substitutes containing potassium without consulting your physician, as Losartan can increase blood potassium levels.',
-        'Maaaring inumin ang Losartan nang may pagkain o kahit walang laman ang tiyan. Inumin ito sa parehong oras araw-araw kasabay ng tubig. Iwasan ang mga salt substitute o suplemento na may potassium nang walang payo ng doktor.',
         [
           'food',
           'meal',
@@ -450,7 +437,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'missed_dose',
         'Missed Dose Rules',
         'If you miss a dose of Losartan, take it as soon as you remember on that day. However, if it is almost time for your next regular dose, skip the missed dose and continue with your normal schedule. Do not take two doses at once or double up.',
-        'Kung nakalimutan ang dose ng Losartan, inumin ito sa sandaling maalala sa araw ring iyon. Subalit kung malapit na ang susunod na iskedyul, laktawan na ang nakaligtaang dose at magpatuloy sa dating oras. Huwag uminom ng dalawang dose nang sabay.',
         [
           'missed',
           'miss',
@@ -475,7 +461,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'administration_instructions',
         'Administration Instructions',
         'Swallow the tablet whole with a glass of water. Do not crush or chew the tablet. Store in a dry place at room temperature (15°C to 30°C) protected from excessive light and moisture. Keep the container tightly closed.',
-        'Lunukin nang buo ang tableta ng Losartan kasabay ng tubig. Huwag durugin o nguyain ang tableta. Itago sa tuyong lugar na may temperatura na 15°C hanggang 30°C at protektado sa liwanag at moisture.',
         [
           'admin',
           'administration',
@@ -511,7 +496,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'purpose',
         'General Purpose & Indication',
         'Metoprolol is a cardioselective beta-blocker prescribed for high blood pressure (hypertension), angina pectoris (chest pain), and to control irregular or rapid heart rates. It works by slowing down heart rate and reducing myocardial contractility.',
-        'Ang Metoprolol ay isang beta-blocker para sa altapresyon, pananakit ng dibdib (angina), at pampabagal ng mabilis o iregular na tibok ng puso.',
         [
           'purpose',
           'indication',
@@ -533,7 +517,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'food_and_timing',
         'Food & Meal Timing',
         'Metoprolol should be taken with or immediately following a meal for consistent absorption. Taking it with food enhances bioavailability and helps maintain stable plasma drug levels. Take at the same time every day.',
-        'Dapat inumin ang Metoprolol kasabay o kaagad pagkatapos kumain upang maging pantay ang pagsipsip ng gamot sa katawan. Inumin sa parehong oras araw-araw.',
         [
           'food',
           'meal',
@@ -555,7 +538,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'missed_dose',
         'Missed Dose Rules',
         'If you miss a dose of Metoprolol, take it as soon as remembered. However, if your next dose is within 4 hours, skip the missed dose and take your next dose at the regular time. Never double your dose.',
-        'Kung nakalimutan ang dose ng Metoprolol, inumin ito kapag naalala. Ngunit kung wala nang 4 na oras bago ang susunod na dose, laktawan na ang nakaligtaan. Huwag magdoble ng inumin.',
         [
           'missed',
           'miss',
@@ -575,7 +557,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'administration_instructions',
         'Administration Instructions',
         'Swallow tablets whole with water. Do not abruptly stop taking Metoprolol without consulting your doctor, as sudden discontinuation can trigger rebound hypertension or chest pain. Store in a cool, dry place below 30°C.',
-        'Lunukin nang buo ang tableta kasabay ng tubig. Huwag biglang ititigil ang pag-inom ng Metoprolol nang walang pahintulot ng doktor upang maiwasan ang biglaang pagtaas ng presyon ng dugo.',
         [
           'admin',
           'administration',
@@ -605,7 +586,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'purpose',
         'General Purpose & Indication',
         'Atorvastatin is an HMG-CoA reductase inhibitor (statin) prescribed to lower bad cholesterol (LDL) and triglycerides in the blood, while raising good cholesterol (HDL). It helps prevent atherosclerosis, heart attacks, and strokes in individuals at cardiovascular risk.',
-        'Ang Atorvastatin ay isang statin na nagpapababa ng masamang kolesterol (LDL) at triglycerides sa dugo upang maiwasan ang bara sa ugat, atake sa puso, at stroke.',
         [
           'purpose',
           'indication',
@@ -628,7 +608,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'food_and_timing',
         'Food & Meal Timing',
         'Atorvastatin can be taken with or without food, at any time of day, but it is best taken in the evening or at bedtime because the body produces most cholesterol at night. Avoid large quantities of grapefruit or grapefruit juice, which can raise drug levels dangerously.',
-        'Maaaring inumin ang Atorvastatin nang may pagkain o wala, mas mainam sa gabi o bago matulog dahil sa gabi pinakamaraming gumagawa ng kolesterol ang atay. Iwasan ang suha (grapefruit).',
         [
           'food',
           'meal',
@@ -652,7 +631,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'missed_dose',
         'Missed Dose Rules',
         'If you miss a dose of Atorvastatin, take it as soon as you remember. If more than 12 hours have passed since your missed dose, skip it and take your next dose at the regular time. Do not take two doses at once.',
-        'Kung nakalimutang inumin ang Atorvastatin, inumin ito kapag naalala. Kung mahigit 12 oras na ang lumipas, laktawan na ito at magpatuloy sa regular na oras. Huwag uminom ng dalawang dose nang sabay.',
         [
           'missed',
           'miss',
@@ -672,7 +650,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'administration_instructions',
         'Administration Instructions',
         'Swallow the tablet whole with a glass of water. Maintain a heart-healthy low-fat diet while on therapy. Store at room temperature (below 30°C) away from moisture and light.',
-        'Lunukin nang buo ang tableta kasabay ng tubig. Panatilihin ang pagkain ng masusustansya at mababang-taba habang umiinom nito. Itago sa temperaturang hindi lalampas sa 30°C.',
         [
           'admin',
           'administration',
@@ -702,7 +679,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'purpose',
         'General Purpose & Indication',
         'Paracetamol (acetaminophen) is a widely used analgesic and antipyretic medicine for the relief of mild to moderate pain (such as headaches, muscle aches, or joint discomfort) and the reduction of fever.',
-        'Ang Paracetamol ay gamot para sa lagnat at pampaginhawa ng banayad hanggang katamtamang pananakit ng ulo, kalamnan, o kasu-kasuan.',
         [
           'purpose',
           'indication',
@@ -723,7 +699,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'food_and_timing',
         'Food & Meal Timing',
         'Paracetamol can be taken safely with or without food. Taking it with water or after a light snack can help if stomach sensitivity occurs. Do not combine with other medicines containing paracetamol to prevent liver toxicity.',
-        'Ligtas inumin ang Paracetamol nang may laman ang tiyan o kahit walang laman. Kung medyo sensitibo ang sikmura, inumin ito pagkatapos kumain ng kaunti. Huwag isabay sa iba pang gamot na may paracetamol.',
         [
           'food',
           'meal',
@@ -746,7 +721,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'missed_dose',
         'Missed Dose Rules',
         'Paracetamol is typically taken as needed for pain or fever. If on a fixed schedule and a dose is missed, take it when remembered, provided at least 4 to 6 hours have passed since the last dose. Never double the dose or exceed 4,000 mg in 24 hours.',
-        'Karaniwang iniinom ang Paracetamol kung kailangan lamang. Kung nakaiskedyul at nakalimutan, inumin ito kung lumipas na ang 4 hanggang 6 na oras mula sa huling pag-inom. Huwag kailanman magdoble ng dose.',
         [
           'missed',
           'miss',
@@ -766,7 +740,6 @@ export const FORMULARY_MONOGRAPHS: DrugMonograph[] = [
         'administration_instructions',
         'Administration Instructions',
         'Swallow tablets with a glass of water. Strictly adhere to recommended dosing intervals (at least 4-6 hours apart) and never exceed 4,000 mg (8 tablets of 500mg) per day in adults to avoid acute liver injury.',
-        'Lunukin ang tableta kasabay ng tubig. Siguraduhing may pagitan na 4 hanggang 6 na oras bago uminom muli at huwag lumampas sa 4,000 mg bawat araw upang maprotektahan ang atay.',
         [
           'admin',
           'administration',
@@ -975,7 +948,7 @@ export interface RetrievalResult {
   hybridScore?: number;
   mentionedDrug?: string;
   activeMedication?: ActiveMedicationItem | null;
-  groundedAnswer?: { en: string; fil: string };
+  groundedAnswer?: string;
 }
 
 export function detectSectionIntent(query: string): FormularySection | null {
@@ -1028,12 +1001,11 @@ export function detectSectionIntent(query: string): FormularySection | null {
  * 2. Intersects with patient's active prescribed medications (guaranteeing zero cross-drug contamination).
  * 3. If unprescribed, returns closed-world refusal for that entity.
  * 4. If prescribed, retrieves strictly from that drug's vetted monograph chunks using hybrid cosine + lexical scoring.
- * 5. Returns verified citation metadata and bilingual grounded synthesis.
+ * 5. Returns verified citation metadata and a grounded synthesis.
  */
 export function retrieveEntityScopedFormularyGuidance(params: {
   query: string;
   patientName: string;
-  locale: 'en' | 'fil';
   activeMedications: ActiveMedicationItem[];
 }): RetrievalResult {
   const { query, patientName, activeMedications } = params;
@@ -1052,10 +1024,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
           mentionedDrug: monograph.genericName,
           citation: null,
           chunk: null,
-          groundedAnswer: {
-            en: `${monograph.genericName} is not listed in ${patientName}'s active prescribed medications. I can only provide leaflet guidance for her confirmed active medicines. Please consult her doctor or pharmacist.`,
-            fil: `Ang ${monograph.genericName} po ay wala sa listahan ng mga aktibong gamot ni ${patientName}. Maaari lamang po akong magbigay ng gabay para sa kanyang mga niresetang gamot. Mangyaring sumangguni sa doktor o pharmacist ni ${patientName}.`,
-          },
+          groundedAnswer: `${monograph.genericName} is not listed in ${patientName}'s active prescribed medications. I can only provide leaflet guidance for her confirmed active medicines. Please consult her doctor or pharmacist.`,
         };
       }
     }
@@ -1070,10 +1039,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
             mentionedDrug: brand,
             citation: null,
             chunk: null,
-            groundedAnswer: {
-              en: `${brand} is not listed in ${patientName}'s active prescribed medications. I can only provide leaflet guidance for her confirmed active medicines. Please consult her doctor or pharmacist.`,
-              fil: `Ang ${brand} po ay wala sa listahan ng mga aktibong gamot ni ${patientName}. Maaari lamang po akong magbigay ng gabay para sa kanyang mga niresetang gamot. Mangyaring sumangguni sa doktor o pharmacist ni ${patientName}.`,
-            },
+            groundedAnswer: `${brand} is not listed in ${patientName}'s active prescribed medications. I can only provide leaflet guidance for her confirmed active medicines. Please consult her doctor or pharmacist.`,
           };
         }
       }
@@ -1091,10 +1057,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
           mentionedDrug: drug.genericName,
           citation: null,
           chunk: null,
-          groundedAnswer: {
-            en: `${drug.genericName} is not listed in ${patientName}'s active prescribed medications. I can only provide leaflet guidance for her confirmed active medicines. Please consult her doctor or pharmacist.`,
-            fil: `Ang ${drug.genericName} po ay wala sa listahan ng mga aktibong gamot ni ${patientName}. Maaari lamang po akong magbigay ng gabay para sa kanyang mga niresetang gamot. Mangyaring sumangguni sa doktor o pharmacist ni ${patientName}.`,
-          },
+          groundedAnswer: `${drug.genericName} is not listed in ${patientName}'s active prescribed medications. I can only provide leaflet guidance for her confirmed active medicines. Please consult her doctor or pharmacist.`,
         };
       }
     }
@@ -1119,10 +1082,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
           mentionedDrug: proper,
           citation: null,
           chunk: null,
-          groundedAnswer: {
-            en: `${proper} is not listed in ${patientName}'s active prescribed medications. I can only provide leaflet guidance for her confirmed active medicines. Please consult her doctor or pharmacist.`,
-            fil: `Ang ${proper} po ay wala sa listahan ng mga aktibong gamot ni ${patientName}. Maaari lamang po akong magbigay ng gabay para sa kanyang mga niresetang gamot. Mangyaring sumangguni sa doktor o pharmacist ni ${patientName}.`,
-          },
+          groundedAnswer: `${proper} is not listed in ${patientName}'s active prescribed medications. I can only provide leaflet guidance for her confirmed active medicines. Please consult her doctor or pharmacist.`,
         };
       }
     }
@@ -1149,10 +1109,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
       status: 'out_of_scope',
       citation: null,
       chunk: null,
-      groundedAnswer: {
-        en: `Official PNDF leaflets provide individual administration guidelines for ${medNames}. For combining or timing multiple medications together safely, please consult ${patientName}'s doctor or pharmacist directly.`,
-        fil: `May kanya-kanya pong opisyal na tagubilin sa PNDF leaflet ang ${medNames}. Para sa ligtas na pagsasabay o interaksyon ng mga ito, mangyaring sumangguni po agad sa doktor o pharmacist ni ${patientName}.`,
-      },
+      groundedAnswer: `Official PNDF leaflets provide individual administration guidelines for ${medNames}. For combining or timing multiple medications together safely, please consult ${patientName}'s doctor or pharmacist directly.`,
     };
   }
 
@@ -1173,10 +1130,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
         mentionedDrug: mention.detectedName,
         citation: null,
         chunk: null,
-        groundedAnswer: {
-          en: `${mention.detectedName} is not listed in ${patientName}'s active prescribed medications. I can only provide leaflet guidance for her confirmed active medicines. Please consult her doctor or pharmacist.`,
-          fil: `Ang ${mention.detectedName} po ay wala sa listahan ng mga aktibong gamot ni ${patientName}. Maaari lamang po akong magbigay ng gabay para sa kanyang mga niresetang gamot. Mangyaring sumangguni sa doktor o pharmacist ni ${patientName}.`,
-        },
+        groundedAnswer: `${mention.detectedName} is not listed in ${patientName}'s active prescribed medications. I can only provide leaflet guidance for her confirmed active medicines. Please consult her doctor or pharmacist.`,
       };
     }
   } else {
@@ -1200,10 +1154,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
         status: 'out_of_scope',
         citation: null,
         chunk: null,
-        groundedAnswer: {
-          en: `Which of ${patientName}'s active medicines are you asking about (${medNames})?`,
-          fil: `Alin po sa mga aktibong gamot ni ${patientName} ang tinutukoy ninyo (${medNames})?`,
-        },
+        groundedAnswer: `Which of ${patientName}'s active medicines are you asking about (${medNames})?`,
       };
     } else {
       return { matched: false, status: 'out_of_scope' };
@@ -1223,10 +1174,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
       status: 'out_of_scope',
       citation: null,
       chunk: null,
-      groundedAnswer: {
-        en: `There is no verified patient leaflet available in the Philippine National Drug Formulary for ${targetActiveMed?.displayName || canonicalGeneric}. Please consult ${patientName}'s doctor or pharmacist.`,
-        fil: `Wala po sa opisyal na Philippine National Drug Formulary leaflet ang impormasyon para sa ${targetActiveMed?.displayName || canonicalGeneric}. Mangyaring sumangguni sa doktor o pharmacist ni ${patientName}.`,
-      },
+      groundedAnswer: `There is no verified patient leaflet available in the Philippine National Drug Formulary for ${targetActiveMed?.displayName || canonicalGeneric}. Please consult ${patientName}'s doctor or pharmacist.`,
     };
   }
 
@@ -1244,7 +1192,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
   };
 
   const allMonographKeywords = monograph.chunks.flatMap((c) => c.keywords.map((k) => k.toLowerCase()));
-  const allMonographContent = monograph.chunks.map((c) => (c.content + ' ' + c.contentFil).toLowerCase()).join(' ');
+  const allMonographContent = monograph.chunks.map((c) => c.content.toLowerCase()).join(' ');
 
   // Check if query is asking about curing/treating an alien condition not covered by monograph
   let asksAlienCondition = false;
@@ -1270,10 +1218,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
       status: 'out_of_scope',
       citation: null,
       chunk: null,
-      groundedAnswer: {
-        en: `This specific guidance is not in the verified Philippine National Drug Formulary leaflet for ${monograph.genericName}. Please consult ${patientName}'s doctor or pharmacist directly.`,
-        fil: `Wala po sa opisyal na Philippine National Drug Formulary leaflet ng ${monograph.genericName} ang impormasyong ito. Mangyaring sumangguni po agad sa doktor o pharmacist ni ${patientName}.`,
-      },
+      groundedAnswer: `This specific guidance is not in the verified Philippine National Drug Formulary leaflet for ${monograph.genericName}. Please consult ${patientName}'s doctor or pharmacist directly.`,
     };
   }
 
@@ -1304,10 +1249,7 @@ export function retrieveEntityScopedFormularyGuidance(params: {
       status: 'out_of_scope',
       citation: null,
       chunk: null,
-      groundedAnswer: {
-        en: `This specific guidance is not in the verified Philippine National Drug Formulary leaflet for ${monograph.genericName}. Please consult ${patientName}'s doctor or pharmacist directly.`,
-        fil: `Wala po sa opisyal na Philippine National Drug Formulary leaflet ng ${monograph.genericName} ang impormasyong ito. Mangyaring sumangguni po agad sa doktor o pharmacist ni ${patientName}.`,
-      },
+      groundedAnswer: `This specific guidance is not in the verified Philippine National Drug Formulary leaflet for ${monograph.genericName}. Please consult ${patientName}'s doctor or pharmacist directly.`,
     };
   }
 
@@ -1317,9 +1259,9 @@ export function retrieveEntityScopedFormularyGuidance(params: {
     section: bestChunk.sectionTitle,
   };
 
-  // Synthesize native bilingual response with patient and drug name preserved verbatim
+  // Synthesize the response with patient and drug name preserved verbatim
   const drugName = targetActiveMed.displayName || monograph.genericName;
-  const groundedAnswer = synthesizeBilingualLeafletResponse({
+  const groundedAnswer = synthesizeLeafletResponse({
     chunk: bestChunk,
     drugName,
     patientName,
@@ -1340,150 +1282,81 @@ export function retrieveEntityScopedFormularyGuidance(params: {
  * Deterministically synthesizes warm, grounded responses from the retrieved chunk,
  * preserving pharmaceutical and patient names verbatim.
  */
-export function synthesizeBilingualLeafletResponse(params: {
+export function synthesizeLeafletResponse(params: {
   chunk: LeafletChunk;
   drugName: string;
   patientName: string;
-}): { en: string; fil: string } {
+}): string {
   const { chunk, drugName, patientName } = params;
 
   switch (chunk.section) {
     case 'food_and_timing':
       if (chunk.medicationGenericName === 'Metformin') {
-        return {
-          en: `${drugName} should always be taken with meals or immediately after eating (such as breakfast or dinner) with water to prevent stomach upset for ${patientName}. Avoid heavy alcohol intake.`,
-          fil: `Dapat po nating ipainom ang ${drugName} kay ${patientName} kasabay o kaagad pagkatapos kumain (tulad ng almusal o hapunan) kasama ang tubig upang maiwasan ang pananakit o pangangasim ng tiyan.`,
-        };
+        return `${drugName} should always be taken with meals or immediately after eating (such as breakfast or dinner) with water to prevent stomach upset for ${patientName}. Avoid heavy alcohol intake.`;
       }
       if (chunk.medicationGenericName === 'Amlodipine') {
-        return {
-          en: `${drugName} can be taken with or without food. Give it to ${patientName} at approximately the same time each day with a full glass of water, and avoid grapefruit or grapefruit juice.`,
-          fil: `Maaari po nating ipainom ang ${drugName} kay ${patientName} nang may laman ang tiyan o wala (bago o pagkatapos kumain). Inumin ito sa parehong oras araw-araw kasama ang tubig, at iwasan po ang suha (grapefruit).`,
-        };
+        return `${drugName} can be taken with or without food. Give it to ${patientName} at approximately the same time each day with a full glass of water, and avoid grapefruit or grapefruit juice.`;
       }
       if (chunk.medicationGenericName === 'Losartan') {
-        return {
-          en: `${drugName} may be taken with or without food. Give it to ${patientName} with water at the same time each day, and avoid potassium supplements unless prescribed.`,
-          fil: `Maaari pong inumin ni ${patientName} ang ${drugName} nang may pagkain o wala sa tiyan. Ipainom ito sa parehong oras araw-araw kasabay ng tubig, at iwasan po ang mga suplementong may potassium.`,
-        };
+        return `${drugName} may be taken with or without food. Give it to ${patientName} with water at the same time each day, and avoid potassium supplements unless prescribed.`;
       }
       if (chunk.medicationGenericName === 'Metoprolol') {
-        return {
-          en: `${drugName} should be taken with or immediately following a meal for consistent absorption and stable blood levels for ${patientName}. Give it at the same time every day.`,
-          fil: `Dapat po nating ipainom ang ${drugName} kay ${patientName} kasabay o kaagad pagkatapos kumain upang maging pantay ang bisa ng gamot. Ipainom ito sa parehong oras araw-araw.`,
-        };
+        return `${drugName} should be taken with or immediately following a meal for consistent absorption and stable blood levels for ${patientName}. Give it at the same time every day.`;
       }
       if (chunk.medicationGenericName === 'Atorvastatin') {
-        return {
-          en: `${drugName} can be taken with or without food. It is best given to ${patientName} in the evening or at bedtime because the body produces most cholesterol at night. Avoid large quantities of grapefruit or grapefruit juice.`,
-          fil: `Maaari pong inumin ni ${patientName} ang ${drugName} nang may pagkain o wala, mas mainam po sa gabi o bago matulog dahil doon pinakamaraming gumagawa ng kolesterol ang katawan. Iwasan po ang suha (grapefruit).`,
-        };
+        return `${drugName} can be taken with or without food. It is best given to ${patientName} in the evening or at bedtime because the body produces most cholesterol at night. Avoid large quantities of grapefruit or grapefruit juice.`;
       }
       if (chunk.medicationGenericName === 'Paracetamol') {
-        return {
-          en: `${drugName} can be taken with or without food with a glass of water. If ${patientName} has a sensitive stomach, give it after a light snack, and never combine with other paracetamol products.`,
-          fil: `Ligtas pong inumin ni ${patientName} ang ${drugName} nang may pagkain o kahit walang laman ang tiyan. Kung sensitibo ang sikmura, mainam pong ipainom pagkatapos kumain nang kaunti, at huwag isasabay sa iba pang gamot na may paracetamol.`,
-        };
+        return `${drugName} can be taken with or without food with a glass of water. If ${patientName} has a sensitive stomach, give it after a light snack, and never combine with other paracetamol products.`;
       }
-      return {
-        en: `${chunk.content} (Official guidance for ${patientName}'s ${drugName}.)`,
-        fil: `${chunk.contentFil} (Opisyal na gabay para sa ${drugName} ni ${patientName}.)`,
-      };
+      return `${chunk.content} (Official guidance for ${patientName}'s ${drugName}.)`;
 
     case 'missed_dose':
       if (chunk.medicationGenericName === 'Metformin') {
-        return {
-          en: `If a dose of ${drugName} is missed, give it to ${patientName} with food as soon as you remember. If it is almost time for the next scheduled dose, skip the missed dose. Never double the dose.`,
-          fil: `Kung nakalimutan po ang dose ng ${drugName} para kay ${patientName}, ipainom ito kasabay ng pagkain sa sandaling maalala. Kung malapit na ang susunod na iskedyul, laktawan na po ito at huwag magdoble ng dose.`,
-        };
+        return `If a dose of ${drugName} is missed, give it to ${patientName} with food as soon as you remember. If it is almost time for the next scheduled dose, skip the missed dose. Never double the dose.`;
       }
       if (chunk.medicationGenericName === 'Metoprolol') {
-        return {
-          en: `If a dose of ${drugName} is missed, give it to ${patientName} as soon as remembered. However, if the next dose is within 4 hours, skip the missed dose and resume the regular schedule. Never double the dose.`,
-          fil: `Kung nakalimutan po ang dose ng ${drugName} para kay ${patientName}, ipainom ito kapag naalala. Ngunit kung wala nang 4 na oras bago ang susunod na dose, laktawan na po ito. Huwag kailanman magdoble ng gamot.`,
-        };
+        return `If a dose of ${drugName} is missed, give it to ${patientName} as soon as remembered. However, if the next dose is within 4 hours, skip the missed dose and resume the regular schedule. Never double the dose.`;
       }
       if (chunk.medicationGenericName === 'Paracetamol') {
-        return {
-          en: `If a scheduled dose of ${drugName} is missed, give it to ${patientName} when remembered, provided at least 4 to 6 hours have passed since the last dose. Never double the dose or exceed 4,000 mg in 24 hours.`,
-          fil: `Kung nakaligtaan po ang dose ng ${drugName} para kay ${patientName}, ipainom ito kapag naalala kung lumipas na ang 4 hanggang 6 na oras mula sa huling pag-inom. Huwag magdoble ng dose o lumampas sa 4,000 mg sa isang araw.`,
-        };
+        return `If a scheduled dose of ${drugName} is missed, give it to ${patientName} when remembered, provided at least 4 to 6 hours have passed since the last dose. Never double the dose or exceed 4,000 mg in 24 hours.`;
       }
-      return {
-        en: `If ${patientName} misses a dose of ${drugName}, give it as soon as you remember that same day. If more than 12 hours have passed or the next dose is near, skip it and continue the regular schedule. Never double the dose.`,
-        fil: `Kung nakaligtaan po ang dose ng ${drugName} para kay ${patientName}, ipainom ito sa sandaling maalala sa araw ring iyon. Subalit kung mahigit 12 oras na ang nakalipas o malapit na ang susunod na iskedyul, laktawan na po ito at huwag kailanman magdoble ng gamot.`,
-      };
+      return `If ${patientName} misses a dose of ${drugName}, give it as soon as you remember that same day. If more than 12 hours have passed or the next dose is near, skip it and continue the regular schedule. Never double the dose.`;
 
     case 'purpose':
       if (chunk.medicationGenericName === 'Amlodipine') {
-        return {
-          en: `${drugName} is prescribed to manage high blood pressure (hypertension) and chest pain for ${patientName} by relaxing blood vessels so blood flows more smoothly.`,
-          fil: `Ang ${drugName} po ay inirereseta para sa altapresyon at pananakit ng dibdib ni ${patientName} upang mapaluwag ang mga daluyan ng dugo at mapadali ang daloy nito.`,
-        };
+        return `${drugName} is prescribed to manage high blood pressure (hypertension) and chest pain for ${patientName} by relaxing blood vessels so blood flows more smoothly.`;
       }
       if (chunk.medicationGenericName === 'Metformin') {
-        return {
-          en: `${drugName} is prescribed to help manage blood sugar levels for type 2 diabetes by reducing liver glucose production and improving insulin response for ${patientName}.`,
-          fil: `Ang ${drugName} po ay inirereseta para sa type 2 diabetes ni ${patientName} upang makontrol ang asukal sa dugo at mapabuti ang pagtugon ng katawan sa insulin.`,
-        };
+        return `${drugName} is prescribed to help manage blood sugar levels for type 2 diabetes by reducing liver glucose production and improving insulin response for ${patientName}.`;
       }
       if (chunk.medicationGenericName === 'Losartan') {
-        return {
-          en: `${drugName} is prescribed to treat high blood pressure and protect kidney function for ${patientName} by widening and relaxing blood vessels.`,
-          fil: `Ang ${drugName} po ay inirereseta para sa altapresyon at pangangalaga sa bato ni ${patientName} sa pamamagitan ng pagpapaluwag ng mga ugat.`,
-        };
+        return `${drugName} is prescribed to treat high blood pressure and protect kidney function for ${patientName} by widening and relaxing blood vessels.`;
       }
       if (chunk.medicationGenericName === 'Metoprolol') {
-        return {
-          en: `${drugName} is a beta-blocker prescribed for high blood pressure, chest pain (angina), and to help control rapid or irregular heart rate for ${patientName}.`,
-          fil: `Ang ${drugName} po ay isang beta-blocker para sa altapresyon, pananakit ng dibdib (angina), at pampabagal ng mabilis o iregular na tibok ng puso ni ${patientName}.`,
-        };
+        return `${drugName} is a beta-blocker prescribed for high blood pressure, chest pain (angina), and to help control rapid or irregular heart rate for ${patientName}.`;
       }
       if (chunk.medicationGenericName === 'Atorvastatin') {
-        return {
-          en: `${drugName} is a statin prescribed to lower bad cholesterol (LDL) and triglycerides in the blood, helping prevent heart attacks and strokes for ${patientName}.`,
-          fil: `Ang ${drugName} po ay isang statin na nagpapababa ng masamang kolesterol (LDL) at triglycerides upang maprotektahan si ${patientName} sa bara sa ugat, atake sa puso, at stroke.`,
-        };
+        return `${drugName} is a statin prescribed to lower bad cholesterol (LDL) and triglycerides in the blood, helping prevent heart attacks and strokes for ${patientName}.`;
       }
       if (chunk.medicationGenericName === 'Paracetamol') {
-        return {
-          en: `${drugName} is an analgesic and antipyretic medicine used for the relief of mild to moderate pain (such as headaches and body aches) and fever reduction for ${patientName}.`,
-          fil: `Ang ${drugName} po ay gamot para sa lagnat at pampaginhawa ng banayad hanggang katamtamang pananakit ng ulo at katawan para kay ${patientName}.`,
-        };
+        return `${drugName} is an analgesic and antipyretic medicine used for the relief of mild to moderate pain (such as headaches and body aches) and fever reduction for ${patientName}.`;
       }
-      return {
-        en: `${drugName} is prescribed for ${patientName} per the Philippine National Drug Formulary: ${chunk.content}`,
-        fil: `Ang ${drugName} po ay nireseta para kay ${patientName} ayon sa Philippine National Drug Formulary: ${chunk.contentFil}`,
-      };
+      return `${drugName} is prescribed for ${patientName} per the Philippine National Drug Formulary: ${chunk.content}`;
 
     case 'administration_instructions':
       if (chunk.medicationGenericName === 'Metoprolol') {
-        return {
-          en: `Swallow ${drugName} whole with a glass of water. Do not abruptly stop giving this medicine to ${patientName} without doctor approval to prevent rebound hypertension, and store below 30°C.`,
-          fil: `Lunukin po nang buo ang tableta ng ${drugName} kasabay ng tubig para kay ${patientName}. Huwag po itong biglang ititigil nang walang payo ng doktor, at itago sa tuyong lugar na hindi lalampas sa 30°C.`,
-        };
+        return `Swallow ${drugName} whole with a glass of water. Do not abruptly stop giving this medicine to ${patientName} without doctor approval to prevent rebound hypertension, and store below 30°C.`;
       }
       if (chunk.medicationGenericName === 'Paracetamol') {
-        return {
-          en: `Swallow ${drugName} with a glass of water. Ensure doses are spaced at least 4 to 6 hours apart for ${patientName} and never exceed 4,000 mg in 24 hours to prevent liver toxicity.`,
-          fil: `Lunukin po ang tableta ng ${drugName} kasabay ng tubig para kay ${patientName}. Tiyakin pong may pagitan na 4 hanggang 6 na oras ang bawat inumin at huwag lalampas sa 4,000 mg bawat araw upang maprotektahan ang atay.`,
-        };
+        return `Swallow ${drugName} with a glass of water. Ensure doses are spaced at least 4 to 6 hours apart for ${patientName} and never exceed 4,000 mg in 24 hours to prevent liver toxicity.`;
       }
       if (chunk.medicationGenericName === 'Metformin') {
-        return {
-          en: `Swallow ${drugName} whole with a glass of water. Do not crush or chew the tablet (do not split extended-release formulations) for ${patientName}, and store below 30°C away from heat and moisture.`,
-          fil: `Lunukin po nang buo ang tableta ng ${drugName} kasabay ng tubig para kay ${patientName}. Huwag po itong durugin, hatiin, o nguyain, at itago sa tuyong lugar na hindi lalampas sa 30°C.`,
-        };
+        return `Swallow ${drugName} whole with a glass of water. Do not crush or chew the tablet (do not split extended-release formulations) for ${patientName}, and store below 30°C away from heat and moisture.`;
       }
-      return {
-        en: `Swallow ${drugName} whole with a glass of water. Do not crush or chew the tablet unless advised by ${patientName}'s doctor, and store below 30°C in a dry place.`,
-        fil: `Lunukin po nang buo ang tableta ng ${drugName} kasabay ng tubig para kay ${patientName}. Huwag po itong durugin o nguyain maliban kung ipinayo ng doktor, at itago sa tuyong lugar na hindi lalampas sa 30°C.`,
-      };
+      return `Swallow ${drugName} whole with a glass of water. Do not crush or chew the tablet unless advised by ${patientName}'s doctor, and store below 30°C in a dry place.`;
 
     default:
-      return {
-        en: chunk.content,
-        fil: chunk.contentFil,
-      };
+      return chunk.content;
   }
 }

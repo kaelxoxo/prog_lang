@@ -1,31 +1,25 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { addLocalDays, computeCareStreak, findPlanHorizon } from '../../src/features/home/careInsights';
-import type { Medication, MedicationSchedule } from '../../src/features/medications/types';
+import {
+  addLocalDays,
+  computeCareStreak,
+  findRefillAlerts,
+  heroCopy,
+  heroState,
+  sortHomeDoses,
+  type HomeHero,
+} from '../../src/features/home/careInsights';
+import type { Medication } from '../../src/features/medications/types';
+import { translate } from '../../src/features/settings/translations';
+import type { DoseOccurrence } from '../../src/features/today/types';
 
 const taken = { status: 'taken' as const };
 const skipped = { status: 'skipped' as const };
 const unrecorded = { status: 'not_recorded' as const };
 
-function schedule(endOn: string | null): MedicationSchedule {
-  return {
-    id: `s-${endOn}`,
-    kind: 'exact',
-    timeOfDay: '08:00',
-    intervalHours: null,
-    weekdays: [],
-    mealName: null,
-    mealRelation: null,
-    windowStart: null,
-    windowEnd: null,
-    startOn: '2026-09-01',
-    endOn,
-    timeZone: 'Asia/Manila',
-  };
-}
-
-function medication(displayName: string, endDates: Array<string | null>, archivedAt: string | null = null): Medication {
+/** One tablet a day, every day, with `onHand` tablets counted (null: never counted). */
+function medication(displayName: string, onHand: number | null, archivedAt: string | null = null): Medication {
   return {
     id: displayName,
     archivedAt,
@@ -47,8 +41,26 @@ function medication(displayName: string, endDates: Array<string | null>, archive
     sourceKind: 'manual',
     status: 'confirmed',
     confirmedAt: '2026-09-01T00:00:00.000Z',
-    inventory: null,
-    schedules: endDates.map(schedule),
+    inventory:
+      onHand === null
+        ? null
+        : { onHandQuantity: onHand, unit: 'tablet', lastCountedAt: '2026-09-25T00:00:00.000Z', updatedAt: '2026-09-25T00:00:00.000Z' },
+    schedules: [
+      {
+        id: `s-${displayName}`,
+        kind: 'exact',
+        timeOfDay: '08:00',
+        intervalHours: null,
+        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        mealName: null,
+        mealRelation: null,
+        windowStart: null,
+        windowEnd: null,
+        startOn: '2026-09-01',
+        endOn: null,
+        timeZone: 'Asia/Manila',
+      },
+    ],
   };
 }
 
@@ -97,31 +109,147 @@ describe('addLocalDays', () => {
   });
 });
 
-describe('findPlanHorizon', () => {
-  it('returns the medication whose schedule ends soonest, counting today', () => {
-    const horizon = findPlanHorizon(
-      [medication('Later', ['2026-10-10']), medication('Sooner', ['2026-09-28', '2026-09-27'])],
-      '2026-09-26',
-    );
-    assert.equal(horizon?.medication.displayName, 'Sooner');
-    assert.equal(horizon?.endOn, '2026-09-28');
-    assert.equal(horizon?.daysRemaining, 3);
-  });
+function dose(id: string, manilaTime: string, status: DoseOccurrence['status'] = 'not_recorded'): DoseOccurrence {
+  const dueAt = new Date(`2026-09-26T${manilaTime}:00+08:00`).toISOString();
+  return {
+    id,
+    localDate: '2026-09-26',
+    medicationId: id,
+    medicationVersionId: 'v1',
+    medicationName: id,
+    strengthValue: null,
+    strengthUnit: null,
+    doseQuantity: 1,
+    doseUnit: 'tablet',
+    medicineForm: null,
+    route: null,
+    scheduledFor: dueAt,
+    dueAt,
+    status,
+    eventId: null,
+    recordedAt: null,
+    recordedByName: null,
+    snoozedUntil: null,
+    reason: null,
+  };
+}
 
-  it('reports the last scheduled day as 1 day left', () => {
-    assert.equal(findPlanHorizon([medication('Last', ['2026-09-26'])], '2026-09-26')?.daysRemaining, 1);
-  });
+describe('sortHomeDoses', () => {
+  const noon = new Date('2026-09-26T12:00:00+08:00').getTime();
+  const timeline = [
+    ...['a', 'b', 'c', 'd', 'e'].map((id) => dose(`08-${id}`, '08:00')),
+    dose('0830', '08:30'),
+    ...['a', 'b', 'c'].map((id) => dose(`12-${id}`, '12:00')),
+    ...['a', 'b', 'c'].map((id) => dose(`18-${id}`, '18:00')),
+    ...['a', 'b'].map((id) => dose(`20-${id}`, '20:00')),
+  ];
 
-  it('ignores open-ended, archived, ended, and schedule-less medications', () => {
-    const horizon = findPlanHorizon(
+  it('puts passed doses in Time Slots under Due now and keeps evening doses in Later today', () => {
+    const sections = sortHomeDoses(timeline, noon);
+    assert.deepEqual(
+      sections.notRecordedSlots.map((slot) => [slot.at, slot.doses.length]),
       [
-        medication('Ongoing', ['2026-09-27', null]),
-        medication('Archived', ['2026-09-27'], '2026-09-20T00:00:00.000Z'),
-        medication('Ended', ['2026-09-25']),
-        medication('Empty', []),
+        ['2026-09-26T00:00:00.000Z', 5],
+        ['2026-09-26T00:30:00.000Z', 1],
+        ['2026-09-26T04:00:00.000Z', 3],
+      ],
+    );
+    assert.equal(sections.dueSoon.length, 0);
+    assert.deepEqual(sections.laterToday.map((item) => item.id), ['18-a', '18-b', '18-c', '20-a', '20-b']);
+  });
+
+  it('lists doses within the next two hours individually and recorded doses separately', () => {
+    const sections = sortHomeDoses(
+      [dose('soon', '13:30'), dose('edge', '14:00'), dose('later', '14:01'), dose('done', '08:00', 'skipped')],
+      noon,
+    );
+    assert.deepEqual(sections.dueSoon.map((item) => item.id), ['soon', 'edge']);
+    assert.deepEqual(sections.laterToday.map((item) => item.id), ['later']);
+    assert.deepEqual(sections.recorded.map((item) => item.id), ['done']);
+    assert.equal(sections.notRecordedSlots.length, 0);
+  });
+});
+
+describe('heroState', () => {
+  const at = (manilaTime: string) => new Date(`2026-09-26T${manilaTime}:00+08:00`).getTime();
+  const demoDay = [
+    ...['a', 'b', 'c', 'd', 'e'].map((id) => dose(`08-${id}`, '08:00')),
+    dose('0830', '08:30', 'taken'),
+    ...['a', 'b', 'c'].map((id) => dose(`12-${id}`, '12:00')),
+    dose('Biogesic', '18:00'),
+    dose('Losartan', '18:00'),
+    dose('Metformin', '18:00'),
+    ...['a', 'b'].map((id) => dose(`20-${id}`, '20:00')),
+  ];
+  const copyFor = (hero: HomeHero, isSelf = false) =>
+    heroCopy(hero, {
+      t: translate,
+      formatTime: (iso) =>
+        new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' }).format(new Date(iso)),
+      patient: 'Lola Rosa',
+      isSelf,
+    });
+
+  it('counts Not Recorded doses ahead of the next upcoming one', () => {
+    const hero = heroState(demoDay, at('14:30'), 4);
+    assert.equal(hero.kind, 'notRecorded');
+    assert.equal(hero.expression, 'attention');
+    assert.deepEqual(copyFor(hero), { line: 'Lola Rosa has 8 doses to record.', emphasis: '8' });
+  });
+
+  it('speaks to the caregiver directly for a Self Profile, singular for one dose', () => {
+    const oneDose = heroState([dose('a', '08:00'), dose('c', '20:00')], at('09:00'), 0);
+    assert.equal(copyFor(oneDose, true).line, 'You have 1 dose to record.');
+    assert.equal(copyFor(oneDose).line, 'Lola Rosa has 1 dose to record.');
+  });
+
+  it('says when the next Time Slot is once nothing is Not Recorded', () => {
+    const recordedMorning = demoDay.map((item) =>
+      new Date(item.dueAt).getTime() < at('14:30') ? { ...item, status: 'taken' as const } : item,
+    );
+    const hero = heroState(recordedMorning, at('14:30'), 1);
+    assert.equal(hero.kind, 'next');
+    assert.equal(hero.expression, 'idle');
+    assert.deepEqual(copyFor(hero), { line: "Lola Rosa's next dose is at 6:00 PM.", emphasis: '6:00 PM' });
+    assert.equal(copyFor(hero, true).line, 'Your next dose is at 6:00 PM.');
+  });
+
+  it('celebrates a fully recorded day and mentions the Care Streak only from two days', () => {
+    const allTaken = demoDay.map((item) => ({ ...item, status: 'taken' as const }));
+    const hero = heroState(allTaken, at('21:00'), 3);
+    assert.equal(hero.kind, 'allRecorded');
+    assert.equal(hero.expression, 'celebration');
+    assert.equal(copyFor(hero).line, "Lola Rosa is all set for today! That's 3 days in a row.");
+    assert.equal(copyFor(heroState(allTaken, at('21:00'), 1)).line, 'Lola Rosa is all set for today!');
+  });
+
+  it('treats a day with nothing scheduled as no doses, not all recorded', () => {
+    const hero = heroState([], at('09:00'), 5);
+    assert.equal(hero.kind, 'noDoses');
+    assert.equal(hero.expression, 'idle');
+    assert.equal(copyFor(hero).line, 'No doses for Lola Rosa today.');
+    assert.equal(copyFor(hero, true).line, 'No doses for you today.');
+  });
+});
+
+describe('findRefillAlerts', () => {
+  it('lists only active medicines with at most seven days of stock, soonest first', () => {
+    const alerts = findRefillAlerts(
+      [
+        medication('Plenty', 30),
+        medication('Week', 7),
+        medication('Low', 2),
+        medication('Uncounted', null),
+        medication('Archived', 1, '2026-09-20T00:00:00.000Z'),
       ],
       '2026-09-26',
     );
-    assert.equal(horizon, null);
+    assert.deepEqual(
+      alerts.map((alert) => [alert.medication.displayName, alert.daysLeft]),
+      [
+        ['Low', 2],
+        ['Week', 7],
+      ],
+    );
   });
 });

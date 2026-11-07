@@ -2,9 +2,9 @@
 
 This note records confirmed product decisions and later planning handoffs. It is the reference for subsequent design and implementation work; proposals are labelled explicitly until approved.
 
-## Side-project boundary
+## Project boundary
 
-On 2026-08-26, the product owner confirmed that Alaga remains a student side project. There is no family pilot, public beta or hosted production service in the current scope.
+On 2026-08-26, the product owner confirmed that there is no family pilot, public beta or hosted production service in the current scope. On 2026-11-07, the owner dropped the "side project" framing: Alaga is treated as a real project, and the scope rules below still apply.
 
 - Use synthetic accounts, people, medicines, schedules, invitations and images only.
 - Keep the local API and PostgreSQL architecture; do not add paid hosting or promise access across unrelated networks.
@@ -18,18 +18,18 @@ Photo/OCR experimentation runs on the local Node API with Tesseract.js. Selected
 
 ## First-release audience
 
-Alaga is ultimately intended for three groups:
+Alaga is intended for two groups:
 
 1. A family member caring for a parent or another older adult.
-2. A professional caregiver managing several patients.
-3. A person living independently who wants to track their own medicines.
+2. A person living independently who wants to track their own medicines, optionally sharing the care log with family.
 
-Any future real release would prioritize a family member caring for their parents. The data model and product language should still support all three groups from the beginning, without forcing professional workflow complexity into the primary family experience.
+Any future real release would prioritize a family member caring for their parents. On 2026-11-07, the owner removed the third group, professional caregivers, and the "Caring professionally" Care Setup; a family caring for several people is still supported by the person chips and "All people" picker.
 
 ## Language
 
-- The interface will support English and Filipino, selected by the user.
-- English is the initial implementation language, especially for timetable and medicine fields commonly written in English in the Philippines.
+- On 2026-11-07, the owner removed Filipino for now: the app and Bantay's replies are English only, and Settings has no language picker. Filipino will be re-added later as a second dictionary in `src/features/settings/translations.ts` plus a picker; every screen already reads its copy through `t()`, so no screen needs rewriting.
+- English is the implementation language, especially for timetable and medicine fields commonly written in English in the Philippines.
+- Bantay still understands Tagalog and Taglish phrasing in questions and prescription instructions (for example "alas 8 ng umaga" or "bawat 6 na oras"); only its replies are English.
 - Imported text is preserved exactly as extracted. Translation is a separate later step, so the source wording is never silently replaced.
 
 ## Medicine input
@@ -70,11 +70,11 @@ Milestone 5.5 was approved and implemented on 2026-08-26 before caregiver invita
 
 Milestone 6 uses in-app invitations tied to a normalized account email. An owner chooses whether the caregiver may also manage medicines. The invited account can accept or decline; an owner can cancel a pending invitation or revoke an accepted caregiver without deleting attributed history.
 
-The local prototype does not send invitation email and account emails are not yet externally verified. Shared “not recorded” escalation means every accepted caregiver sees overdue items on Home when they open Alaga. Remote notifications, verified identity and household rules remain later decisions.
+The local prototype does not send invitation email and account emails are not yet externally verified. Shared “not recorded” escalation means every accepted caregiver sees Not Recorded doses under Due now on Home when they open Alaga. Remote notifications, verified identity and household rules remain later decisions.
 
 ## Care Setup onboarding
 
-Approved 2026-09-28. After sign-in, an account with no recorded Care Setup and no Care Circle membership sees a post-signup onboarding (separate from the pre-auth welcome slideshow). Pending invitations for the account's email are detected automatically and shown first; otherwise the account chooses Caring for myself, Caring for family, Caring professionally, or Waiting for an invite (which shows the exact email to share with the Owner). "I'll decide later" skips it until the next sign-in. The Care Setup is recorded when its path creates the first profile, or when an invited account picks Family or Professional after accepting. It shapes the shell but never permissions (`docs/adr/0002-care-setup-shapes-shell.md`); self-tracking uses a marked Self Profile (`docs/adr/0001-self-profile-marker.md`).
+Approved 2026-09-28; amended 2026-11-07. After sign-in, an account with no recorded Care Setup and no Care Circle membership sees a post-signup onboarding (separate from the pre-auth welcome slideshow). Pending invitations for the account's email are detected automatically and shown first; otherwise the account chooses Caring for myself, Caring for family, or Waiting for an invite (which shows the exact email to share with the Owner). "I'll decide later" skips it until the next sign-in. The Care Setup is recorded when its path creates the first profile, or as Caring for family when an invited account accepts an invitation (the flow then goes straight to Home). The "Caring professionally" option and the follow-up screen that asked invited accounts to pick Family or Professional were removed on 2026-11-07. It shapes the shell but never permissions (`docs/adr/0002-care-setup-shapes-shell.md`); self-tracking uses a marked Self Profile (`docs/adr/0001-self-profile-marker.md`).
 
 ## Task-first UI reference pass
 

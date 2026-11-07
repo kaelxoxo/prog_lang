@@ -1,25 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Alert,
-  Animated,
-  type GestureResponderEvent,
-  Pressable,
-  type PressableProps,
-  type StyleProp,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AppIcon } from '../../components/AppIcon';
+import { PressableScale } from '../../components/PressableScale';
 import { apiRequest, errorMessage } from '../../lib/api';
 import { SyncNotice } from '../../components/SyncNotice';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from '../patients/types';
@@ -61,74 +48,6 @@ function scheduleSummary(schedules: MedicationSchedule[], locale: string, t: Tra
   if (first.kind === 'interval') return t('medicine.intervalSchedule', { hours: first.intervalHours ?? '', time: friendlyTime(first.timeOfDay, locale), days });
   if (first.kind === 'meal') return t('medicine.mealSchedule', { relation: t(first.mealRelation === 'after' ? 'medicine.after' : 'medicine.before'), days });
   return t('medicine.exactSchedule', { times: schedules.map((schedule) => friendlyTime(schedule.timeOfDay, locale)).join(', '), days });
-}
-
-/** Emil Kowalski scale: 0.98 spring pressable with reduced-motion awareness */
-type PressableScaleProps = PressableProps & {
-  children: React.ReactNode;
-  targetScale?: number;
-  containerStyle?: StyleProp<ViewStyle>;
-};
-
-function PressableScale({
-  children,
-  targetScale = 0.98,
-  style,
-  onPressIn,
-  onPressOut,
-  disabled,
-  ...rest
-}: PressableScaleProps) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const reduceMotion = useRef(false);
-
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      reduceMotion.current = enabled;
-    });
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
-      reduceMotion.current = enabled;
-    });
-    return () => sub.remove();
-  }, []);
-
-  const handlePressIn = (event: GestureResponderEvent) => {
-    if (!disabled && !reduceMotion.current) {
-      Animated.spring(scale, {
-        toValue: targetScale,
-        friction: 7,
-        tension: 140,
-        useNativeDriver: true,
-      }).start();
-    }
-    onPressIn?.(event);
-  };
-
-  const handlePressOut = (event: GestureResponderEvent) => {
-    if (!disabled && !reduceMotion.current) {
-      Animated.spring(scale, {
-        toValue: 1,
-        friction: 7,
-        tension: 140,
-        useNativeDriver: true,
-      }).start();
-    }
-    onPressOut?.(event);
-  };
-
-  return (
-    <Pressable
-      disabled={disabled}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      style={style}
-      {...rest}
-    >
-      <Animated.View style={{ transform: [{ scale }] }}>
-        {children}
-      </Animated.View>
-    </Pressable>
-  );
 }
 
 export function MedicationSection({ patient }: Props) {
@@ -286,7 +205,6 @@ export function MedicationSection({ patient }: Props) {
 
       {notice ? (
         <View accessibilityLiveRegion="polite" style={styles.notice}>
-          <View style={styles.noticeDot} />
           <Text style={styles.noticeText}>{notice.message}</Text>
           {notice.canUndo && notice.medicationId ? (
             <PressableScale
@@ -337,7 +255,7 @@ export function MedicationSection({ patient }: Props) {
         </View>
       ) : medications.length === 0 ? (
         <View style={styles.emptyCard}>
-          <View style={styles.emptyIcon}><AppIcon color={colors.ink} name="pill" size={24} /></View>
+          <AppIcon color={colors.primary} name="pill" size={26} />
           <View style={styles.emptyCopy}>
             <Text style={styles.emptyTitle}>{t(archivedMedications.length ? 'medicine.noActive' : 'medicine.noConfirmed')}</Text>
             <Text style={styles.emptyBody}>{archivedMedications.length
@@ -349,7 +267,7 @@ export function MedicationSection({ patient }: Props) {
         <>
         <SyncNotice error={medicationQuery.error} onRetry={() => void medicationQuery.refetch()} updatedAt={medicationQuery.dataUpdatedAt} />
 
-        {/* Streamlined Medication Cards (No card-inside-card clutter, no redundant subheaders) */}
+        {/* Medicines as ruled rows on the paper; the name is each row's one title */}
         <View style={styles.list}>
           {visibleMedications.map((medication) => (
             <View
@@ -374,16 +292,16 @@ export function MedicationSection({ patient }: Props) {
                     {medication.medicineForm ? ` · ${medication.medicineForm}` : ''}
                   </Text>
                 </View>
-                <View style={styles.confirmedBadge}>
-                  <AppIcon color={colors.successDark} name="circle-check-big" size={13} />
+                <View style={styles.confirmedMark}>
+                  <AppIcon color={colors.ink} name="check" size={14} />
                   <Text style={styles.confirmedLabel}>{t('medicine.confirmed')}</Text>
                 </View>
               </View>
 
-              {/* Sleek Scheduled Times Pill (No nested card-inside-card clutter, no redundant "Schedule" subheader) */}
-              <View style={styles.schedulePill}>
-                <AppIcon color={colors.primaryDark} name="calendar-days" size={14} />
-                <Text numberOfLines={1} style={styles.schedulePillText}>
+              {/* Schedule line */}
+              <View style={styles.scheduleRow}>
+                <AppIcon color={colors.inkLine} name="calendar-days" size={15} />
+                <Text numberOfLines={1} style={styles.scheduleText}>
                   {scheduleSummary(medication.schedules, localeTag, t)}
                 </Text>
               </View>
@@ -422,7 +340,7 @@ export function MedicationSection({ patient }: Props) {
               ) : null}
 
               {(!medication.strengthValue || !medication.medicineForm || !medication.route) ? (
-                <View style={styles.missingDetailBox}>
+                <View style={styles.missingDetailRow}>
                   <AppIcon color={colors.warning} name="alert-circle" size={14} />
                   <Text style={styles.missingDetail}>{t('medicine.missingDetails')}</Text>
                 </View>
@@ -438,7 +356,7 @@ export function MedicationSection({ patient }: Props) {
                     style={[styles.editButton, largeText && styles.rowActionLarge]}
                   >
                     <View style={styles.actionInner}>
-                      <AppIcon color={colors.ink} name="pencil" size={15} />
+                      <AppIcon color={colors.ink} name="pencil" size={16} />
                       <Text style={styles.editLabel}>{t('medicine.reviewEdit')}</Text>
                     </View>
                   </PressableScale>
@@ -450,7 +368,7 @@ export function MedicationSection({ patient }: Props) {
                     style={[styles.archiveButton, largeText && styles.rowActionLarge]}
                   >
                     <View style={styles.actionInner}>
-                      <AppIcon color={colors.error} name="archive" size={15} />
+                      <AppIcon color={colors.error} name="archive" size={16} />
                       <Text style={styles.archiveLabel}>{t(archiveMutation.isPending && archiveMutation.variables?.id === medication.id ? 'medicine.archiving' : 'medicine.archive')}</Text>
                     </View>
                   </PressableScale>
@@ -465,7 +383,7 @@ export function MedicationSection({ patient }: Props) {
 
       {/* Archived Medications Section */}
       {archivedMedications.length ? (
-        <View style={styles.archivedCard}>
+        <View style={styles.archivedSection}>
           <PressableScale
             accessibilityRole="button"
             accessibilityState={{ expanded: showArchived }}
@@ -474,12 +392,12 @@ export function MedicationSection({ patient }: Props) {
           >
             <View style={styles.archivedHeading}>
               <View style={styles.archivedTitleRow}>
-                <AppIcon color={colors.muted} name="archive" size={17} />
+                <AppIcon color={colors.inkLine} name="archive" size={17} />
                 <Text style={styles.archivedTitle}>{t('medicine.archivedTitle')}</Text>
               </View>
               <Text style={styles.archivedCount}>{t('medicine.retained', { count: archivedMedications.length })}</Text>
             </View>
-            <View style={styles.archivedTogglePill}>
+            <View style={styles.archivedToggleLink}>
               <Text style={styles.archivedToggleLabel}>{t(showArchived ? 'medicine.hide' : 'medicine.show')}</Text>
               <AppIcon color={colors.primaryDark} name={showArchived ? 'chevron-up' : 'chevron-down'} size={15} />
             </View>
@@ -519,7 +437,12 @@ export function MedicationSection({ patient }: Props) {
         </View>
       ) : null}
 
-      {(archiveMutation.error || restoreMutation.error) ? <Text accessibilityLiveRegion="assertive" style={styles.inlineError}>{errorMessage(archiveMutation.error || restoreMutation.error)}</Text> : null}
+      {(archiveMutation.error || restoreMutation.error) ? (
+        <View style={styles.inlineErrorRow}>
+          <AppIcon color={colors.error} name="alert-circle" size={15} />
+          <Text accessibilityLiveRegion="assertive" style={styles.inlineError}>{errorMessage(archiveMutation.error || restoreMutation.error)}</Text>
+        </View>
+      ) : null}
 
       <MedicationEditorModal
         draft={importDraft}
@@ -553,77 +476,75 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   headingRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   headingRowLarge: { flexDirection: 'column', alignItems: 'stretch' },
   headingCopy: { flex: 1, gap: 2 },
-  title: { color: colors.ink, fontSize: 26, fontWeight: '900', letterSpacing: -0.6 },
-  subtitle: { color: colors.muted, fontSize: 14 },
+  title: { ...typography.title1, color: colors.ink },
+  subtitle: { ...typography.body, color: colors.muted },
   addButton: {
     minHeight: 48,
-    borderRadius: radii.full,
+    justifyContent: 'center',
+    borderRadius: radii.md,
     backgroundColor: colors.primary,
   },
   addButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
+    gap: spacing.sm,
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
   addButtonLarge: { width: '100%' },
-  addButtonLabel: { color: colors.white, fontSize: 14, fontWeight: '800' },
-  notice: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radii.md, backgroundColor: colors.successTint, padding: spacing.md },
-  noticeDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success },
-  noticeText: { flex: 1, color: colors.successDark, fontSize: 14, fontWeight: '600', lineHeight: 20 },
-  undoButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.sm },
-  undoLabel: { color: colors.successDark, fontSize: 14, fontWeight: '900' },
+  addButtonLabel: { ...typography.bodyEmphasis, color: colors.white, fontWeight: '700' },
 
-  // Styled search bar
+  // Quiet paper strip for confirmations; Undo is a narra text link
+  notice: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radii.sm, backgroundColor: colors.canvasSubtle, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  noticeText: { ...typography.body, flex: 1, color: colors.ink },
+  undoButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  undoLabel: { ...typography.bodyEmphasis, color: colors.primaryDark, fontWeight: '700' },
+
   searchContainer: {
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radii.full,
-    backgroundColor: colors.white,
+    borderColor: colors.controlBorder,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
   },
   searchInput: { flex: 1, minHeight: 48, color: colors.ink, fontSize: 15 },
   clearSearchButton: { minHeight: 48, minWidth: 48, alignItems: 'center', justifyContent: 'center' },
 
-  stateRow: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.lg },
-  stateText: { color: colors.muted, fontSize: 15 },
+  stateRow: { borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.line, paddingVertical: spacing.lg },
+  stateText: { ...typography.body, color: colors.muted },
+  // Kept as a tinted box: it holds the Retry action.
   errorBox: { gap: spacing.sm, borderRadius: radii.md, backgroundColor: colors.errorTint, padding: spacing.md },
-  errorText: { color: colors.error, fontSize: 14, lineHeight: 20 },
+  errorText: { ...typography.body, color: colors.error },
   retryButton: { minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center' },
-  retryLabel: { color: colors.error, fontSize: 14, fontWeight: '800' },
+  retryLabel: { ...typography.bodyEmphasis, color: colors.error, fontWeight: '700' },
 
   emptyCard: {
     gap: spacing.md,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
-    padding: spacing.xl,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
+    paddingVertical: spacing.lg,
   },
-  emptyIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.sun },
-  emptyCopy: { flex: 1, gap: spacing.xs },
-  emptyTitle: { color: colors.ink, fontSize: 19, fontWeight: '900' },
-  emptyBody: { maxWidth: 520, color: colors.muted, fontSize: 14, lineHeight: 21 },
+  emptyCopy: { gap: spacing.xs },
+  emptyTitle: { ...sectionTitle, color: colors.ink },
+  emptyBody: { ...typography.body, maxWidth: 520, color: colors.muted },
 
-  // Streamlined medication card
-  list: { gap: spacing.md },
+  // Ruled medicine rows on the paper
+  list: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   medicineCard: {
     gap: 12,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radii.lg,
-    backgroundColor: colors.white,
-    padding: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
+    paddingVertical: spacing.lg,
   },
   medicineCardHighlighted: {
-    borderColor: colors.success,
-    backgroundColor: colors.successTint,
+    marginHorizontal: -spacing.sm,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.canvasSubtle,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -632,63 +553,29 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     gap: spacing.sm,
   },
   nameBlock: { flex: 1, gap: 2 },
-  medicineName: { color: colors.ink, fontSize: 19, fontWeight: '800', letterSpacing: -0.3 },
-  doseStrength: { color: colors.muted, fontSize: 14, fontWeight: '600' },
-  confirmedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: radii.full,
-    backgroundColor: colors.successTint,
-    borderWidth: 1,
-    borderColor: colors.successBorder,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-  },
-  confirmedLabel: { color: colors.successDark, fontSize: 12, fontWeight: '800' },
+  medicineName: { ...sectionTitle, color: colors.ink },
+  doseStrength: { ...typography.body, color: colors.muted },
+  confirmedMark: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingTop: 3 },
+  confirmedLabel: { ...typography.caption, color: colors.ink },
 
-  // Streamlined scheduled times pill (no card-inside-card clutter)
-  schedulePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: radii.full,
-    backgroundColor: colors.mist,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    alignSelf: 'flex-start',
-  },
-  schedulePillText: { color: colors.ink, fontSize: 13, fontWeight: '700' },
-  inventoryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
+  scheduleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  scheduleText: { ...typography.bodyEmphasis, flexShrink: 1, color: colors.ink },
+  inventoryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   inventoryRowLarge: { flexDirection: 'column', alignItems: 'stretch' },
   inventoryCopy: { flex: 1, gap: 2 },
-  inventoryValue: { color: colors.ink, fontSize: 14, fontWeight: '800' },
-  inventoryMeta: { color: colors.muted, fontSize: 12, lineHeight: 17 },
-  inventoryWarning: { color: colors.warning, fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  inventoryButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.full, backgroundColor: colors.canvas },
-  inventoryButtonLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
+  inventoryValue: { ...typography.bodyEmphasis, color: colors.ink },
+  inventoryMeta: { ...typography.caption, color: colors.muted },
+  inventoryWarning: { ...typography.caption, color: colors.warning, fontWeight: '600' },
+  inventoryButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md },
+  inventoryButtonLabel: { ...typography.bodyEmphasis, color: colors.ink },
 
-  missingDetailBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: radii.sm,
-    backgroundColor: colors.warningTint,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  missingDetail: { flex: 1, color: colors.warning, fontSize: 12, fontWeight: '600' },
+  missingDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  missingDetail: { ...typography.caption, flex: 1, color: colors.warning },
 
-  // 48dp action buttons
-  rowActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-  },
-  rowActionsLarge: { flexDirection: 'column' },
-  rowActionLarge: { width: '100%', flex: 0 },
+  // 48dp actions: quiet secondary outline + destructive text button
+  rowActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
+  rowActionsLarge: { flexDirection: 'column', alignItems: 'stretch' },
+  rowActionLarge: { width: '100%' },
   actionInner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -699,52 +586,38 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   editButton: {
     minHeight: 48,
-    flex: 1,
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.controlBorder,
-    borderRadius: radii.full,
-    backgroundColor: colors.canvas,
+    borderRadius: radii.md,
   },
-  editLabel: { color: colors.ink, fontSize: 13, fontWeight: '800' },
-  archiveButton: {
-    minHeight: 48,
-    borderRadius: radii.full,
-    backgroundColor: colors.mist,
-  },
-  archiveLabel: { color: colors.error, fontSize: 13, fontWeight: '700' },
-  inlineError: { color: colors.error, fontSize: 13, lineHeight: 19 },
-  noResults: { color: colors.muted, fontSize: 15, lineHeight: 22, paddingVertical: spacing.xl, textAlign: 'center' },
+  editLabel: { ...typography.bodyEmphasis, color: colors.ink },
+  archiveButton: { minHeight: 48, justifyContent: 'center' },
+  archiveLabel: { ...typography.bodyEmphasis, color: colors.error },
+  inlineErrorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs },
+  inlineError: { ...typography.caption, flex: 1, color: colors.error },
+  noResults: { ...typography.body, color: colors.muted, paddingVertical: spacing.xl, textAlign: 'center' },
 
-  archivedCard: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
-    padding: spacing.md,
+  archivedSection: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
     marginTop: spacing.sm,
+    paddingTop: spacing.md,
   },
   archivedToggle: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   archivedToggleLarge: { flexDirection: 'column', alignItems: 'flex-start' },
   archivedHeading: { flex: 1, gap: 2 },
-  archivedTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  archivedTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  archivedCount: { color: colors.muted, fontSize: 12 },
-  archivedTogglePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: radii.full,
-    backgroundColor: colors.primaryTint,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  archivedToggleLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
-  archivedList: { borderTopWidth: 1, borderTopColor: colors.line, marginTop: spacing.md, paddingTop: spacing.xs },
-  archivedRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: spacing.md },
+  archivedTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  archivedTitle: { ...sectionTitle, color: colors.ink },
+  archivedCount: { ...typography.caption, color: colors.muted },
+  archivedToggleLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  archivedToggleLabel: { ...typography.bodyEmphasis, color: colors.primaryDark, fontWeight: '700' },
+  archivedList: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, marginTop: spacing.sm },
+  archivedRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, paddingVertical: spacing.md },
   archivedCopy: { minWidth: 220, flex: 1, gap: 2 },
-  archivedName: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  archivedDose: { color: colors.muted, fontSize: 13 },
-  archivedNote: { color: colors.muted, fontSize: 12, lineHeight: 17 },
-  restoreButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.full, paddingHorizontal: spacing.md, backgroundColor: colors.canvas },
-  restoreLabel: { color: colors.ink, fontSize: 13, fontWeight: '800' },
+  archivedName: { ...typography.headline, color: colors.ink },
+  archivedDose: { ...typography.caption, color: colors.muted },
+  archivedNote: { ...typography.caption, color: colors.muted },
+  restoreButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, paddingHorizontal: spacing.md },
+  restoreLabel: { ...typography.bodyEmphasis, color: colors.ink },
 });

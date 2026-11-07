@@ -6,9 +6,10 @@ import {
 } from 'react-native';
 
 import { AppIcon } from '../../components/AppIcon';
+import { PressableScale } from '../../components/PressableScale';
 import { ApiError, apiRequest, errorMessage } from '../../lib/api';
 import { confirmAction } from '../../lib/confirm';
-import { durations, radii, spacing, type AppColors } from '../../theme/tokens';
+import { cardPress, durations, easing, radii, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { SetupBantay, type SetupBantayPose } from '../assistant/SetupBantay';
 import { useAuth, type CareSetup } from '../auth/AuthProvider';
@@ -18,16 +19,15 @@ import { useLocale } from '../settings/LocaleProvider';
 import type { CopyKey } from '../settings/translations';
 
 export type CareSetupFinishTarget = 'home' | 'addMedicine';
-type Step = 'check' | 'invitations' | 'invitedRole' | 'question' | 'self' | 'professionalQuestion' | 'person' | 'invite' | 'waiting' | 'done';
+type Step = 'check' | 'invitations' | 'question' | 'self' | 'person' | 'invite' | 'waiting' | 'done';
 type Choice = CareSetup | 'waiting';
 type InviteInput = { email: string; canManageMedications: boolean };
 
 type Props = { onFinish: (target: CareSetupFinishTarget) => void };
 
-const choiceDetails: Record<Choice, { title: CopyKey; description: CopyKey; icon: 'heart' | 'users' | 'briefcase-business' | 'mail'; pose: SetupBantayPose }> = {
+const choiceDetails: Record<Choice, { title: CopyKey; description: CopyKey; icon: 'heart' | 'users' | 'mail'; pose: SetupBantayPose }> = {
   self: { title: 'setup.self', description: 'setup.selfDesc', icon: 'heart', pose: 'self' },
   family: { title: 'setup.family', description: 'setup.familyDesc', icon: 'users', pose: 'family' },
-  professional: { title: 'setup.professional', description: 'setup.professionalDesc', icon: 'briefcase-business', pose: 'professional' },
   waiting: { title: 'setup.waiting', description: 'setup.waitingDesc', icon: 'mail', pose: 'waiting' },
 };
 
@@ -36,46 +36,42 @@ function SetupButton({ label, onPress, disabled = false, secondary = false }: {
 }) {
   const { styles } = useThemedStyles(createStyles);
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       aria-disabled={disabled}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, secondary ? styles.secondaryButton : styles.primaryButton,
-        disabled && styles.disabled, pressed && !disabled && styles.pressed]}
+      style={[styles.button, secondary ? styles.secondaryButton : styles.primaryButton, disabled && styles.disabled]}
     >
       <Text style={secondary ? styles.secondaryLabel : styles.primaryLabel}>{label}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
 function ChoiceRow({ value, selected, disabled, onPress }: { value: Choice; selected: boolean; disabled: boolean; onPress: () => void }) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
-  const scale = useRef(new Animated.Value(1)).current;
   const details = choiceDetails[value];
   return (
-    <Pressable
+    <PressableScale
       accessibilityLabel={`${t(details.title)}. ${t(details.description)}`}
       accessibilityRole="radio"
       aria-checked={selected}
       aria-disabled={disabled}
       disabled={disabled}
       onPress={onPress}
-      onPressIn={() => Animated.timing(scale, { toValue: 0.98, duration: durations.instant, useNativeDriver: true }).start()}
-      onPressOut={() => Animated.timing(scale, { toValue: 1, duration: durations.instant, useNativeDriver: true }).start()}
+      style={styles.choice}
+      targetScale={cardPress}
     >
-      <Animated.View style={[styles.choice, { transform: [{ scale }] }]}>
-        <AppIcon color={selected ? colors.primary : colors.muted} name={details.icon} size={22} />
-        <View style={styles.choiceCopy}>
-          <Text style={[styles.choiceTitle, selected && styles.choiceTitleSelected]}>{t(details.title)}</Text>
-          <Text style={styles.choiceDescription}>{t(details.description)}</Text>
-        </View>
-        <View style={[styles.radio, selected && styles.radioSelected]}>
-          {selected ? <View style={styles.radioDot} /> : null}
-        </View>
-      </Animated.View>
-    </Pressable>
+      <AppIcon color={selected ? colors.primary : colors.inkLine} name={details.icon} size={22} />
+      <View style={styles.choiceCopy}>
+        <Text style={[styles.choiceTitle, selected && styles.choiceTitleSelected]}>{t(details.title)}</Text>
+        <Text style={styles.choiceDescription}>{t(details.description)}</Text>
+      </View>
+      <View style={[styles.radio, selected && styles.radioSelected]}>
+        {selected ? <View style={styles.radioDot} /> : null}
+      </View>
+    </PressableScale>
   );
 }
 
@@ -88,9 +84,7 @@ export function CareSetupFlow({ onFinish }: Props) {
   const { fontScale } = useWindowDimensions();
   const [step, setStep] = useState<Step>('check');
   const [choice, setChoice] = useState<Choice | null>(null);
-  const [roleChoice, setRoleChoice] = useState<'family' | 'professional' | null>(null);
   const [invites, setInvites] = useState<IncomingInvitation[]>([]);
-  const [acceptedName, setAcceptedName] = useState('');
   const [name, setName] = useState(session?.displayName ?? '');
   const [patientId, setPatientId] = useState<string | null>(null);
   const [patientName, setPatientName] = useState('');
@@ -102,7 +96,6 @@ export function CareSetupFlow({ onFinish }: Props) {
   const [reactionKey, setReactionKey] = useState(0);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [waitingFrom, setWaitingFrom] = useState<'question' | 'professionalQuestion'>('question');
   const stage = useRef(new Animated.Value(1)).current;
   const checkedInitialInvites = useRef(false);
 
@@ -137,7 +130,7 @@ export function CareSetupFlow({ onFinish }: Props) {
     stage.setValue(0);
     setSettling(true);
     Animated.timing(stage, { toValue: 1, duration: durations.stateChange,
-      easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      easing: Easing.bezier(...easing.out), useNativeDriver: true }).start();
     const settle = setTimeout(() => setSettling(false), durations.stateChange);
     return () => clearTimeout(settle);
   }, [step, stage]);
@@ -152,8 +145,8 @@ export function CareSetupFlow({ onFinish }: Props) {
       if (variables.action === 'accept') {
         selectPatient(result.patientId);
         void queryClient.invalidateQueries({ queryKey: ['patients'] });
-        setAcceptedName(variables.invitation.patientName);
-        setStep('invitedRole');
+        // Joining someone's Care Circle means caring for family; an unsaved setup shows the same shell, so a failed save still finishes.
+        setupMutation.mutate('family', { onSettled: () => onFinish('home') });
       } else if (!remaining.length) setStep('question');
     },
     onError: async (failure, variables) => {
@@ -197,17 +190,14 @@ export function CareSetupFlow({ onFinish }: Props) {
   };
   const goBack = () => {
     if (busy) return;
-    if (step === 'invitations') go('question');
-    else if (step === 'self' || step === 'professionalQuestion') go('question');
-    else if (step === 'person') go(choice === 'professional' ? 'professionalQuestion' : 'question');
-    else if (step === 'waiting') go(waitingFrom);
+    if (step === 'invitations' || step === 'self' || step === 'person' || step === 'waiting') go('question');
   };
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (busy) return true;
       // First screens have nothing behind them: let Android leave the app as usual.
       if (step === 'check' || step === 'question') return false;
-      if (step === 'done' || step === 'invitedRole') onFinish('home');
+      if (step === 'done') onFinish('home');
       else if (step === 'invite') go('done');
       else goBack();
       return true;
@@ -217,15 +207,10 @@ export function CareSetupFlow({ onFinish }: Props) {
 
   const chooseSetup = () => {
     if (!choice || busy) return;
-    if (choice === 'waiting') { setWaitingFrom('question'); go('waiting'); return; }
+    if (choice === 'waiting') { go('waiting'); return; }
     // The Care Setup is saved once its first profile exists, so abandoning mid-path brings the flow back.
     setName(choice === 'self' ? session?.displayName ?? '' : '');
-    go(choice === 'self' ? 'self' : choice === 'professional' ? 'professionalQuestion' : 'person');
-  };
-  const chooseInvitedRole = async () => {
-    if (!roleChoice || busy) return;
-    try { await setupMutation.mutateAsync(roleChoice); onFinish('home'); }
-    catch { /* Mutation error is displayed inline. */ }
+    go(choice === 'self' ? 'self' : 'person');
   };
   const createProfile = async (isSelf: boolean) => {
     if (!choice || choice === 'waiting') return;
@@ -273,29 +258,26 @@ export function CareSetupFlow({ onFinish }: Props) {
   };
 
   const pose: SetupBantayPose = step === 'check' || step === 'invitations' ? 'letter'
-    : step === 'invitedRole' ? roleChoice ?? 'family'
     : step === 'question' ? choice ? choiceDetails[choice].pose : 'family'
     : step === 'self' || step === 'person' ? 'writing'
-    : step === 'professionalQuestion' ? 'professional'
     : step === 'invite' ? 'sending'
     : step === 'waiting' ? 'waiting' : 'stamp';
   const mascotLabels: Record<SetupBantayPose, CopyKey> = {
-    letter: 'setup.mascotLetter', self: 'setup.mascotSelf', family: 'setup.mascotFamily',
-    professional: 'setup.mascotProfessional', waiting: 'setup.mascotWaiting',
+    letter: 'setup.mascotLetter', self: 'setup.mascotSelf', family: 'setup.mascotFamily', waiting: 'setup.mascotWaiting',
     writing: 'setup.mascotWriting', sending: 'setup.mascotSending', stamp: 'setup.mascotStamp',
   };
-  const stepNumber = step === 'check' || step === 'invitations' ? 1 : step === 'question' || step === 'invitedRole' ? 2
-    : step === 'self' || step === 'person' || step === 'professionalQuestion' || step === 'waiting' ? 3 : step === 'invite' ? 4 : 5;
+  const stepNumber = step === 'check' || step === 'invitations' ? 1 : step === 'question' ? 2
+    : step === 'self' || step === 'person' || step === 'waiting' ? 3 : step === 'invite' ? 4 : 5;
   const titleKey: CopyKey = step === 'check' ? invitationsQuery.isError ? 'setup.loadErrorTitle' : 'setup.loadingTitle'
-    : step === 'invitations' ? 'setup.invitationTitle' : step === 'invitedRole' ? 'setup.invitedRoleTitle'
+    : step === 'invitations' ? 'setup.invitationTitle'
     : step === 'question' ? 'setup.questionTitle' : step === 'self' ? 'setup.selfTitle'
-    : step === 'professionalQuestion' ? 'setup.professionalTitle' : step === 'person' ? 'setup.personTitle'
+    : step === 'person' ? 'setup.personTitle'
     : step === 'invite' ? 'setup.inviteTitle' : step === 'waiting' ? 'setup.waitingTitle'
     : choice === 'self' ? 'setup.doneSelfTitle' : 'setup.doneTitle';
   const bodyKey: CopyKey = step === 'check' ? invitationsQuery.isError ? 'setup.loadErrorBody' : 'setup.loadingBody'
-    : step === 'invitations' ? 'setup.invitationBody' : step === 'invitedRole' ? 'setup.invitedRoleBody'
+    : step === 'invitations' ? 'setup.invitationBody'
     : step === 'question' ? 'setup.questionBody' : step === 'self' ? 'setup.selfBody'
-    : step === 'professionalQuestion' ? 'setup.professionalBody' : step === 'person' ? 'setup.personBody'
+    : step === 'person' ? 'setup.personBody'
     : step === 'invite' ? 'setup.inviteBody' : step === 'waiting' ? 'setup.waitingBody'
     : choice === 'self' ? 'setup.doneSelfBody' : 'setup.donePersonBody';
   const errorText = fieldError ? t(fieldError) : actionError ? t(actionError) : mutationError ? errorMessage(mutationError) : null;
@@ -307,7 +289,7 @@ export function CareSetupFlow({ onFinish }: Props) {
         {[1, 2, 3, 4, 5].map((number) => <View key={number} style={[styles.progressTrack, number <= stepNumber && styles.progressFill]} />)}
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        {step !== 'check' && step !== 'done' && step !== 'question' && step !== 'invitedRole' && step !== 'invite' ? (
+        {step !== 'check' && step !== 'done' && step !== 'question' && step !== 'invite' ? (
           <Pressable accessibilityRole="button" accessibilityLabel={t('setup.back')} disabled={busy}
             onPress={goBack} style={styles.back}>
             <AppIcon color={colors.muted} name="arrow-left" size={20} />
@@ -317,7 +299,7 @@ export function CareSetupFlow({ onFinish }: Props) {
         <Animated.View style={{ opacity: stage, transform: [{ translateX: reducedMotion ? 0 : stage.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
           <View style={[styles.mascot, (keyboardOpen || fontScale >= 1.3) && styles.compactMascot]}><SetupBantay pose={pose} size={160} compact={keyboardOpen || fontScale >= 1.3}
             reactionKey={reactionKey} accessibilityLabel={t(mascotLabels[pose])} /></View>
-          <Text accessibilityRole="header" style={styles.title}>{t(titleKey, { patient: acceptedName })}</Text>
+          <Text accessibilityRole="header" style={styles.title}>{t(titleKey)}</Text>
           <Text style={styles.body}>{t(bodyKey, { patient: patientName })}</Text>
 
           {step === 'invitations' ? invites.map((invitation) => (
@@ -337,11 +319,11 @@ export function CareSetupFlow({ onFinish }: Props) {
               </View>
             </View>
           )) : null}
-          {step === 'question' || step === 'invitedRole' ? (
+          {step === 'question' ? (
             <View accessibilityRole="radiogroup" style={styles.choices}>
-              {(step === 'question' ? ['self', 'family', 'professional', 'waiting'] as Choice[] : ['family', 'professional'] as Choice[])
-                .map((item) => <ChoiceRow key={item} value={item} disabled={busy} selected={(step === 'question' ? choice : roleChoice) === item}
-                  onPress={() => { if (step === 'question') setChoice(item); else setRoleChoice(item as 'family' | 'professional'); }} />)}
+              {(['self', 'family', 'waiting'] as const).map((item) => (
+                <ChoiceRow key={item} value={item} disabled={busy} selected={choice === item} onPress={() => setChoice(item)} />
+              ))}
             </View>
           ) : null}
           {step === 'self' || step === 'person' ? (
@@ -395,16 +377,11 @@ export function CareSetupFlow({ onFinish }: Props) {
           <><SetupButton label={t('setup.retry')} onPress={() => void invitationsQuery.refetch()} />
             <SetupButton secondary label={t('setup.continueUnchecked')} onPress={() => go('question')} /></>
         ) : checking ? <Text style={styles.loading}>{t('setup.loadingTitle')}</Text> : null
-        : step === 'invitedRole' ? <><SetupButton label={setupMutation.isPending ? t('setup.saving') : t('setup.continue')}
-            disabled={busy || !roleChoice} onPress={() => void chooseInvitedRole()} />
-            <SetupButton secondary label={t('setup.skip')} disabled={busy} onPress={() => onFinish('home')} /></>
         : step === 'question' ? <><SetupButton label={setupMutation.isPending ? t('setup.saving') : t('setup.continue')}
             disabled={busy || !choice} onPress={() => void chooseSetup()} />
             <SetupButton secondary label={t('setup.later')} disabled={busy} onPress={() => onFinish('home')} /></>
         : step === 'self' || step === 'person' ? <SetupButton label={createMutation.isPending ? t('setup.saving') : t(step === 'self' ? 'setup.createSelf' : 'setup.createPerson')}
             disabled={busy} onPress={() => void createProfile(step === 'self')} />
-        : step === 'professionalQuestion' ? <><SetupButton label={t('setup.yes')} disabled={busy} onPress={() => { setWaitingFrom('professionalQuestion'); go('waiting'); }} />
-            <SetupButton secondary label={t('setup.no')} disabled={busy} onPress={() => { setName(''); go('person'); }} /></>
         : step === 'invite' ? <SetupButton secondary={!addedInvites.length} label={t(addedInvites.length ? 'setup.continue' : 'setup.skip')} disabled={busy} onPress={() => go('done')} />
         : step === 'waiting' ? <><SetupButton label={invitationsQuery.isFetching ? t('setup.loadingTitle') : t('setup.checkAgain')}
             disabled={busy || invitationsQuery.isFetching} onPress={() => void checkAgain()} />
@@ -426,27 +403,27 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   progressFill: { backgroundColor: colors.primary },
   scrollContent: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, width: '100%', maxWidth: 560, alignSelf: 'center' },
   back: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: spacing.xs, alignSelf: 'flex-start' },
-  backText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+  backText: { ...typography.bodyEmphasis, color: colors.muted },
   mascot: { alignItems: 'center', justifyContent: 'center', minHeight: 168, marginTop: spacing.sm, marginBottom: spacing.lg },
   compactMascot: { minHeight: 100, marginBottom: spacing.sm },
-  title: { color: colors.ink, fontSize: 27, fontWeight: '800', lineHeight: 34, letterSpacing: -0.6, marginBottom: spacing.sm },
-  body: { color: colors.muted, fontSize: 15, lineHeight: 23, marginBottom: spacing.lg },
+  title: { ...typography.title1, color: colors.ink, marginBottom: spacing.sm },
+  body: { ...typography.body, color: colors.muted, marginBottom: spacing.lg },
   choices: { gap: spacing.xs },
   // No card chrome: rows sit directly on the canvas; selection shows as a filled radio and emphasized title.
   choice: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 64, paddingVertical: spacing.sm },
   choiceCopy: { flex: 1, gap: spacing.xs },
-  choiceTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
-  choiceTitleSelected: { color: colors.primary, fontWeight: '800' },
+  choiceTitle: { ...typography.headline, color: colors.ink },
+  choiceTitleSelected: { color: colors.primaryDark },
   radio: { height: 24, width: 24, borderRadius: radii.full, borderWidth: 2, borderColor: colors.controlBorder,
     alignItems: 'center', justifyContent: 'center' },
   radioSelected: { borderColor: colors.primary },
   radioDot: { height: 12, width: 12, borderRadius: radii.full, backgroundColor: colors.primary },
-  choiceDescription: { color: colors.muted, fontSize: 14, lineHeight: 19 },
+  choiceDescription: { ...typography.body, fontSize: 14, lineHeight: 19, color: colors.muted },
   invitation: { paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line, gap: spacing.sm },
   invitationLine: { color: colors.ink, fontSize: 16, lineHeight: 24, fontWeight: '600' },
   invitationActions: { gap: spacing.sm },
   form: { gap: spacing.md },
-  label: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+  label: { ...typography.bodyEmphasis, color: colors.ink },
   input: { backgroundColor: colors.white, color: colors.ink, minHeight: 52, borderWidth: 1, borderColor: colors.controlBorder,
     borderRadius: radii.md, paddingHorizontal: spacing.md, fontSize: 16 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 56 },
@@ -454,21 +431,20 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
   addedRow: { borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.sm, gap: spacing.xs },
-  addedText: { color: colors.ink, fontSize: 14 },
+  addedText: { ...typography.body, fontSize: 14, color: colors.ink },
   shareButton: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: spacing.sm, alignSelf: 'flex-start' },
-  shareLabel: { color: colors.primary, fontSize: 14, fontWeight: '700' },
-  emailHighlight: { color: colors.ink, fontSize: 20, fontWeight: '800', paddingVertical: spacing.md },
-  error: { color: colors.error, fontSize: 14, lineHeight: 20, marginTop: spacing.md },
+  shareLabel: { ...typography.bodyEmphasis, color: colors.primaryDark },
+  emailHighlight: { ...typography.headline, fontSize: 20, lineHeight: 26, color: colors.ink, paddingVertical: spacing.md },
+  error: { ...typography.body, fontSize: 14, lineHeight: 20, color: colors.error, marginTop: spacing.md },
   footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.lg, gap: spacing.sm,
     width: '100%', maxWidth: 560, alignSelf: 'center' },
   button: { minHeight: 52, borderRadius: radii.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md },
   primaryButton: { backgroundColor: colors.primary, borderColor: colors.primary },
-  secondaryButton: { backgroundColor: 'transparent', borderColor: 'transparent' },
-  primaryLabel: { color: colors.canvas === '#0D1F18' ? '#0D1F18' : '#FFFFFF', fontSize: 16, fontWeight: '800', textAlign: 'center' },
-  secondaryLabel: { color: colors.ink, fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  secondaryButton: { backgroundColor: 'transparent', borderColor: colors.controlBorder },
+  primaryLabel: { ...typography.headline, color: colors.white, textAlign: 'center' },
+  secondaryLabel: { ...typography.headline, color: colors.ink, textAlign: 'center' },
   disabled: { opacity: 0.5 },
-  pressed: { transform: [{ scale: 0.98 }] },
   quiet: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  quietText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
-  loading: { color: colors.muted, textAlign: 'center', fontSize: 14 },
+  quietText: { ...typography.bodyEmphasis, color: colors.muted },
+  loading: { ...typography.body, color: colors.muted, textAlign: 'center' },
 });

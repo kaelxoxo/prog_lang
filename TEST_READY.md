@@ -19,9 +19,9 @@ The suite covers the complete 4-tier testing hierarchy across all 6 feature doma
 - **F3**: Hybrid Dual-Engine Intelligence (Tier 1 0ms Instant Local Rules + Tier 2 Gemini LLM Backend)
 - **F4**: Attributable In-Stream Actionable Dose Cards with Inline Recording
 - **F5**: Dynamic Mascot Assistant Expressions (Idle, Thinking, Celebration, ReduceMotion)
-- **F6**: Bilingual Localization Parity (EN/FIL) & Flat Design Invariants (0 drop shadows, 48dp touch targets, WCAG AA contrast)
+- **F6**: English Copy Interpolation & Flat Design Invariants (0 drop shadows, 48dp touch targets, WCAG AA contrast)
 
-All 71 automated tests execute through Node.js native test runner (`node:test`, `node:assert/strict`) via `tsx` under:
+All automated tests execute through Node.js native test runner (`node:test`, `node:assert/strict`) via `tsx` under:
 ```powershell
 node --env-file=.env.server.local --import tsx --test server/tests/assistant_e2e.test.ts
 ```
@@ -38,15 +38,15 @@ Zero third-party testing dependencies were added, maintaining 100% compatibility
 | 3 | F3: Hybrid Dual Engine | ORIGINAL_REQUEST §R2 | Tier 1 local rule instant answering for next dose, summary, and status check; Tier 2 Gemini LLM endpoint contract (`POST /patients/:patientId/assistant/query`); strict non-clinical safety invariant refusal | Tier 1: T1.3.1–T1.3.5<br>Tier 2: T2.3.1–T2.3.5 | **PASS** (10/10) |
 | 4 | F4: In-Stream Dose Cards | ORIGINAL_REQUEST §R3 | Attributable dose card schema anchored by patient name; inline "Record Taken" mutation with `clientActionId`; real-time cache sync (`['today']`, `['history']`); "View in Today" shortcut; button disable idempotency | Tier 1: T1.4.1–T1.4.5<br>Tier 2: T2.4.1–T2.4.5 | **PASS** (10/10) |
 | 5 | F5: Dynamic Mascot Expressions | ORIGINAL_REQUEST §R4 | Idle state 3.0s breathing loop & blinks (`mascot-welcome.gif`); Thinking state with -5.0deg tilt & alert stretch; Celebration state with heart & shield (`mascot-heart.gif`); `reduceMotion` static fallback; TalkBack labels | Tier 1: T1.5.1–T1.5.5<br>Tier 2: T2.5.1–T2.5.5 | **PASS** (10/10) |
-| 6 | F6: Bilingual Localization & Tokens | ORIGINAL_REQUEST §R5 | 1:1 translation key parity and placeholder symmetry in `translations.ts`; verbatim patient/medicine name preservation; 0 drop shadows; >=48dp touch targets; WCAG AA contrast (>=4.5:1) | Tier 1: T1.6.1–T1.6.5<br>Tier 2: T2.6.1–T2.6.5 | **PASS** (10/10) |
-| 7 | Tier 3 Combinations | TEST_INFRA §Tier 3 | Full Care Loop, Dual-Engine Handshake, In-Stream Navigation, Multi-Patient Context Switch, Multi-Caregiver Distributed Sync, ReduceMotion & Bilingual Integration | Tier 3: T3.1–T3.6 | **PASS** (6/6) |
-| 8 | Tier 4 Real-World Scenarios | TEST_INFRA §Tier 4 | Scenario 1: Morning Routine Journey<br>Scenario 2: Attributed Caregiver Handover<br>Scenario 3: Safety Invariant Guard<br>Scenario 4: Bilingual Tagalog Coordination<br>Scenario 5: Overdue Medicine Review | Tier 4: T4.1–T4.5 | **PASS** (5/5) |
+| 6 | F6: Copy & Tokens | ORIGINAL_REQUEST §R5 | Verbatim patient/medicine name preservation through English `translate()` interpolation; 0 drop shadows; >=48dp touch targets; WCAG AA contrast (>=4.5:1). The Filipino parity tests (T1.6.1, T2.6.3–T2.6.5) were removed with the Filipino locale on 2026-11-07 | Tier 1: T1.6.2–T1.6.5<br>Tier 2: T2.6.1–T2.6.2 | **PASS** (6/6) |
+| 7 | Tier 3 Combinations | TEST_INFRA §Tier 3 | Full Care Loop, Dual-Engine Handshake, In-Stream Navigation, Multi-Patient Context Switch, Multi-Caregiver Distributed Sync, ReduceMotion Integration | Tier 3: T3.1–T3.6 | **PASS** (6/6) |
+| 8 | Tier 4 Real-World Scenarios | TEST_INFRA §Tier 4 | Scenario 1: Morning Routine Journey<br>Scenario 2: Attributed Caregiver Handover<br>Scenario 3: Safety Invariant Guard<br>Scenario 4: Tagalog Query, English Answer<br>Scenario 5: Overdue Medicine Review | Tier 4: T4.1–T4.5 | **PASS** (5/5) |
 
 ---
 
 ## 3. Four-Tier Test Suite Breakdown
 
-### Tier 1: Feature Coverage (Core Requirements & Contracts — 30 tests)
+### Tier 1: Feature Coverage (Core Requirements & Contracts — 29 tests)
 - **F1 (FAB & Beacon)**:
   - `T1.1.1 (FAB-GEOMETRY)`: 56x56dp circular avatar satisfying >=48dp touch target -> **PASS**
   - `T1.1.2 (FAB-NAVIGATION-TABS)`: Persistent lower corner anchor on Home, Today, Medicines -> **PASS**
@@ -77,14 +77,13 @@ Zero third-party testing dependencies were added, maintaining 100% compatibility
   - `T1.5.3 (CELEBRATION-EXPRESSION)`: Activates `mascot-heart.gif` with care heart and shield -> **PASS**
   - `T1.5.4 (REDUCE-MOTION-FALLBACK)`: `reduceMotion` falls back to static high-res PNG -> **PASS**
   - `T1.5.5 (TALKBACK-ANNOUNCEMENTS)`: Accessible label matches state without double-announcements -> **PASS**
-- **F6 (Bilingual Localization & Tokens)**:
-  - `T1.6.1 (TRANSLATION-PARITY)`: 1:1 key parity and placeholder symmetry (EN/FIL) -> **PASS**
+- **F6 (Copy & Tokens)**:
   - `T1.6.2 (VERBATIM-PRESERVATION)`: Preserves patient and medicine names verbatim -> **PASS**
   - `T1.6.3 (FLAT-DESIGN-ZERO-SHADOWS)`: 0 drop shadows across all UI elements -> **PASS**
   - `T1.6.4 (TOUCH-TARGET-COMPLIANCE)`: Interactive controls satisfy >=48dp touch bounds -> **PASS**
   - `T1.6.5 (WCAG-AA-CONTRAST)`: Palette provides WCAG AA contrast (>=4.5:1) -> **PASS**
 
-### Tier 2: Boundary & Corner Cases (30 tests)
+### Tier 2: Boundary & Corner Cases (26 tests)
 - **F1 Boundaries**:
   - `T2.1.1 (RAPID-TAP-DEBOUNCE)`: Rapid consecutive taps on FAB debounce opening -> **PASS**
   - `T2.1.2 (COMPACT-SCREEN-CLEARANCE)`: 360x640dp viewport leaves adequate content room -> **PASS**
@@ -113,14 +112,10 @@ Zero third-party testing dependencies were added, maintaining 100% compatibility
   - `T2.5.1 (UNKNOWN-EXPRESSION-FALLBACK)`: Unknown expression defaults safely to "idle" -> **PASS**
   - `T2.5.2 (ACCESSIBILITY-FONT-SCALING)`: High font scale (2.0x) does not clip mascot or FAB -> **PASS**
   - `T2.5.3 (RAPID-EXPRESSION-CYCLING)`: Rapid expression cycling cleans up active timers -> **PASS**
-  - `T2.5.4 (ASSET-FALLBACK-ON-CORRUPTION)`: Missing/failed GIF displays static `mascot.png` -> **PASS**
   - `T2.5.5 (MID-QUERY-REDUCE-MOTION-TOGGLE)`: Toggling reduceMotion freezes transforms immediately -> **PASS**
 - **F6 Boundaries**:
   - `T2.6.1 (DIACRITICS-AND-PUNCTUATION-NAMES)`: Complex patient names preserved verbatim -> **PASS**
   - `T2.6.2 (COMPOUND-BRAND-MEDICINE-NAMES)`: Compound pharma names preserved verbatim -> **PASS**
-  - `T2.6.3 (FILIPINO-GRAMMATICAL-NUMBER)`: Filipino translates singular vs plural dose phrases -> **PASS**
-  - `T2.6.4 (MID-SESSION-LOCALE-SWITCH)`: Switching locale preserves chat history -> **PASS**
-  - `T2.6.5 (MISSING-KEY-SAFE-FALLBACK)`: Missing key falls back cleanly to English string -> **PASS**
 
 ### Tier 3: Cross-Feature Combinations (6 tests)
 - `T3.1 (FULL-CARE-LOOP)`: Beacon -> Sheet Open -> Suggestion Chip -> In-Stream Card -> Record Taken -> Cache Invalidate -> Beacon Dismissed -> Mascot Celebration -> **PASS**
@@ -128,13 +123,13 @@ Zero third-party testing dependencies were added, maintaining 100% compatibility
 - `T3.3 (IN-STREAM-NAVIGATION-WORKFLOW)`: In-stream dose card View in Today closes sheet and focuses occurrence in Today tab -> **PASS**
 - `T3.4 (MULTI-PATIENT-CARE-CIRCLE-SWITCH)`: Switching active patient updates greeting, re-indexes FAB beacon, and resets chat stream -> **PASS**
 - `T3.5 (MULTI-CAREGIVER-DISTRIBUTED-SYNC)`: Caregiver A records dose; Caregiver B query immediately reflects recorded status and attribution -> **PASS**
-- `T3.6 (REDUCE-MOTION-BILINGUAL-INTEGRATION)`: Accessibility reduceMotion enabled under Filipino locale renders static mascot and Tagalog copy -> **PASS**
+- `T3.6 (REDUCE-MOTION-INTEGRATION)`: Accessibility reduceMotion renders static mascot alongside the local summary copy -> **PASS**
 
 ### Tier 4: Real-World Caregiver Application Scenarios (5 tests)
 - `T4.1 (SCENARIO-1-MORNING-ROUTINE)`: Morning routine workflow (check next dose -> record dose -> verify cache sync and celebration) -> **PASS**
 - `T4.2 (SCENARIO-2-ATTRIBUTED-HANDOVER)`: Attribution verification ("Did Paolo record Lola Rosa's Calcium supplement?") -> **PASS**
 - `T4.3 (SCENARIO-3-SAFETY-INVARIANT-GUARD)`: Safety guardrail (caregiver asks to alter dose -> assistant explicitly declines with medical consultation guidance) -> **PASS**
-- `T4.4 (SCENARIO-4-BILINGUAL-TAGALOG-COORDINATION)`: Bilingual Tagalog care coordination (querying in Filipino vs. English preserves pharmaceutical entities) -> **PASS**
+- `T4.4 (SCENARIO-4-TAGALOG-QUERY)`: A Tagalog query gets an English answer that preserves pharmaceutical entities -> **PASS**
 - `T4.5 (SCENARIO-5-OVERDUE-REVIEW-BEACON-CLEARANCE)`: Overdue medicine review and status beacon clearance workflow -> **PASS**
 
 ---
@@ -172,4 +167,4 @@ These have been flagged for `worker_m1_backend_1` to resolve in their milestone 
 ---
 
 ## 6. Milestone Gate Handoff
-With the E2E test suite fully created, verified, and certified passing 100% (71/71 tests), the E2E Testing Track is complete.
+With the E2E test suite fully created, verified, and certified passing 100% (66/66 tests), the E2E Testing Track is complete.

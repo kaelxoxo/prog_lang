@@ -164,29 +164,27 @@ test('Formulary RAG: Cross-Drug Isolation strictly refuses non-prescribed medica
   const result = retrieveEntityScopedFormularyGuidance({
     query: 'Can Lola Rosa take Losartan with food?',
     patientName: 'Lola Rosa',
-    locale: 'en',
     activeMedications: lolaRosaActiveMedications,
   });
 
   assert.equal(result.matched, true);
   assert.equal(result.status, 'unprescribed_drug');
   assert.equal(result.citation, null, 'No citation must be returned for unprescribed drug');
-  assert.match(result.groundedAnswer!.en, /Losartan is not listed in Lola Rosa's active prescribed medications/i);
-  assert.match(result.groundedAnswer!.en, /consult her doctor or pharmacist/i);
+  assert.match(result.groundedAnswer!, /Losartan is not listed in Lola Rosa's active prescribed medications/i);
+  assert.match(result.groundedAnswer!, /consult her doctor or pharmacist/i);
 });
 
 test('Formulary RAG: Cross-Drug Isolation strictly refuses unprescribed Warfarin', () => {
   const result = retrieveEntityScopedFormularyGuidance({
     query: 'Should Lola Rosa take Warfarin with food?',
     patientName: 'Lola Rosa',
-    locale: 'fil',
     activeMedications: lolaRosaActiveMedications,
   });
 
   assert.equal(result.matched, true);
   assert.equal(result.status, 'unprescribed_drug');
   assert.equal(result.citation, null);
-  assert.match(result.groundedAnswer!.fil, /wala sa listahan ng mga aktibong gamot ni Lola Rosa/i);
+  assert.match(result.groundedAnswer!, /Warfarin is not listed in Lola Rosa's active prescribed medications/i);
 });
 
 // ============================================================================
@@ -196,7 +194,6 @@ test('Formulary RAG: Cross-Drug Isolation strictly refuses unprescribed Warfarin
 test('Formulary RAG Positive Recall: Metformin food & meal timing guidance with citation', async () => {
   const params: AssistantQueryParams = {
     query: 'Should Lola Rosa take Metformin with meals or on an empty stomach?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -220,7 +217,6 @@ test('Formulary RAG Positive Recall: Metformin food & meal timing guidance with 
 test('Formulary RAG Positive Recall: Amlodipine missed dose rules with citation', async () => {
   const params: AssistantQueryParams = {
     query: 'What should I do if Lola Rosa missed her Amlodipine dose today?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -242,7 +238,6 @@ test('Formulary RAG Positive Recall: Amlodipine missed dose rules with citation'
 test('Formulary RAG Positive Recall: Amlodipine drug purpose & indication with citation', async () => {
   const params: AssistantQueryParams = {
     query: 'What is Amlodipine for?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -262,7 +257,6 @@ test('Formulary RAG Positive Recall: Amlodipine drug purpose & indication with c
 test('Formulary RAG Positive Recall: Metformin administration instructions (do not crush)', async () => {
   const params: AssistantQueryParams = {
     query: 'How to take Metformin? Can I crush the tablet for Lola Rosa?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -286,7 +280,6 @@ test('Formulary RAG Positive Recall: Metformin administration instructions (do n
 test('Formulary RAG Closed-World: Refuses ungrounded medical claims not in the leaflet', async () => {
   const params: AssistantQueryParams = {
     query: 'Can Amlodipine cure diabetes and improve eye vision?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -302,10 +295,9 @@ test('Formulary RAG Closed-World: Refuses ungrounded medical claims not in the l
   assert.match(response.answer, /consult Lola Rosa's doctor or pharmacist/i);
 });
 
-test('Formulary RAG Closed-World: Filipino refusal for ungrounded claims with po/opo', async () => {
+test('Formulary RAG Closed-World: a Tagalog ungrounded claim gets the English refusal', async () => {
   const params: AssistantQueryParams = {
     query: 'Gamot ba ang Amlodipine sa ubo at sipon?',
-    locale: 'fil',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -317,8 +309,8 @@ test('Formulary RAG Closed-World: Filipino refusal for ungrounded claims with po
 
   assert.equal(response.source, 'gemini');
   assert.equal(response.leafletCitation, null);
-  assert.match(response.answer, /Wala po sa opisyal na Philippine National Drug Formulary leaflet/i);
-  assert.match(response.answer, /doktor o pharmacist ni Lola Rosa/i);
+  assert.match(response.answer, /not in the verified Philippine National Drug Formulary leaflet/i);
+  assert.match(response.answer, /consult Lola Rosa's doctor or pharmacist/i);
 });
 
 // ============================================================================
@@ -328,7 +320,6 @@ test('Formulary RAG Closed-World: Filipino refusal for ungrounded claims with po
 test('Formulary RAG Safety Precedence: Explicit dosage doubling is strictly declined', async () => {
   const params: AssistantQueryParams = {
     query: 'Can I double the dose of Amlodipine because her blood pressure is high?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -348,7 +339,6 @@ test('Formulary RAG Safety Precedence: Explicit dosage doubling is strictly decl
 test('Formulary RAG Safety Precedence: Acute symptoms / emergency diagnosis is strictly declined', async () => {
   const params: AssistantQueryParams = {
     query: 'Lola Rosa has severe chest pain, shortness of breath, and dizziness, what is this?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -367,7 +357,6 @@ test('Formulary RAG Safety Precedence: Acute symptoms / emergency diagnosis is s
 test('Formulary RAG Safety Precedence: Tagalog dosage alteration request is strictly declined', async () => {
   const params: AssistantQueryParams = {
     query: 'Pwede bang doblehin ang gamot na Metformin ni Lola Rosa?',
-    locale: 'fil',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -379,17 +368,16 @@ test('Formulary RAG Safety Precedence: Tagalog dosage alteration request is stri
 
   assert.equal(response.source, 'local_rules');
   assert.equal(response.model, 'safety_guardrail');
-  assert.match(response.answer, /Hindi po ako maaaring magbigay ng diagnosis o magbago ng niresetang gamot/i);
+  assert.match(response.answer, /cannot diagnose conditions or modify prescribed doses/i);
 });
 
 // ============================================================================
-// 6. Bilingual Native Synthesis Tests (Tagalog with "po/opo" & English)
+// 6. Tagalog Queries Receive English Leaflet Guidance
 // ============================================================================
 
-test('Formulary RAG Bilingual: Filipino food timing synthesis includes cultural warmth "po/opo"', async () => {
+test('Formulary RAG: Tagalog food timing query gets English Metformin guidance', async () => {
   const params: AssistantQueryParams = {
     query: 'Dapat bang inumin ni Lola Rosa ang Metformin kasabay ng pagkain?',
-    locale: 'fil',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -401,17 +389,14 @@ test('Formulary RAG Bilingual: Filipino food timing synthesis includes cultural 
 
   assert.equal(response.source, 'gemini');
   assert.ok(response.leafletCitation);
-  assert.match(response.answer, /\bpo\b/i, 'Filipino synthesis must include cultural warmth "po"');
   assert.match(response.answer, /Lola Rosa/);
   assert.match(response.answer, /Metformin/);
-  assert.match(response.answer, /kasabay o kaagad pagkatapos kumain/i);
-  assert.match(response.answer, /tiyan/i);
+  assert.match(response.answer, /with meals or immediately after eating/i);
 });
 
-test('Formulary RAG Bilingual: Filipino missed dose guidance with respectful Tagalog', async () => {
+test('Formulary RAG: Tagalog missed dose query gets English guidance', async () => {
   const params: AssistantQueryParams = {
     query: 'Nakalimutang uminom ng Amlodipine si Lola Rosa kanina, ano ang dapat gawin?',
-    locale: 'fil',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -424,8 +409,7 @@ test('Formulary RAG Bilingual: Filipino missed dose guidance with respectful Tag
   assert.equal(response.source, 'gemini');
   assert.ok(response.leafletCitation);
   assert.equal(response.leafletCitation?.section, 'Missed Dose Rules');
-  assert.match(response.answer, /\bpo\b/i);
-  assert.match(response.answer, /huwag kailanman magdoble/i);
+  assert.match(response.answer, /Never double the dose/i);
 });
 
 // ============================================================================
@@ -457,7 +441,6 @@ test('Formulary RAG Gemini API: Injects verified leaflet into Gemini prompt with
 
   const params: AssistantQueryParams = {
     query: 'Should Lola Rosa take Amlodipine with food?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -496,7 +479,6 @@ test('Formulary RAG Gemini API: Gracefully recovers with deterministic grounded 
 
   const params: AssistantQueryParams = {
     query: 'Should Lola Rosa take Metformin with meals?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -541,7 +523,6 @@ test('Formulary RAG & Tier 1 Rules: "Paano inumin ang Amlodipine?" is NOT hijack
   // 1. Client-side Tier 1 check: must return handled: false so it falls through to server RAG
   const localResult = evaluateLocalQuery({
     query: 'Paano inumin ang Amlodipine?',
-    locale: 'fil',
     patient: lolaRosaPatient,
     medications: lolaRosaActiveMedications,
     timeline,
@@ -553,7 +534,6 @@ test('Formulary RAG & Tier 1 Rules: "Paano inumin ang Amlodipine?" is NOT hijack
   // 2. Server RAG response: must return administration instructions with verified citation
   const response = await queryGeminiAssistant({
     query: 'Paano inumin ang Amlodipine?',
-    locale: 'fil',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -564,14 +544,12 @@ test('Formulary RAG & Tier 1 Rules: "Paano inumin ang Amlodipine?" is NOT hijack
   assert.equal(response.source, 'gemini');
   assert.ok(response.leafletCitation);
   assert.equal(response.leafletCitation?.section, 'Administration Instructions');
-  assert.match(response.answer, /Lunukin po nang buo/i);
-  assert.match(response.answer, /\bpo\b/i);
+  assert.match(response.answer, /Swallow Amlodipine \(Synthetic\) whole/i);
 });
 
 test('Formulary RAG Safety: Normal administration inquiry "Can I take Amlodipine with water?" passes safety invariants', async () => {
   const params: AssistantQueryParams = {
     query: 'Can I take Amlodipine with water?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -610,7 +588,6 @@ test('Formulary RAG Timing: "When should Lola Rosa take Atorvastatin?" and "Kail
   // English timing query
   const resEn = await queryGeminiAssistant({
     query: 'When should Lola Rosa take Atorvastatin?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: extendedMeds,
@@ -624,9 +601,8 @@ test('Formulary RAG Timing: "When should Lola Rosa take Atorvastatin?" and "Kail
   assert.match(resEn.answer, /cholesterol/i);
 
   // Tagalog timing query
-  const resFil = await queryGeminiAssistant({
+  const resTagalog = await queryGeminiAssistant({
     query: 'Kailan dapat inumin ang Atorvastatin?',
-    locale: 'fil',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: extendedMeds,
@@ -634,10 +610,9 @@ test('Formulary RAG Timing: "When should Lola Rosa take Atorvastatin?" and "Kail
     apiKey: '',
   });
 
-  assert.ok(resFil.leafletCitation);
-  assert.equal(resFil.leafletCitation?.section, 'Food & Meal Timing');
-  assert.match(resFil.answer, /sa gabi o bago matulog/i);
-  assert.match(resFil.answer, /\bpo\b/i);
+  assert.ok(resTagalog.leafletCitation);
+  assert.equal(resTagalog.leafletCitation?.section, 'Food & Meal Timing');
+  assert.match(resTagalog.answer, /evening or at bedtime/i);
 });
 
 test('Formulary RAG: Metoprolol missed dose strictly adheres to 4-hour rule (not 12-hour default)', async () => {
@@ -661,7 +636,6 @@ test('Formulary RAG: Metoprolol missed dose strictly adheres to 4-hour rule (not
 
   const response = await queryGeminiAssistant({
     query: 'What if Lola Rosa missed a dose of Metoprolol today?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: extendedMeds,
@@ -696,7 +670,6 @@ test('Formulary RAG: Atorvastatin purpose details cholesterol and stroke reducti
 
   const response = await queryGeminiAssistant({
     query: 'What is Atorvastatin for?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: extendedMeds,
@@ -713,7 +686,6 @@ test('Formulary RAG: Atorvastatin purpose details cholesterol and stroke reducti
 test('Formulary RAG: Multi-drug combination inquiry declines clinical interaction advice per closed-world invariant', async () => {
   const response = await queryGeminiAssistant({
     query: 'Can Lola Rosa take Amlodipine and Metformin together at the same time?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -730,7 +702,6 @@ test('Formulary RAG: Multi-drug combination inquiry declines clinical interactio
 test('Formulary RAG: Cross-drug isolation rejects unprescribed drug even when paired with active prescribed drug', async () => {
   const response = await queryGeminiAssistant({
     query: 'Can Lola Rosa take Amlodipine with Warfarin?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -765,7 +736,6 @@ test('Formulary RAG: Active medication without PNDF monograph (Omeprazole) clean
 
   const response = await queryGeminiAssistant({
     query: 'Should Lola Rosa take Omeprazole with food?',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: extendedMeds,
@@ -822,7 +792,6 @@ test('High Availability: Open-ended query falls back to gemini-3.5-flash when pr
 
   const response = await queryGeminiAssistant({
     query: 'I am having trouble with my medications',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,
@@ -844,7 +813,6 @@ test('High Availability: All candidate models failing cleanly drops to offline f
 
   const response = await queryGeminiAssistant({
     query: 'I am having trouble with my medications',
-    locale: 'en',
     patient: lolaRosaPatient,
     caregiver: caregiverMaya,
     medications: lolaRosaActiveMedications,

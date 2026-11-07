@@ -1,20 +1,11 @@
-import React, { useMemo } from 'react';
-import {
-  AccessibilityInfo,
-  Animated,
-  Easing,
-  Pressable,
-  StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-} from 'react-native';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppColors, radii, spacing } from '../../theme/tokens';
+import { PressableScale } from '../../components/PressableScale';
+import { AppColors, radii, spacing, typography } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
+import { isNotRecorded } from '../today/doseWindows';
 import type { DoseOccurrence } from '../today/types';
 import { AssistantMascot } from './AssistantMascot';
 import { useAssistantMascotState } from './useAssistantMascotState';
@@ -26,172 +17,84 @@ export interface AssistantFABProps {
   testID?: string;
 }
 
-export function AssistantFAB({
-  onPress,
-  timeline,
-  style,
-  testID = 'assistant-fab',
-}: AssistantFABProps) {
-  const { colors, styles } = useThemedStyles(createStyles);
+const SIZE = 56;
+
+export function AssistantFAB({ onPress, timeline, style, testID = 'assistant-fab' }: AssistantFABProps) {
+  const { styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
-
-  // Count unrecorded doses scheduled for today
-  const pendingCount = useMemo(() => {
-    if (!timeline) return 0;
-    return timeline.filter((d) => d.status === 'not_recorded' || d.status === 'snoozed').length;
-  }, [timeline]);
-
-  const hasActionableDose = pendingCount > 0;
-
-  // Mascot expression synchronized with dose completion
   const { expression } = useAssistantMascotState(timeline);
 
-  // Soft breathing pulse for the beacon dot
-  const pulseAnim = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    if (!hasActionableDose) {
-      pulseAnim.setValue(0);
-      return;
-    }
-
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          duration: 1400,
-          easing: Easing.inOut(Easing.sin),
-          toValue: 1,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          duration: 1400,
-          easing: Easing.inOut(Easing.sin),
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [hasActionableDose, pulseAnim]);
-
-  const accessibilityLabel = hasActionableDose
-    ? `${t('assistant.fabLabel')}, ${t('assistant.fabBeaconHint', { count: pendingCount })}`
-    : t('assistant.fabLabel');
+  const now = Date.now();
+  const notRecorded = timeline?.filter((dose) => isNotRecorded(dose, now)).length ?? 0;
+  const accessibilityLabel =
+    notRecorded === 0
+      ? t('assistant.fabLabel')
+      : `${t('assistant.fabLabel')}, ${notRecorded === 1 ? t('assistant.fabNotRecordedOne') : t('assistant.fabNotRecordedMany', { count: notRecorded })}`;
 
   return (
-    <Pressable
-      accessibilityHint={t('assistant.fabA11yHint')}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
-      hitSlop={16}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.fabContainer,
-        {
-          bottom: Math.max(insets.bottom, 8) + 62,
-        },
-        pressed && styles.fabPressed,
-        style,
-      ]}
-      testID={testID}
-    >
-      <AssistantMascot
-        expression={expression}
-        size={46}
-      />
-
-      {/* Soft Status Beacon Dot */}
-      {hasActionableDose ? (
-        <View style={styles.beaconAnchor}>
-          <Animated.View
-            style={[
-              styles.beaconHalo,
-              {
-                opacity: pulseAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.2, 0.6],
-                }),
-                transform: [
-                  {
-                    scale: pulseAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.9, 1.4],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
-          <View style={styles.beaconDot}>
-            {pendingCount > 1 ? (
-              <Text style={styles.beaconCountText}>
-                {pendingCount > 9 ? '9+' : pendingCount}
-              </Text>
-            ) : null}
-          </View>
+    <View pointerEvents="box-none" style={[styles.anchor, { bottom: Math.max(insets.bottom, spacing.sm) + 62 }, style]}>
+      <PressableScale
+        accessibilityHint={t('assistant.fabA11yHint')}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
+        hitSlop={16}
+        onPress={onPress}
+        style={styles.button}
+        testID={testID}
+      >
+        <View style={styles.portrait}>
+          <AssistantMascot accessible={false} expression={expression} size={SIZE - 4} variant="bust" />
         </View>
-      ) : null}
-    </Pressable>
+        {notRecorded > 0 ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{notRecorded > 9 ? '9+' : notRecorded}</Text>
+          </View>
+        ) : null}
+      </PressableScale>
+    </View>
   );
 }
 
 const createStyles = (colors: AppColors) =>
   StyleSheet.create({
-    fabContainer: {
-      alignItems: 'center',
-      backgroundColor: colors.white,
-      borderColor: colors.line,
-      borderRadius: radii.full,
-      borderWidth: 1.5,
-      bottom: 76,
-      elevation: 20,
-      height: 56,
-      justifyContent: 'center',
-      minHeight: 48,
-      minWidth: 48,
+    anchor: {
       position: 'absolute',
       right: spacing.md,
-      width: 56,
-      zIndex: 9999,
+      zIndex: 10,
     },
-    fabPressed: {
-      opacity: 0.88,
-      transform: [{ scale: 0.95 }],
+    button: {
+      height: SIZE,
+      width: SIZE,
     },
-    beaconAnchor: {
+    portrait: {
       alignItems: 'center',
-      height: 18,
-      justifyContent: 'center',
-      position: 'absolute',
-      right: -2,
-      top: -2,
-      width: 18,
-    },
-    beaconHalo: {
-      backgroundColor: colors.sun,
+      backgroundColor: colors.surface,
+      borderColor: colors.controlBorder,
       borderRadius: radii.full,
-      height: 18,
-      position: 'absolute',
-      width: 18,
+      borderWidth: 1,
+      height: SIZE,
+      justifyContent: 'flex-end',
+      overflow: 'hidden',
+      width: SIZE,
     },
-    beaconDot: {
+    badge: {
       alignItems: 'center',
-      backgroundColor: colors.sun,
-      borderColor: colors.white,
+      backgroundColor: colors.warning,
+      borderColor: colors.canvas,
       borderRadius: radii.full,
-      borderWidth: 1.5,
-      height: 14,
+      borderWidth: 2,
+      height: 22,
       justifyContent: 'center',
-      minWidth: 14,
-      paddingHorizontal: 2,
+      minWidth: 22,
+      paddingHorizontal: 4,
+      position: 'absolute',
+      right: -4,
+      top: -4,
     },
-    beaconCountText: {
-      color: colors.ink,
-      fontSize: 9,
-      fontWeight: '800',
-      lineHeight: 11,
-      textAlign: 'center',
+    badgeText: {
+      ...typography.badge,
+      color: colors.white,
+      fontVariant: ['tabular-nums'],
     },
   });

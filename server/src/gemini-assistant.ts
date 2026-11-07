@@ -64,7 +64,6 @@ export interface AssistantMedicationDraft {
 
 export interface AssistantQueryParams {
   query: string;
-  locale: 'en' | 'fil';
   currentLocalTime?: string;
   todayDate?: string;
   patient: {
@@ -239,7 +238,7 @@ const DOSAGE_MODIFICATION_PATTERNS = [
   /\b(doblehin|doble|kalahati)\s+(ang\s+)?(dose|dosage|gamot|inumin)\b/i,
 ];
 
-export function checkMedicalSafetyInvariants(query: string, patientName: string, locale: 'en' | 'fil'): string | null {
+export function checkMedicalSafetyInvariants(query: string, patientName: string): string | null {
   const trimmed = query.trim();
   const isDiagnosisQuery = DIAGNOSIS_PATTERNS.some((pattern) => pattern.test(trimmed));
 
@@ -262,9 +261,7 @@ export function checkMedicalSafetyInvariants(query: string, patientName: string,
       : DOSAGE_MODIFICATION_PATTERNS.some((pattern) => pattern.test(trimmed));
 
   if (isDiagnosisQuery || isDosageQuery) {
-    return locale === 'fil'
-      ? `Para sa anumang pagbabago sa gamot, dosage, o medikal na kalagayan, mangyaring sumangguni agad sa doktor o healthcare provider ni ${patientName}. Hindi po ako maaaring magbigay ng diagnosis o magbago ng niresetang gamot.`
-      : `For any adjustments to medicines, dosage changes, or health concerns, please consult ${patientName}'s doctor or healthcare provider directly. I cannot diagnose conditions or modify prescribed doses.`;
+    return `For any adjustments to medicines, dosage changes, or health concerns, please consult ${patientName}'s doctor or healthcare provider directly. I cannot diagnose conditions or modify prescribed doses.`;
   }
 
   return null;
@@ -324,15 +321,13 @@ ${scopeRules(patientName)}
 
 COMMUNICATION TONE & STYLE:
 - Keep answers warm, reassuring, respectful, and concise (maximum 2-3 short sentences for mobile screens).
-- When replying in Filipino (locale === 'fil'), use respectful Tagalog with cultural warmth ("po" / "opo") and refer respectfully to the elder as ${patientName}.
-- When replying in English (locale === 'en'), use gentle, clear care-companion English.
+- Always reply in gentle, clear care-companion English, even when the caregiver writes in Tagalog or Taglish.
 
 CRITICAL MEDICAL SAFETY RULES:
 1. GROUNDED IN RECORDS ONLY: Answer questions strictly based on the confirmed medications and recorded dose history provided in the context. Never assume or invent unrecorded intake.
 2. NO DIAGNOSIS OR CLINICAL ADVICE: Explicitly DECLINE all requests to diagnose medical conditions, evaluate acute symptoms, assess drug-drug interactions beyond recorded instructions, or suggest new treatments.
 3. DECLINE PRESCRIPTION ALTERATIONS: If the user asks to increase, decrease, skip, or discontinue a medication, decline politely and firmly:
-   - EN: "For any adjustments to medicines, dosage changes, or health concerns, please consult ${patientName}'s doctor or healthcare provider directly."
-   - FIL: "Para sa anumang pagbabago sa gamot, dosage, o medikal na kalagayan, mangyaring sumangguni agad sa doktor o healthcare provider ni ${patientName}."
+   "For any adjustments to medicines, dosage changes, or health concerns, please consult ${patientName}'s doctor or healthcare provider directly."
 4. PRESERVE PHARMACEUTICAL & PATIENT NAMES: Never translate or modify pharmaceutical brand names, generic active ingredients, dosage strengths, or patient names.
 5. ACTIONABLE DOSE IDENTIFICATION: If the user query is about an unrecorded dose scheduled for today, mention the medication and time clearly so the app can present an attributable recording card.
 6. ADDING MEDICINES VIA PROPOSE_MEDICATION_DRAFT:
@@ -370,19 +365,12 @@ export function findActionableDose(
   };
 }
 
-export function suggestedRepliesFor(locale: 'en' | 'fil'): string[] {
-  return locale === 'fil'
-    ? ['+ Magdagdag ng gamot', 'Ano ang susunod na gamot?', 'Buod ng araw na ito']
-    : ['+ Add medicine', "What's due next?", "Today's summary"];
-}
-
 export async function queryGeminiAssistant(params: AssistantQueryParams): Promise<AssistantQueryResponse> {
   const patientName = params.patient.displayName;
   const caregiverName = params.caregiver.displayName;
-  const locale = params.locale;
-  const suggestedQuickReplies = suggestedRepliesFor(locale);
+  const suggestedQuickReplies = ['+ Add medicine', "What's due next?", "Today's summary"];
   const topicDeclineResponse = (): AssistantQueryResponse => ({
-    answer: offTopicDecline(patientName, locale),
+    answer: offTopicDecline(patientName),
     source: 'local_rules',
     model: 'topic_guardrail',
     actionableDose: null,
@@ -397,7 +385,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
   }
 
   // 1. Safety Guardrail Pre-Check (Defense in depth)
-  const safetyDecline = checkMedicalSafetyInvariants(params.query, patientName, locale);
+  const safetyDecline = checkMedicalSafetyInvariants(params.query, patientName);
   if (safetyDecline) {
     return {
       answer: safetyDecline,
@@ -414,11 +402,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
   const isAddIntent = isAddMedicineIntent(params.query);
   if (isAddIntent && params.patient.canManageMedications === false) {
     const managerName = params.patient.primaryCareManagerName;
-    const answer = locale === 'fil'
-      ? (managerName
-        ? `Tanging ang mga tagapamahala ng pangangalaga ang maaaring magdagdag ng bagong gamot para kay ${patientName}. Mangyaring makipag-ugnayan kay ${managerName}.`
-        : `Tanging ang mga tagapamahala ng pangangalaga ang maaaring magdagdag ng bagong gamot para kay ${patientName}. Mangyaring makipag-ugnayan sa pangunahing tagapamahala ng pangangalaga.`)
-      : (managerName
+    const answer = (managerName
         ? `Only primary care managers can add new medicines for ${patientName}. Please coordinate with ${managerName}.`
         : `Only primary care managers can add new medicines for ${patientName}. Please coordinate with the primary care manager.`);
 
@@ -441,14 +425,13 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
     const formularyResult = retrieveEntityScopedFormularyGuidance({
       query: params.query,
       patientName,
-      locale,
       activeMedications: params.medications,
     });
 
     if (formularyResult.matched) {
       if (formularyResult.status === 'unprescribed_drug') {
         return {
-          answer: formularyResult.groundedAnswer![locale],
+          answer: formularyResult.groundedAnswer!,
           source: 'gemini',
           model: 'formulary_rag_cross_drug_isolation',
           actionableDose: null,
@@ -460,7 +443,7 @@ export async function queryGeminiAssistant(params: AssistantQueryParams): Promis
 
       if (formularyResult.status === 'out_of_scope') {
         return {
-          answer: formularyResult.groundedAnswer![locale],
+          answer: formularyResult.groundedAnswer!,
           source: 'gemini',
           model: 'formulary_rag_closed_world',
           actionableDose: null,
@@ -484,12 +467,11 @@ STRICT CLOSED-WORLD GROUNDING:
 Answer questions strictly based ONLY on the provided official Philippine National Drug Formulary (PNDF) patient leaflet excerpt.
 Do not invent, hallucinate, assume, or extrapolate outside medical claims.
 If the caregiver asks something that is not directly covered in the leaflet excerpt, state that it is not covered in the leaflet and advise consulting ${patientName}'s doctor or pharmacist.
-${locale === 'fil' ? 'Reply in respectful Tagalog with cultural warmth ("po" and "opo") and refer to the elder as ' + patientName + '.' : 'Reply in clear, gentle, reassuring care-companion English.'}
+Reply in clear, gentle, reassuring care-companion English, even when the caregiver writes in Tagalog or Taglish.
 Keep answers concise (maximum 2-3 sentences for mobile screens).
 Never alter pharmaceutical brand names, generic ingredients, or the patient's name (${patientName}).`;
 
-          const groundedUserPrompt = `Locale: ${locale}
-Caregiver Question: ${params.query}
+          const groundedUserPrompt = `Caregiver Question: ${params.query}
 
 OFFICIAL PHILIPPINE NATIONAL DRUG FORMULARY (PNDF) PATIENT LEAFLET:
 Medication: ${formularyResult.citation.medicationName}
@@ -559,7 +541,7 @@ Caregiver Question: ${params.query}`;
 
         // Deterministic local grounded synthesis
         return {
-          answer: formularyResult.groundedAnswer![locale],
+          answer: formularyResult.groundedAnswer!,
           source: 'gemini',
           model: 'formulary_rag',
           actionableDose: null,
@@ -576,9 +558,7 @@ Caregiver Question: ${params.query}`;
     if (isAddIntent) {
       const name = extractMedicineName(params.query);
       if (!name) {
-        const answer = locale === 'fil'
-          ? `Anong gamot ang nais mong idagdag para kay ${patientName}?`
-          : `What medicine would you like to add for ${patientName}?`;
+        const answer = `What medicine would you like to add for ${patientName}?`;
         return {
           answer,
           source: 'fallback',
@@ -599,18 +579,12 @@ Caregiver Question: ${params.query}`;
       if (!hasTimes || !hasStrength) {
         let answer = '';
         if (!hasTimes && !hasStrength) {
-          answer = locale === 'fil'
-            ? `Anong oras at dosage dapat inumin ni ${patientName} ang ${name}?`
-            : `What time and dosage should ${patientName} take for ${name}?`;
+          answer = `What time and dosage should ${patientName} take for ${name}?`;
         } else if (!hasTimes) {
           const strengthPart = dose.strengthValue ? ` ${dose.strengthValue}${dose.strengthUnit}` : '';
-          answer = locale === 'fil'
-            ? `Anong oras dapat inumin ni ${patientName} ang ${name}${strengthPart}?`
-            : `What time should ${patientName} take ${name}${strengthPart}?`;
+          answer = `What time should ${patientName} take ${name}${strengthPart}?`;
         } else {
-          answer = locale === 'fil'
-            ? `Ano ang dosage o lakas para sa ${name} (hal., 500mg, 1 tableta)?`
-            : `What is the dosage or strength for ${name} (e.g., 500mg, 1 tablet)?`;
+          answer = `What is the dosage or strength for ${name} (e.g., 500mg, 1 tablet)?`;
         }
 
         return {
@@ -658,12 +632,8 @@ Caregiver Question: ${params.query}`;
       };
 
       const answer = duplicate
-        ? (locale === 'fil'
-          ? `Inihanda ko ang draft para sa ${name}. Paalala: Ang ${duplicate.displayName} ay nasa listahan na ng aktibong gamot ni ${patientName}.`
-          : `I prepared a draft for ${name}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`)
-        : (locale === 'fil'
-          ? `Narito ang draft para sa ${name}. Pakisuri at kumpirmahin.`
-          : `Here is the draft for ${name}. Please review and confirm.`);
+        ? (`I prepared a draft for ${name}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`)
+        : (`Here is the draft for ${name}. Please review and confirm.`);
 
       return {
         answer,
@@ -676,9 +646,7 @@ Caregiver Question: ${params.query}`;
       };
     }
 
-    const fallbackAnswer = locale === 'fil'
-      ? `Kasalukuyang hindi maabot ang aking serbisyo, ngunit maaari mong suriin at itala ang mga nakaiskedyul na gamot ni ${patientName} sa Today tab.`
-      : `I'm having trouble connecting to my AI care service right now, but you can always review and record ${patientName}'s scheduled medicines in the Today tab.`;
+    const fallbackAnswer = `I'm having trouble connecting to my AI care service right now, but you can always review and record ${patientName}'s scheduled medicines in the Today tab.`;
 
     return {
       answer: fallbackAnswer,
@@ -702,7 +670,7 @@ Caregiver Question: ${params.query}`;
 
   const context = buildAssistantContext(params);
   const systemInstructionText = buildSystemInstruction(caregiverName, patientName);
-  const userPrompt = `Locale: ${locale}\nContext:\n${JSON.stringify(context, null, 2)}\n\nCaregiver Question: ${params.query}`;
+  const userPrompt = `Context:\n${JSON.stringify(context, null, 2)}\n\nCaregiver Question: ${params.query}`;
 
   const requestBody = {
     contents: [
@@ -840,11 +808,7 @@ Caregiver Question: ${params.query}`;
         let answer = textPayload && !containsCodeOutput(textPayload) ? textPayload : '';
         if (!answer) {
           answer = duplicate
-            ? locale === 'fil'
-              ? `Inihanda ko ang draft para sa ${displayName}. Paalala: Ang ${duplicate.displayName} ay nasa listahan na ng aktibong gamot ni ${patientName}.`
-              : `I prepared a draft for ${displayName}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`
-            : locale === 'fil'
-            ? `Narito ang draft para sa ${displayName}. Pakisuri at kumpirmahin.`
+            ? `I prepared a draft for ${displayName}. Note: ${duplicate.displayName} is already in ${patientName}'s active medicines.`
             : `Here is the draft for ${displayName}. Please review and confirm.`;
         }
 

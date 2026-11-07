@@ -13,7 +13,7 @@
 | F3 | Hybrid Dual-Engine (Local Rules + Gemini) | ORIGINAL_REQUEST §R2 | 5 | 5 | ✓ |
 | F4 | Attributable In-Stream Dose Cards | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ |
 | F5 | Dynamic Mascot Expressions & Motion | ORIGINAL_REQUEST §R4 | 5 | 5 | ✓ |
-| F6 | Bilingual Localization & Design Invariants | ORIGINAL_REQUEST §R5 | 5 | 5 | ✓ |
+| F6 | Copy Interpolation & Design Invariants | ORIGINAL_REQUEST §R5 | 4 | 2 | ✓ |
 
 ## Test Architecture
 - **Test Runner**: Node.js test runner (`node:test`) executing via `npm.cmd run test:server`.
@@ -32,7 +32,7 @@
 | 1 | Morning Routine Caregiver Journey (Next Dose -> Record Dose -> Cache Sync) | F1, F2, F3, F4, F5 | High |
 | 2 | Attributed Dual-Caregiver Handoff ("Who gave Lola Rosa her morning Amlodipine?") | F3, F4, F6 | Medium |
 | 3 | Overdue Medicine Review & Status Beacon Clearance | F1, F2, F4, F5 | High |
-| 4 | Bilingual Safety Invariant Guard (Prescription alteration query in Filipino and English) | F3, F6 | High |
+| 4 | Safety Invariant Guard for a Tagalog prescription-alteration query (English decline) | F3, F6 | High |
 | 5 | All Doses Taken Today Celebration Loop (Mascot Celebration state & congratulatory summary) | F2, F3, F5 | Medium |
 
 ## Publication Contract

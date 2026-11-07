@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '../../components/AppIcon';
 import { errorMessage } from '../../lib/api';
 import { confirmAction } from '../../lib/confirm';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import type { Patient } from '../patients/types';
 import type { Medication, MedicationInput, MedicationOcrDraft, ScheduleKind } from './types';
@@ -501,9 +501,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
           <View style={styles.headerColumn}>
             <View style={styles.headerTop}>
               <View accessibilityLabel={`Medicine for ${patient.displayName}`} accessible style={styles.patientContext}>
-                <View style={styles.patientAvatar}>
-                  <AppIcon color={colors.primaryDark} name="user-round" size={14} />
-                </View>
+                <AppIcon color={colors.inkLine} name="user-round" size={16} />
                 <Text style={styles.patientContextText}>Medicine for <Text style={styles.patientContextName}>{patient.displayName}</Text></Text>
               </View>
               <Pressable
@@ -541,7 +539,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               <Text style={styles.helper}>Copy the essentials from the label first. You can add more detail only when it is available.</Text>
               {draft?.pndfVerified ? (
                 <View style={styles.pndfBadge}>
-                  <AppIcon color={colors.successDark} name="circle-check-big" size={14} />
+                  <AppIcon color={colors.ink} name="circle-check-big" size={14} />
                   <Text style={styles.pndfText}>
                     Philippine Formulary (PNDF) Verified{draft.pndfGenericName ? `: ${draft.pndfGenericName}` : ''}
                   </Text>
@@ -575,9 +573,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                 style={({ pressed }) => [styles.disclosure, pressed && styles.pressed]}
               >
                 <View style={styles.disclosureLeft}>
-                  <View style={styles.disclosureIconWrap}>
-                    <AppIcon color={colors.primaryDark} name="sliders-horizontal" size={16} />
-                  </View>
+                  <AppIcon color={colors.primary} name="sliders-horizontal" size={18} />
                   <View style={styles.disclosureCopy}>
                     <Text style={styles.disclosureTitle}>More label and care details</Text>
                     <Text style={styles.disclosureHint}>Generic or brand name, form, route, prescriber, reason, and notes</Text>
@@ -703,13 +699,11 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                       style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
                     >
                       <View style={styles.choiceLeft}>
-                        <View style={[styles.choiceIconWrap, selected && styles.choiceIconWrapSelected]}>
-                          <AppIcon
-                            color={selected ? colors.primaryDark : colors.muted}
-                            name={kind === 'exact' ? 'clock-3' : kind === 'interval' ? 'timer' : 'utensils'}
-                            size={18}
-                          />
-                        </View>
+                        <AppIcon
+                          color={selected ? colors.primary : colors.inkLine}
+                          name={kind === 'exact' ? 'clock-3' : kind === 'interval' ? 'timer' : 'utensils'}
+                          size={20}
+                        />
                         <View style={styles.choiceCopy}>
                           <Text style={[styles.choiceLabel, selected && styles.choiceLabelSelected]}>{scheduleLabel(kind)}</Text>
                           <Text style={styles.choiceHint}>
@@ -804,7 +798,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                     })}
                   </View>
 
-                  <Text style={styles.groupTitle}>Meals to include</Text>
+                  <Text style={styles.label}>Meals to include</Text>
                   <View style={styles.mealChoices}>
                     {MEALS.map(({ key, label }) => {
                       const checked = enabledMeals[key];
@@ -938,9 +932,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               <View style={styles.reviewSection}>
                 <View style={styles.reviewHeading}>
                   <View style={styles.reviewHeadingLeft}>
-                    <View style={styles.reviewIconWrap}>
-                      <AppIcon color={colors.primaryDark} name="pill" size={16} />
-                    </View>
+                    <AppIcon color={colors.primary} name="pill" size={18} />
                     <Text accessibilityRole="header" style={styles.reviewTitle}>Medicine</Text>
                   </View>
                   <Pressable accessibilityRole="button" onPress={() => setStep('details')} style={({ pressed }) => [styles.editSection, pressed && styles.pressed]}>
@@ -965,7 +957,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
                 ) : null}
                 {draft?.pndfVerified ? (
                   <View style={styles.pndfBadge}>
-                    <AppIcon color={colors.successDark} name="circle-check-big" size={14} />
+                    <AppIcon color={colors.ink} name="circle-check-big" size={14} />
                     <Text style={styles.pndfText}>
                       Philippine Formulary (PNDF) Verified{draft.pndfGenericName ? `: ${draft.pndfGenericName}` : ''}
                     </Text>
@@ -985,9 +977,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               <View style={styles.reviewSection}>
                 <View style={styles.reviewHeading}>
                   <View style={styles.reviewHeadingLeft}>
-                    <View style={styles.reviewIconWrap}>
-                      <AppIcon color={colors.primaryDark} name="calendar-days" size={16} />
-                    </View>
+                    <AppIcon color={colors.primary} name="calendar-days" size={18} />
                     <Text accessibilityRole="header" style={styles.reviewTitle}>Schedule</Text>
                   </View>
                   <Pressable accessibilityRole="button" onPress={() => setStep('schedule')} style={({ pressed }) => [styles.editSection, pressed && styles.pressed]}>
@@ -1006,9 +996,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               <View style={styles.reviewSection}>
                 <View style={styles.reviewHeading}>
                   <View style={styles.reviewHeadingLeft}>
-                    <View style={styles.reviewIconWrap}>
-                      <AppIcon color={colors.primaryDark} name="file-text" size={16} />
-                    </View>
+                    <AppIcon color={colors.primary} name="file-text" size={18} />
                     <Text accessibilityRole="header" style={styles.reviewTitle}>Source wording and notes</Text>
                   </View>
                   <Pressable accessibilityLabel="Edit source instructions and notes" accessibilityRole="button" onPress={() => setStep('details')} style={({ pressed }) => [styles.editSection, pressed && styles.pressed]}>
@@ -1021,7 +1009,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               </View>
 
               <View style={styles.confirmationNote}>
-                <AppIcon color={colors.successDark} name="shield-check" size={20} />
+                <AppIcon color={colors.ink} name="shield-check" size={20} />
                 <Text style={styles.confirmationText}>You are confirming this medicine for <Text style={styles.confirmationName}>{patient.displayName}</Text>.</Text>
               </View>
             </>
@@ -1043,7 +1031,7 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
               onPress={() => { setServerError(null); setStep(step === 'review' ? 'schedule' : 'details'); }}
               style={({ pressed }) => [styles.secondaryButton, stackFields && styles.secondaryButtonStacked, pressed && styles.pressed]}
             >
-              <AppIcon color={colors.primaryDark} name="arrow-left" size={16} />
+              <AppIcon color={colors.ink} name="arrow-left" size={16} />
               <Text style={styles.secondaryLabel}>Back</Text>
             </Pressable>
           ) : null}
@@ -1067,154 +1055,131 @@ export function MedicationEditorModal({ draft, medication, onClose, onSave, pati
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.canvas },
-  header: { borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: colors.white, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  header: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, backgroundColor: colors.canvas, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   headerColumn: { width: '100%', maxWidth: 720, alignSelf: 'center', gap: spacing.sm },
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   patientContext: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  patientAvatar: { width: 24, height: 24, borderRadius: radii.full, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center' },
-  patientContextText: { flex: 1, color: colors.muted, fontSize: 13 },
-  patientContextName: { color: colors.ink, fontWeight: '800' },
-  title: { color: colors.ink, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
-  closeButton: { width: 48, height: 48, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  patientContextText: { ...typography.caption, flex: 1, color: colors.muted },
+  patientContextName: { color: colors.ink, fontWeight: '700' },
+  title: { ...typography.title1, color: colors.ink },
+  closeButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   progress: { flexDirection: 'row', gap: spacing.sm },
   progressItem: { flex: 1, gap: 5 },
   progressLine: { height: 3, borderRadius: 2, backgroundColor: colors.line },
   progressLineActive: { backgroundColor: colors.primary },
-  progressLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  progressLabelActive: { color: colors.primaryDark, fontWeight: '800' },
+  progressLabel: { ...typography.caption, color: colors.muted },
+  progressLabelActive: { color: colors.primaryDark, fontWeight: '700' },
   content: { width: '100%', maxWidth: 720, alignSelf: 'center', gap: spacing.lg, padding: spacing.lg, paddingBottom: spacing.xxl },
-  helper: { maxWidth: 620, color: colors.muted, fontSize: 15, lineHeight: 22 },
+  helper: { ...typography.body, maxWidth: 620, color: colors.muted },
   field: { flex: 1, gap: spacing.xs },
-  label: { color: colors.ink, fontSize: 14, fontWeight: '700' },
-  input: { minHeight: 54, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, color: colors.ink, fontSize: 16, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  label: { ...typography.bodyEmphasis, color: colors.ink },
+  input: { minHeight: 54, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.surface, color: colors.ink, fontSize: 16, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   inputError: { borderColor: colors.error },
   multilineInput: { minHeight: 96, textAlignVertical: 'top' },
-  fieldError: { color: colors.error, fontSize: 13, lineHeight: 18 },
+  fieldError: { ...typography.caption, color: colors.error },
   fieldRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   fieldStack: { flexDirection: 'column' },
   fieldColumn: { flex: 1, width: '100%' },
-  disclosure: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: radii.md, backgroundColor: colors.white, padding: spacing.md },
+  disclosure: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.surface, padding: spacing.md },
   disclosureLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  disclosureIconWrap: { width: 32, height: 32, borderRadius: radii.full, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center' },
   disclosureCopy: { flex: 1, gap: 2 },
-  disclosureTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' },
-  disclosureHint: { color: colors.muted, fontSize: 13, lineHeight: 18 },
-  disclosureActionPill: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 12 },
-  disclosureAction: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
+  disclosureTitle: { ...typography.bodyEmphasis, color: colors.ink, fontWeight: '700' },
+  disclosureHint: { ...typography.caption, color: colors.muted },
+  disclosureActionPill: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  disclosureAction: { ...typography.caption, color: colors.primaryDark, fontWeight: '700' },
   optionalFields: { gap: spacing.lg },
-  clarificationBanner: { gap: spacing.xs, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primaryTint, padding: spacing.md },
+  clarificationBanner: { gap: spacing.xs, borderLeftWidth: 2, borderLeftColor: colors.primary, paddingLeft: spacing.md, paddingVertical: spacing.xs },
   clarificationHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  clarificationTitle: { color: colors.primaryDark, fontSize: 14, fontWeight: '900' },
-  clarificationText: { color: colors.ink, fontSize: 14, lineHeight: 21 },
+  clarificationTitle: { ...typography.bodyEmphasis, color: colors.primaryDark, fontWeight: '700' },
+  clarificationText: { ...typography.body, color: colors.ink },
   clarificationActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
-  clarifyOptionButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radii.md, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.white, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
-  clarifyOptionText: { flex: 1, color: colors.primaryDark, fontSize: 13, fontWeight: '800', lineHeight: 18 },
+  clarifyOptionButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radii.md, borderWidth: 1, borderColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  clarifyOptionText: { ...typography.caption, flex: 1, color: colors.primaryDark, fontWeight: '600' },
   choiceGroup: { gap: spacing.sm },
-  choice: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, padding: spacing.md },
+  choice: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.surface, padding: spacing.md },
   choiceSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
-  choiceLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  choiceIconWrap: { width: 36, height: 36, borderRadius: radii.full, backgroundColor: colors.mist, alignItems: 'center', justifyContent: 'center' },
-  choiceIconWrapSelected: { backgroundColor: colors.white },
+  choiceLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   choiceCopy: { flex: 1, gap: 2 },
-  choiceLabel: { color: colors.ink, fontSize: 16, fontWeight: '800' },
+  choiceLabel: { ...typography.headline, color: colors.ink },
   choiceLabelSelected: { color: colors.primaryDark },
-  choiceHint: { color: colors.muted, fontSize: 13 },
+  choiceHint: { ...typography.caption, color: colors.muted },
   radio: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.controlBorder, borderRadius: 11 },
   radioSelected: { borderColor: colors.primary },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
-  scheduleGroup: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
-  groupTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },
-  pickerButton: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.white, paddingHorizontal: spacing.md },
-  pickerButtonPressed: { backgroundColor: colors.mist },
+  scheduleGroup: { gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: spacing.lg },
+  groupTitle: { ...sectionTitle, color: colors.ink },
+  pickerButton: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.surface, paddingHorizontal: spacing.md },
+  pickerButtonPressed: { backgroundColor: colors.canvasSubtle },
   pickerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  pickerValue: { flex: 1, color: colors.ink, fontSize: 16, fontWeight: '700' },
-  pickerActionPill: { minHeight: 36, justifyContent: 'center', borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 12 },
-  pickerAction: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
-  iosPicker: { borderRadius: radii.md, backgroundColor: colors.white, paddingBottom: spacing.sm },
+  pickerValue: { flex: 1, color: colors.ink, fontSize: 16, fontWeight: '600' },
+  pickerActionPill: { justifyContent: 'center' },
+  pickerAction: { ...typography.caption, color: colors.primaryDark, fontWeight: '700' },
+  iosPicker: { borderRadius: radii.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, backgroundColor: colors.surface, paddingBottom: spacing.sm },
   pickerDone: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  pickerDoneLabel: { color: colors.primaryDark, fontSize: 16, fontWeight: '800' },
+  pickerDoneLabel: { ...typography.headline, color: colors.primaryDark },
   timeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
   timeField: { flex: 1, width: '100%' },
-  removeButton: { minHeight: 48, minWidth: 48, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 12 },
-  removeLabel: { color: colors.error, fontSize: 13, fontWeight: '700' },
-  addTimeButton: { minHeight: 48, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 16 },
-  addTimeLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  removeButton: { minHeight: 48, minWidth: 48, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm },
+  removeLabel: { ...typography.caption, color: colors.error, fontWeight: '700' },
+  addTimeButton: { minHeight: 48, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radii.md, borderWidth: 1, borderColor: colors.controlBorder, paddingHorizontal: spacing.md },
+  addTimeLabel: { ...typography.bodyEmphasis, color: colors.primaryDark, fontWeight: '700' },
   inlineHelpBox: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 },
-  inlineHelp: { flex: 1, color: colors.muted, fontSize: 13, lineHeight: 18 },
+  inlineHelp: { ...typography.caption, flex: 1, color: colors.muted, fontWeight: '400' },
   inlineChoices: { flexDirection: 'row', gap: spacing.sm },
-  pill: { minHeight: 48, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.white, paddingHorizontal: spacing.sm },
+  pill: { minHeight: 48, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.surface, paddingHorizontal: spacing.sm },
   pillSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
-  pillLabel: { color: colors.muted, fontSize: 14, fontWeight: '700', textAlign: 'center' },
+  pillLabel: { color: colors.muted, fontSize: 14, fontWeight: '600', textAlign: 'center' },
   pillLabelSelected: { color: colors.primaryDark },
   mealChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  mealPill: { minHeight: 48, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.white, paddingHorizontal: 12 },
+  mealPill: { minHeight: 48, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.surface, paddingHorizontal: 12 },
   mealPillSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
-  mealPillText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
-  mealPillTextSelected: { color: colors.primaryDark, fontWeight: '900' },
-  mealRow: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
+  mealPillText: { color: colors.muted, fontSize: 14, fontWeight: '600' },
+  mealPillTextSelected: { color: colors.primaryDark, fontWeight: '700' },
+  mealRow: { gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: spacing.lg },
   mealHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  mealTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
-  customizeButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 12 },
-  customizeLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
+  mealTitle: { ...sectionTitle, color: colors.ink },
+  customizeButton: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm },
+  customizeLabel: { ...typography.caption, color: colors.primaryDark, fontWeight: '700' },
   weekdays: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  weekday: { minWidth: 48, flexGrow: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.white, paddingHorizontal: spacing.sm },
-  weekdaySelected: { borderColor: colors.ink, backgroundColor: colors.ink },
-  weekdayLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
-  weekdayLabelSelected: { color: colors.white },
+  weekday: { minWidth: 48, flexGrow: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 24, backgroundColor: colors.surface, paddingHorizontal: spacing.sm },
+  weekdaySelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
+  weekdayLabel: { color: colors.muted, fontSize: 14, fontWeight: '600' },
+  weekdayLabelSelected: { color: colors.primaryDark, fontWeight: '700' },
   checkRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  checkbox: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 6, backgroundColor: colors.white },
+  checkbox: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: 6, backgroundColor: colors.surface },
   checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary },
-  checkLabel: { flex: 1, color: colors.ink, fontSize: 15, fontWeight: '700' },
-  reviewSection: { gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
+  checkLabel: { ...typography.bodyEmphasis, flex: 1, color: colors.ink },
+  reviewSection: { gap: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: spacing.lg },
   reviewHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.xs },
-  reviewHeadingLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  reviewIconWrap: { width: 28, height: 28, borderRadius: radii.full, backgroundColor: colors.primaryTint, alignItems: 'center', justifyContent: 'center' },
-  reviewTitle: { color: colors.ink, fontSize: 20, fontWeight: '800' },
-  editSection: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.full, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white, paddingHorizontal: 12 },
-  editSectionLabel: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
+  reviewHeadingLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  reviewTitle: { ...sectionTitle, flexShrink: 1, color: colors.ink },
+  editSection: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm },
+  editSectionLabel: { ...typography.caption, color: colors.primaryDark, fontWeight: '700' },
   reviewRow: { gap: 2, paddingVertical: 6 },
-  reviewRowLabel: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  reviewRowValue: { flex: 1, color: colors.ink, fontSize: 15, fontWeight: '600', lineHeight: 22 },
-  warning: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.warningTint, padding: spacing.md },
-  warningText: { flex: 1, color: colors.warning, fontSize: 13, lineHeight: 19 },
-  pndfBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: radii.full,
-    backgroundColor: colors.successTint,
-    borderWidth: 1,
-    borderColor: colors.success,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    alignSelf: 'flex-start',
-  },
-  pndfText: { color: colors.successDark, fontSize: 12, fontWeight: '800' },
-  lasaWarningBox: {
-    gap: 4,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.warning,
-    backgroundColor: colors.warningTint,
-    padding: spacing.sm,
-  },
+  reviewRowLabel: { ...typography.caption, color: colors.muted },
+  reviewRowValue: { ...typography.bodyEmphasis, flex: 1, color: colors.ink },
+  warning: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, borderLeftWidth: 2, borderLeftColor: colors.warning, paddingLeft: spacing.md, paddingVertical: spacing.xs },
+  warningText: { ...typography.caption, flex: 1, color: colors.warning },
+  pndfBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
+  pndfText: { ...typography.caption, color: colors.ink, fontWeight: '600' },
+  lasaWarningBox: { gap: 4, borderLeftWidth: 2, borderLeftColor: colors.warning, paddingLeft: spacing.md, paddingVertical: spacing.xs },
   lasaHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  lasaHeading: { color: colors.warning, fontSize: 12, fontWeight: '900' },
-  lasaText: { color: colors.ink, fontSize: 13, lineHeight: 19 },
-  confirmationNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.successTint, padding: spacing.md },
-  confirmationText: { flex: 1, color: colors.successDark, fontSize: 14, lineHeight: 21 },
-  confirmationName: { fontWeight: '900' },
-  errorBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.errorTint, padding: spacing.md },
-  errorText: { flex: 1, color: colors.error, fontSize: 14, lineHeight: 20 },
-  actions: { flexDirection: 'row', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: colors.white, padding: spacing.md },
+  lasaHeading: { ...typography.caption, color: colors.warning, fontWeight: '700' },
+  lasaText: { ...typography.body, color: colors.ink },
+  confirmationNote: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: spacing.lg },
+  confirmationText: { ...typography.body, flex: 1, color: colors.ink },
+  confirmationName: { fontWeight: '700' },
+  errorBox: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs },
+  errorText: { ...typography.body, flex: 1, color: colors.error },
+  actions: { flexDirection: 'row', gap: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.canvas, padding: spacing.md },
   actionsStack: { flexDirection: 'column-reverse' },
-  secondaryButton: { minHeight: 54, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
+  secondaryButton: { minHeight: 52, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radii.md, borderWidth: 1, borderColor: colors.ink },
   secondaryButtonStacked: { flex: 0, width: '100%' },
-  secondaryLabel: { color: colors.primaryDark, fontSize: 16, fontWeight: '800' },
-  primaryButton: { minHeight: 54, flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radii.md, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
+  secondaryLabel: { ...typography.headline, color: colors.ink },
+  primaryButton: { minHeight: 52, flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radii.md, backgroundColor: colors.primary, paddingHorizontal: spacing.md },
   primaryButtonStacked: { flex: 0, width: '100%' },
   primaryPressed: { backgroundColor: colors.primaryDark },
-  primaryLabel: { color: colors.white, fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  primaryLabel: { ...typography.headline, color: colors.white, textAlign: 'center' },
   disabled: { opacity: 0.55 },
   pressed: { opacity: 0.72 },
 });

@@ -2,8 +2,9 @@ import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppIcon } from '../../components/AppIcon';
 import { errorMessage } from '../../lib/api';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 
 type CreatePatientModalProps = {
@@ -83,7 +84,8 @@ export function CreatePatientModal({
           </View>
 
           {error ? (
-            <View accessibilityLiveRegion="assertive" style={styles.errorBox}>
+            <View accessibilityLiveRegion="assertive" style={styles.errorRow}>
+              <AppIcon color={colors.error} name="alert-circle" size={16} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
@@ -126,7 +128,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     gap: spacing.md,
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,
-    backgroundColor: colors.canvas,
+    backgroundColor: colors.surfaceElevated,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
     paddingBottom: spacing.xxl,
@@ -135,49 +137,48 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: radii.full,
-    backgroundColor: colors.mist,
+    backgroundColor: colors.line,
     alignSelf: 'center',
     marginBottom: spacing.sm,
   },
-  title: { color: colors.ink, fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
-  subtitle: { color: colors.muted, fontSize: 15, lineHeight: 22 },
+  title: { ...sectionTitle, color: colors.ink },
+  subtitle: { ...typography.body, color: colors.muted },
   field: { gap: spacing.xs, marginTop: spacing.xs },
-  label: { color: colors.ink, fontSize: 13, fontWeight: '700' },
+  label: { ...typography.caption, color: colors.ink, fontWeight: '600' },
   input: {
     minHeight: 52,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.controlBorder,
     borderRadius: radii.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     color: colors.ink,
     fontSize: 16,
     paddingHorizontal: spacing.md,
   },
   inputError: { borderColor: colors.error },
-  errorBox: { borderRadius: radii.sm, backgroundColor: colors.errorTint, padding: spacing.md },
-  errorText: { color: colors.error, fontSize: 14, lineHeight: 20 },
+  errorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs },
+  errorText: { ...typography.caption, flex: 1, color: colors.error },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   secondaryButton: {
-    minHeight: 48,
+    minHeight: 52,
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.full,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
+    borderColor: colors.ink,
   },
-  secondaryButtonPressed: { backgroundColor: colors.mist },
-  secondaryLabel: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+  secondaryButtonPressed: { backgroundColor: colors.canvasSubtle },
+  secondaryLabel: { ...typography.bodyEmphasis, color: colors.ink, fontWeight: '700' },
   primaryButton: {
-    minHeight: 48,
+    minHeight: 52,
     flex: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.full,
-    backgroundColor: colors.ink,
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
   },
   primaryButtonPressed: { backgroundColor: colors.primaryDark },
-  primaryLabel: { color: colors.white, fontSize: 15, fontWeight: '800' },
+  primaryLabel: { ...typography.bodyEmphasis, color: colors.white, fontWeight: '700' },
   disabled: { opacity: 0.55 },
 });

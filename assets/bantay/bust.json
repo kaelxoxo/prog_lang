@@ -1,0 +1,353 @@
+{
+  "image": "bust.png",
+  "frameWidth": 224,
+  "frameHeight": 224,
+  "gutter": 2,
+  "columns": 10,
+  "rows": 4,
+  "width": 2258,
+  "height": 902,
+  "animations": {
+    "idle": {
+      "frames": [
+        {
+          "col": 0,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 1,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 2,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 3,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 4,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 3,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 2,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 5,
+          "row": 0,
+          "duration": 50
+        },
+        {
+          "col": 6,
+          "row": 0,
+          "duration": 90
+        },
+        {
+          "col": 5,
+          "row": 0,
+          "duration": 50
+        },
+        {
+          "col": 1,
+          "row": 0,
+          "duration": 110
+        },
+        {
+          "col": 0,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 1,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 2,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 3,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 4,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 7,
+          "row": 0,
+          "duration": 120
+        },
+        {
+          "col": 3,
+          "row": 0,
+          "duration": 120
+        },
+        {
+          "col": 2,
+          "row": 0,
+          "duration": 300
+        },
+        {
+          "col": 1,
+          "row": 0,
+          "duration": 300
+        }
+      ]
+    },
+    "attention": {
+      "frames": [
+        {
+          "col": 8,
+          "row": 0,
+          "duration": 900
+        },
+        {
+          "col": 9,
+          "row": 0,
+          "duration": 90
+        },
+        {
+          "col": 8,
+          "row": 0,
+          "duration": 90
+        },
+        {
+          "col": 0,
+          "row": 1,
+          "duration": 600
+        },
+        {
+          "col": 1,
+          "row": 1,
+          "duration": 50
+        },
+        {
+          "col": 2,
+          "row": 1,
+          "duration": 90
+        },
+        {
+          "col": 1,
+          "row": 1,
+          "duration": 50
+        },
+        {
+          "col": 0,
+          "row": 1,
+          "duration": 300
+        },
+        {
+          "col": 3,
+          "row": 1,
+          "duration": 700
+        },
+        {
+          "col": 4,
+          "row": 1,
+          "duration": 120
+        },
+        {
+          "col": 5,
+          "row": 1,
+          "duration": 500
+        }
+      ]
+    },
+    "thinking": {
+      "frames": [
+        {
+          "col": 6,
+          "row": 1,
+          "duration": 800
+        },
+        {
+          "col": 7,
+          "row": 1,
+          "duration": 700
+        },
+        {
+          "col": 8,
+          "row": 1,
+          "duration": 140
+        },
+        {
+          "col": 7,
+          "row": 1,
+          "duration": 140
+        },
+        {
+          "col": 8,
+          "row": 1,
+          "duration": 140
+        },
+        {
+          "col": 7,
+          "row": 1,
+          "duration": 400
+        },
+        {
+          "col": 9,
+          "row": 1,
+          "duration": 50
+        },
+        {
+          "col": 0,
+          "row": 2,
+          "duration": 90
+        },
+        {
+          "col": 9,
+          "row": 1,
+          "duration": 50
+        },
+        {
+          "col": 1,
+          "row": 2,
+          "duration": 700
+        },
+        {
+          "col": 2,
+          "row": 2,
+          "duration": 400
+        }
+      ]
+    },
+    "celebrate": {
+      "frames": [
+        {
+          "col": 3,
+          "row": 2,
+          "duration": 400
+        },
+        {
+          "col": 3,
+          "row": 2,
+          "duration": 90
+        },
+        {
+          "col": 4,
+          "row": 2,
+          "duration": 70
+        },
+        {
+          "col": 5,
+          "row": 2,
+          "duration": 80
+        },
+        {
+          "col": 6,
+          "row": 2,
+          "duration": 90
+        },
+        {
+          "col": 7,
+          "row": 2,
+          "duration": 70
+        },
+        {
+          "col": 3,
+          "row": 2,
+          "duration": 80
+        },
+        {
+          "col": 8,
+          "row": 2,
+          "duration": 70
+        },
+        {
+          "col": 9,
+          "row": 2,
+          "duration": 70
+        },
+        {
+          "col": 8,
+          "row": 2,
+          "duration": 70
+        },
+        {
+          "col": 9,
+          "row": 2,
+          "duration": 70
+        },
+        {
+          "col": 8,
+          "row": 2,
+          "duration": 70
+        },
+        {
+          "col": 9,
+          "row": 2,
+          "duration": 70
+        },
+        {
+          "col": 0,
+          "row": 3,
+          "duration": 500
+        },
+        {
+          "col": 1,
+          "row": 3,
+          "duration": 500
+        },
+        {
+          "col": 0,
+          "row": 3,
+          "duration": 500
+        },
+        {
+          "col": 2,
+          "row": 3,
+          "duration": 70
+        },
+        {
+          "col": 3,
+          "row": 3,
+          "duration": 70
+        },
+        {
+          "col": 2,
+          "row": 3,
+          "duration": 70
+        },
+        {
+          "col": 3,
+          "row": 3,
+          "duration": 70
+        },
+        {
+          "col": 2,
+          "row": 3,
+          "duration": 70
+        },
+        {
+          "col": 3,
+          "row": 3,
+          "duration": 70
+        },
+        {
+          "col": 3,
+          "row": 2,
+          "duration": 600
+        }
+      ]
+    }
+  }
+}

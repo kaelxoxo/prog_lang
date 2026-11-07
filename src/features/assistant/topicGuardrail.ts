@@ -1,5 +1,3 @@
-import type { AssistantLocale } from './types';
-
 /**
  * Bantay only helps with the patient's care inside Alaga: recorded medicines,
  * schedules, dose history, medication summaries, information about a recorded
@@ -68,10 +66,8 @@ export function detectOffTopicRequest(query: string): OffTopicCategory | null {
   return null;
 }
 
-export function offTopicDecline(patientName: string, locale: AssistantLocale): string {
-  return locale === 'fil'
-    ? `Ang matutulungan ko lang po ay ang mga gamot at pangangalaga ni ${patientName} sa Alaga, gaya ng iskedyul, mga dose ngayong araw, buod ng mga gamot, o impormasyon tungkol sa isang naitalang gamot. Hindi po ako makakatulong sa pagsulat ng code, sanaysay o kuwento, pagpapanggap bilang ibang tao, o mga personal na usapin.`
-    : `I can only help with ${patientName}'s medicines and care in Alaga, like schedules, today's doses, medication summaries, or details about a recorded medicine. I can't help with writing code, essays or stories, role-play, or personal topics.`;
+export function offTopicDecline(patientName: string): string {
+  return `I can only help with ${patientName}'s medicines and care in Alaga, like schedules, today's doses, medication summaries, or details about a recorded medicine. I can't help with writing code, essays or stories, role-play, or personal topics.`;
 }
 
 const CODE_OUTPUT_PATTERNS = [

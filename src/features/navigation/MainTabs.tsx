@@ -1,42 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  BackHandler,
-  Easing,
-  Linking,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { BackHandler, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AppIcon } from '../../components/AppIcon';
+import { PressableScale } from '../../components/PressableScale';
 import { apiRequest } from '../../lib/api';
 import { useCurrentTime } from '../../lib/useCurrentTime';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { AskBantayBottomSheet } from '../assistant/AskBantayBottomSheet';
 import { useAuth } from '../auth/AuthProvider';
+import { FamilyScreen } from '../family/FamilyScreen';
 import { HomeScreen } from '../home/HomeScreen';
+import { useIncomingInvitations } from '../invitations/InvitationInbox';
 import { MedicationEditorModal } from '../medications/MedicationEditorModal';
 import { MedicationPhotoImport } from '../medications/MedicationPhotoImport';
 import type { Medication, MedicationInput, MedicationOcrDraft } from '../medications/types';
 import { MedicinesScreen } from '../medications/MedicinesScreen';
 import { usePatient } from '../patients/PatientProvider';
 import { subscribeToReminderRoutes, type ReminderRoute } from '../reminders/notifications';
+import { ReminderSync } from '../reminders/useReminders';
 import { useLocale } from '../settings/LocaleProvider';
 import { SettingsScreen } from '../settings/SettingsScreen';
 import { TodayScreen } from '../today/TodayScreen';
 import { manilaDate, type TimelineResponse } from '../today/types';
 import { QuickActionDrawer } from './QuickActionDrawer';
 
-type Tab = 'home' | 'today' | 'medicines';
+type Tab = 'home' | 'today' | 'medicines' | 'family';
 type Screen = Tab | 'settings';
 
 function routeFromUrl(value: string): ReminderRoute | null {
@@ -51,77 +42,36 @@ function routeFromUrl(value: string): ReminderRoute | null {
 }
 
 type TabItemProps = {
-  accessibilityLabel: string;
-  icon: 'house' | 'calendar-days' | 'pill';
+  icon: 'house' | 'calendar-days' | 'pill' | 'users';
   label: string;
+  /** Set while something waits for the account here: a narra dot on the icon, and the label screen readers hear. */
+  badgeLabel?: string;
   onPress: () => void;
   selected: boolean;
 };
 
-function TabItem({
-  accessibilityLabel,
-  icon,
-  label,
-  onPress,
-  selected,
-}: TabItemProps) {
+function TabItem({ badgeLabel, icon, label, onPress, selected }: TabItemProps) {
   const { colors, styles } = useThemedStyles(createStyles);
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.timing(scale, {
-      duration: 100,
-      easing: Easing.out(Easing.quad),
-      toValue: 0.98,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scale, {
-      tension: 140,
-      friction: 7,
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const activeCapsuleBg = isDark ? '#24342F' : '#EAF2EC';
-  const iconColor = selected ? colors.successDark : colors.muted;
-  const labelColor = selected ? colors.successDark : colors.muted;
+  const tint = selected ? colors.primary : colors.muted;
 
   return (
-    <Pressable
-      accessibilityLabel={accessibilityLabel}
+    <PressableScale
+      accessibilityLabel={badgeLabel ?? label}
       accessibilityRole="tab"
       accessibilityState={{ selected }}
       onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      style={styles.tabPressable}
+      containerStyle={styles.tabSlot}
+      style={styles.tab}
     >
-      <Animated.View
-        style={[
-          styles.tabContent,
-          selected && [styles.tabContentSelected, { backgroundColor: activeCapsuleBg }],
-          { transform: [{ scale }] },
-        ]}
-      >
-        <AppIcon color={iconColor} name={icon} size={20} />
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.tabLabel,
-            selected ? styles.tabLabelSelected : styles.tabLabelUnselected,
-            { color: labelColor },
-          ]}
-        >
-          {label}
-        </Text>
-      </Animated.View>
-    </Pressable>
+      <View>
+        <AppIcon color={tint} name={icon} size={22} />
+        {badgeLabel ? <View style={styles.tabBadge} /> : null}
+      </View>
+      <Text numberOfLines={1} style={[styles.tabLabel, selected && styles.tabLabelSelected, { color: tint }]}>
+        {label}
+      </Text>
+      <View style={[styles.tabMarker, selected && styles.tabMarkerSelected]} />
+    </PressableScale>
   );
 }
 
@@ -146,11 +96,9 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
 
   const previousPatientId = useRef<string | undefined>(undefined);
   const settingsOrigin = useRef<Tab>('home');
-  const fabScale = useRef(new Animated.Value(1)).current;
-
-  const { fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { activePatient, selectPatient } = usePatient();
+  const { activePatient, patients, selectPatient } = usePatient();
+  const hasInvitations = Boolean(useIncomingInvitations().data?.invitations.length);
   const now = useCurrentTime();
   const date = manilaDate(now);
 
@@ -193,24 +141,6 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
     setTab('settings');
   };
 
-  const handleFabPressIn = () => {
-    Animated.timing(fabScale, {
-      duration: 100,
-      easing: Easing.out(Easing.quad),
-      toValue: 0.96,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handleFabPressOut = () => {
-    Animated.spring(fabScale, {
-      tension: 140,
-      friction: 7,
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
-  };
-
   useEffect(() => subscribeToReminderRoutes(openReminder), [selectPatient]);
 
   useEffect(() => {
@@ -231,7 +161,7 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
       setTab('today');
       setPendingRoute(null);
     } else if (!pendingRoute && previousPatientId.current && previousPatientId.current !== activePatient?.id) {
-      setTab('home');
+      // The chips switch person in place on every tab; only per-person transient state resets.
       setFocusedOccurrenceId(null);
       setAssistantVisible(false);
       setIsQuickDrawerVisible(false);
@@ -280,71 +210,53 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
 
   return (
     <View style={styles.shell}>
+      {/* Keeps each person's enabled reminders scheduled whichever screen is open; the switches live in Settings. */}
+      {patients.map((patient) => <ReminderSync key={patient.id} patient={patient} />)}
       <View style={styles.content}>
         {tab === 'home'
-          ? <HomeScreen onOpenAssistant={() => setAssistantVisible(true)} onOpenMedicines={() => setTab('medicines')} onOpenSettings={openSettings} onOpenToday={() => setTab('today')} />
+          ? (
+            <HomeScreen
+              onOpenAssistant={() => setAssistantVisible(true)}
+              onOpenMedicines={() => setTab('medicines')}
+              onOpenSettings={openSettings}
+              onOpenToday={(occurrenceId) => {
+                setFocusedOccurrenceId(occurrenceId ?? null);
+                setTab('today');
+              }}
+            />
+          )
           : tab === 'today'
             ? <TodayScreen focusedOccurrenceId={focusedOccurrenceId} onOpenMedicines={() => setTab('medicines')} onOpenSettings={openSettings} />
             : tab === 'medicines'
               ? <MedicinesScreen onOpenSettings={openSettings} />
-              : <SettingsScreen accountName={session?.displayName} onBack={() => setTab(settingsOrigin.current)} onOpenWelcomeStory={onOpenWelcomeStory} onSignOut={() => void signOut()} />}
+              : tab === 'family'
+                ? <FamilyScreen onOpenSettings={openSettings} />
+                : <SettingsScreen accountName={session?.displayName} onBack={() => setTab(settingsOrigin.current)} onOpenWelcomeStory={onOpenWelcomeStory} onSignOut={() => void signOut()} />}
       </View>
 
-      {/* Floating Pill Navigation Bar with Integrated '+' Action */}
       {tab !== 'settings' ? (
-        <View
-          style={[
-            styles.floatingBarContainer,
-            { paddingBottom: Math.max(insets.bottom, 12) },
-          ]}
-        >
-          <View
-            accessibilityRole="tablist"
-            style={[
-              styles.floatingBar,
-              fontScale > 1.3 && styles.floatingBarLarge,
-            ]}
-          >
-            {/* Segmented Tab Group: Home, Today, Medicines */}
-            <View style={styles.tabsRow}>
-              <TabItem
-                accessibilityLabel={t('nav.home')}
-                icon="house"
-                label={t('nav.home')}
-                onPress={() => setTab('home')}
-                selected={tab === 'home'}
-              />
-              <TabItem
-                accessibilityLabel={t('nav.today')}
-                icon="calendar-days"
-                label={t('nav.today')}
-                onPress={() => setTab('today')}
-                selected={tab === 'today'}
-              />
-              <TabItem
-                accessibilityLabel={t('nav.medicines')}
-                icon="pill"
-                label={t('nav.medicines')}
-                onPress={() => setTab('medicines')}
-                selected={tab === 'medicines'}
-              />
-            </View>
-
-            {/* Integrated Circular '+' Action Button (~46-48dp, scale: 0.96) */}
-            <Pressable
-              accessibilityHint="Opens quick action drawer to log dose, add medicine, scan prescription, or ask Bantay"
-              accessibilityLabel="Quick actions"
-              accessibilityRole="button"
-              onPress={() => setIsQuickDrawerVisible(true)}
-              onPressIn={handleFabPressIn}
-              onPressOut={handleFabPressOut}
-              style={styles.fabPressable}
-            >
-              <Animated.View style={[styles.fabButton, { transform: [{ scale: fabScale }] }]}>
-                <AppIcon color="#FFFFFF" name="plus" size={22} />
-              </Animated.View>
-            </Pressable>
+        <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+          <View accessibilityRole="tablist" style={styles.tabsRow}>
+            <TabItem icon="house" label={t('nav.home')} onPress={() => setTab('home')} selected={tab === 'home'} />
+            <TabItem icon="calendar-days" label={t('nav.today')} onPress={() => setTab('today')} selected={tab === 'today'} />
+            <TabItem icon="pill" label={t('nav.medicines')} onPress={() => setTab('medicines')} selected={tab === 'medicines'} />
+            <TabItem
+              badgeLabel={hasInvitations ? t('nav.familyInvitations') : undefined}
+              icon="users"
+              label={t('nav.family')}
+              onPress={() => setTab('family')}
+              selected={tab === 'family'}
+            />
           </View>
+          <PressableScale
+            accessibilityHint={t('nav.quickActionsHint')}
+            accessibilityLabel={t('nav.quickActions')}
+            accessibilityRole="button"
+            onPress={() => setIsQuickDrawerVisible(true)}
+            style={styles.addButton}
+          >
+            <AppIcon color={colors.white} name="plus" size={24} />
+          </PressableScale>
         </View>
       ) : null}
 
@@ -422,14 +334,15 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
               <Text accessibilityRole="header" style={styles.scanModalTitle}>
                 {t('home.scanRxTitle')}
               </Text>
-              <Pressable
+              <PressableScale
                 accessibilityLabel={t('home.scanRxClose')}
                 accessibilityRole="button"
                 onPress={() => setScanRxModalVisible(false)}
-                style={({ pressed }) => [styles.modalCloseButton, pressed && styles.modalCloseButtonPressed]}
+                style={styles.modalCloseButton}
+                targetScale={0.94}
               >
-                <AppIcon color={colors.ink} name="x" size={20} />
-              </Pressable>
+                <AppIcon color={colors.ink} name="x" size={22} />
+              </PressableScale>
             </View>
             <ScrollView contentContainerStyle={styles.scanModalBody}>
               {activePatient ? (
@@ -480,96 +393,69 @@ const createStyles = (colors: AppColors) =>
     content: {
       flex: 1,
     },
-    // Floating Pill Navigation Bar
-    floatingBarContainer: {
-      paddingHorizontal: 16,
-      paddingTop: 4,
-      backgroundColor: colors.canvas,
-      alignItems: 'center',
-    },
-    floatingBar: {
-      width: '100%',
-      maxWidth: 480,
+    tabBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      minHeight: 64,
-      borderRadius: 32,
-      borderWidth: 1,
-      borderColor: colors.line,
-      backgroundColor: colors.white,
-      paddingVertical: 6,
-      paddingLeft: 8,
-      paddingRight: 8,
-      elevation: 4,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-    },
-    floatingBarLarge: {
-      minHeight: 74,
+      gap: spacing.sm,
+      // Four tabs and the + button share the row; on a 360dp phone each tab keeps about 70dp.
+      paddingLeft: spacing.xs,
+      paddingRight: spacing.md,
+      paddingTop: spacing.xs,
+      backgroundColor: colors.canvas,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.line,
     },
     tabsRow: {
       flex: 1,
       flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-around',
-      marginRight: 6,
+      alignItems: 'stretch',
     },
-    tabPressable: {
+    tabSlot: {
       flex: 1,
-      minHeight: 48,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 2,
     },
-    tabContent: {
-      minHeight: 48,
-      minWidth: 64,
+    tab: {
+      minHeight: 56,
       alignItems: 'center',
       justifyContent: 'center',
       gap: 2,
-      paddingVertical: 5,
-      paddingHorizontal: 12,
-      borderRadius: radii.full,
-    },
-    tabContentSelected: {
-      borderWidth: 1,
-      borderColor: colors.successBorder || colors.line,
+      paddingTop: spacing.xs,
     },
     tabLabel: {
-      fontSize: 11,
-      letterSpacing: -0.1,
+      ...typography.caption,
     },
     tabLabelSelected: {
-      fontWeight: '800',
+      fontWeight: '700',
     },
-    tabLabelUnselected: {
-      fontWeight: '600',
+    // Selection is marked by colour, weight, and this rule, so it never relies on colour alone.
+    tabMarker: {
+      width: 20,
+      height: 2,
+      borderRadius: radii.full,
+      marginTop: 2,
     },
-    // Integrated Circular '+' Action Button
-    fabPressable: {
-      minWidth: 48,
-      minHeight: 48,
+    tabMarkerSelected: {
+      backgroundColor: colors.primary,
+    },
+    // Invitations waiting for the account; the tab's accessibility label says so too.
+    tabBadge: {
+      position: 'absolute',
+      top: -2,
+      right: -4,
+      width: 9,
+      height: 9,
+      borderRadius: radii.full,
+      borderWidth: 1.5,
+      borderColor: colors.canvas,
+      backgroundColor: colors.primary,
+    },
+    addButton: {
+      width: 52,
+      height: 52,
+      borderRadius: radii.full,
+      backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
-      marginLeft: 4,
     },
-    fabButton: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: '#2D5A46',
-      alignItems: 'center',
-      justifyContent: 'center',
-      elevation: 4,
-      shadowColor: '#2D5A46',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-    },
-    // Modals
     modalOverlay: {
       flex: 1,
       backgroundColor: colors.overlay,
@@ -577,41 +463,33 @@ const createStyles = (colors: AppColors) =>
     },
     scanModalContainer: {
       maxHeight: '90%',
-      backgroundColor: colors.white,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
+      backgroundColor: colors.surfaceElevated,
+      borderTopLeftRadius: radii.lg,
+      borderTopRightRadius: radii.lg,
       paddingBottom: spacing.lg,
-      borderTopWidth: 1,
-      borderLeftWidth: 1,
-      borderRightWidth: 1,
-      borderColor: colors.line,
     },
     scanModalHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.md,
-      borderBottomWidth: 1,
+      paddingLeft: spacing.md,
+      paddingRight: spacing.xs,
+      paddingVertical: spacing.xs,
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.line,
     },
     scanModalTitle: {
-      fontSize: 18,
-      fontWeight: '800',
+      ...sectionTitle,
       color: colors.ink,
+      flex: 1,
     },
     scanModalBody: {
       padding: spacing.md,
     },
     modalCloseButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.mist,
+      width: 48,
+      height: 48,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    modalCloseButtonPressed: {
-      opacity: 0.75,
     },
   });

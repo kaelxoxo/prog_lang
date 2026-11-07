@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 
 import { AppIcon } from '../../components/AppIcon';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
 
@@ -66,7 +66,7 @@ export function MedicationInventoryModal({
             <Pressable accessibilityLabel={t('people.close')} onPress={onClose} style={styles.backdrop} />
         <View accessibilityViewIsModal style={styles.dialog}>
           <View style={styles.header}>
-            <View style={styles.iconWrap}><AppIcon color={colors.primaryDark} name="package" size={21} /></View>
+            <AppIcon color={colors.primary} name="package" size={22} />
             <Pressable accessibilityLabel={t('people.close')} accessibilityRole="button" onPress={onClose} style={styles.closeButton}>
               <AppIcon color={colors.muted} name="x" size={20} />
             </Pressable>
@@ -114,25 +114,24 @@ export function MedicationInventoryModal({
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'center', padding: spacing.lg },
-  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(8, 20, 16, 0.62)' },
-  dialog: { width: '100%', maxWidth: 440, alignSelf: 'center', borderRadius: radii.lg, backgroundColor: colors.white, padding: spacing.lg, gap: spacing.sm },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: colors.overlay },
+  dialog: { width: '100%', maxWidth: 440, alignSelf: 'center', borderRadius: radii.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, backgroundColor: colors.surfaceElevated, padding: spacing.lg, gap: spacing.sm },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  iconWrap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.primaryTint },
   closeButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  title: { color: colors.ink, fontSize: 24, fontWeight: '900' },
-  medicineName: { color: colors.primaryDark, fontSize: 16, fontWeight: '800' },
-  body: { color: colors.muted, fontSize: 14, lineHeight: 20 },
+  title: { ...typography.title1, color: colors.ink },
+  medicineName: { ...typography.headline, color: colors.primaryDark },
+  body: { ...typography.body, color: colors.muted },
   modeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
-  modeButton: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, borderRadius: radii.md, paddingHorizontal: spacing.sm },
-  modeButtonSelected: { borderColor: colors.primaryDark, backgroundColor: colors.primaryTint },
-  modeLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+  modeButton: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, paddingHorizontal: spacing.sm },
+  modeButtonSelected: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
+  modeLabel: { ...typography.bodyEmphasis, color: colors.muted },
   modeLabelSelected: { color: colors.primaryDark },
-  label: { color: colors.ink, fontSize: 14, fontWeight: '800', marginTop: spacing.sm },
-  input: { minHeight: 54, borderWidth: 1, borderColor: colors.line, borderRadius: radii.md, backgroundColor: colors.canvas, color: colors.ink, fontSize: 20, fontWeight: '700', paddingHorizontal: spacing.md },
-  error: { color: colors.error, fontSize: 13, lineHeight: 18 },
-  primaryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.ink, marginTop: spacing.sm, paddingHorizontal: spacing.lg },
-  primaryLabel: { color: colors.white, fontSize: 16, fontWeight: '800' },
+  label: { ...typography.bodyEmphasis, color: colors.ink, marginTop: spacing.sm },
+  input: { minHeight: 54, borderWidth: 1, borderColor: colors.controlBorder, borderRadius: radii.md, backgroundColor: colors.canvas, color: colors.ink, fontSize: 20, fontWeight: '600', paddingHorizontal: spacing.md },
+  error: { ...typography.caption, color: colors.error },
+  primaryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.primary, marginTop: spacing.sm, paddingHorizontal: spacing.lg },
+  primaryLabel: { ...typography.headline, color: colors.white },
   buttonDisabled: { opacity: 0.55 },
   cancelButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  cancelLabel: { color: colors.muted, fontSize: 15, fontWeight: '700' },
+  cancelLabel: { ...typography.bodyEmphasis, color: colors.primaryDark },
 });

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppIcon } from './AppIcon';
-import { spacing, type AppColors } from '../theme/tokens';
+import { spacing, typography, type AppColors } from '../theme/tokens';
 import { useThemedStyles } from '../theme/useTheme';
 import { useLocale } from '../features/settings/LocaleProvider';
 
@@ -12,7 +12,7 @@ export function SyntheticDataNotice() {
   return (
     <View accessibilityLabel={t('synthetic.notice')} accessibilityRole="text" style={styles.notice}>
       <View style={styles.content}>
-        <AppIcon color={colors.warning} name="flask-conical" size={14} />
+        <AppIcon color={colors.warning} name="info" size={14} />
         <Text style={styles.label}>{t('synthetic.notice')}</Text>
       </View>
     </View>
@@ -24,11 +24,11 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomColor: colors.line,
-    borderBottomWidth: 1,
-    backgroundColor: colors.warningTint,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.canvasSubtle,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    minHeight: 38,
+    minHeight: 36,
   },
   content: {
     flexDirection: 'row',
@@ -38,10 +38,8 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     flexWrap: 'wrap',
   },
   label: {
-    color: colors.warning,
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 18,
+    ...typography.caption,
+    color: colors.inkRaised,
     textAlign: 'center',
   },
 });

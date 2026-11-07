@@ -18,20 +18,20 @@ import { AppIcon } from '../../components/AppIcon';
 import { apiRequest } from '../../lib/api';
 import { queryAssistant } from '../../lib/api';
 import { useCurrentTime } from '../../lib/useCurrentTime';
-import { AppColors, radii, spacing } from '../../theme/tokens';
+import { AppColors, radii, sectionTitle, spacing, typography } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import { MedicationEditorModal } from '../medications/MedicationEditorModal';
 import type { Medication, MedicationInput, MedicationOcrDraft } from '../medications/types';
 import type { Patient } from '../patients/types';
 import { useLocale } from '../settings/LocaleProvider';
+import { groupByTimeSlot, isNotRecorded, isRecorded } from '../today/doseWindows';
 import type { DoseOccurrence } from '../today/types';
 import { AssistantMascot } from './AssistantMascot';
 import { evaluateLocalQuery } from './rulesEngine';
 import type {
   AssistantActionableDose,
   AssistantChatMessage,
-  AssistantLocale,
   AssistantMedicationDraft,
   MascotExpression,
 } from './types';
@@ -51,9 +51,9 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
 }
 
-function formatDoseTime(value: string, locale: string): string {
+function formatDoseTime(value: string, localeTag: string): string {
   try {
-    return new Intl.DateTimeFormat(locale === 'fil' ? 'fil-PH' : 'en-US', {
+    return new Intl.DateTimeFormat(localeTag, {
       hour: 'numeric',
       minute: '2-digit',
       timeZone: 'Asia/Manila',
@@ -164,32 +164,20 @@ function assistantDraftToOcrDraft(draft: AssistantMedicationDraft): MedicationOc
   };
 }
 
-function formatDraftSchedule(draft: AssistantMedicationDraft, locale: string): string {
-  const isFil = locale === 'fil';
+function formatDraftSchedule(draft: AssistantMedicationDraft): string {
   if (draft.scheduleKind === 'interval') {
     const hours = draft.intervalHours ?? 8;
     const start = draft.times[0] || '08:00';
-    return isFil
-      ? `Bawat ${hours} oras (simula ${start})`
-      : `Every ${hours} hours (starting ${start})`;
+    return `Every ${hours} hours (starting ${start})`;
   }
   if (draft.scheduleKind === 'meal') {
-    const rel = draft.mealRelation === 'before'
-      ? (isFil ? 'Bago mag' : 'Before')
-      : (isFil ? 'Pagkatapos mag' : 'After');
-    const mealNames: Record<string, { en: string; fil: string }> = {
-      breakfast: { en: 'breakfast', fil: 'almusal' },
-      lunch: { en: 'lunch', fil: 'tanghalian' },
-      dinner: { en: 'dinner', fil: 'hapunan' },
-    };
-    const meal = draft.mealName ? (isFil ? mealNames[draft.mealName]?.fil : mealNames[draft.mealName]?.en) : (isFil ? 'pagkain' : 'meal');
+    const rel = draft.mealRelation === 'before' ? 'Before' : 'After';
+    const meal = draft.mealName ?? 'meal';
     const time = draft.times[0] ? ` (${draft.times[0]})` : '';
     return `${rel} ${meal}${time}`;
   }
   const times = draft.times.length > 0 ? draft.times.join(', ') : '08:00';
-  const days = draft.weekdays && draft.weekdays.length === 7
-    ? (isFil ? 'Araw-araw' : 'Daily')
-    : (isFil ? `${draft.weekdays.length} araw bawat linggo` : `${draft.weekdays.length} days/week`);
+  const days = draft.weekdays && draft.weekdays.length === 7 ? 'Daily' : `${draft.weekdays.length} days/week`;
   return `${times} · ${days}`;
 }
 
@@ -203,7 +191,7 @@ export function AskBantayBottomSheet({
   onNavigateToMedicines,
 }: AskBantayBottomSheetProps) {
   const { colors, styles } = useThemedStyles(createStyles);
-  const { locale, t } = useLocale();
+  const { localeTag, t } = useLocale();
   const { session, token } = useAuth();
   const queryClient = useQueryClient();
   const now = useCurrentTime();
@@ -222,36 +210,34 @@ export function AskBantayBottomSheet({
   const prevPatientIdRef = useRef<string | null>(null);
 
   // Mascot expression synchronized with dose completion & query thinking
-  const { expression, setExpression, startThinking, stopThinking, triggerCelebration } =
+  const { expression, setExpression, startThinking, stopThinking } =
     useAssistantMascotState(timeline, isQuerying);
 
-  // Dynamic greeting based on current state
+  // Opening greeting; says the same thing as the Home hero (Not Recorded count first, then the next dose).
   const greetingText = useMemo(() => {
-    const caregiverName = session?.displayName || 'Caregiver';
-    const patientName = patient?.displayName || 'Lola Rosa';
+    const caregiverName = session?.displayName?.trim().split(/\s+/)[0] || t('home.caregiverFallback');
+    const patientName = patient?.displayName ?? '';
+    const values = { name: caregiverName, patient: patientName };
 
-    if (!timeline || timeline.length === 0) {
-      return t('assistant.greetingDefault', { name: caregiverName, patient: patientName });
-    }
+    if (!timeline || timeline.length === 0) return t('assistant.greetingDefault', values);
+    if (timeline.every(isRecorded)) return t('assistant.greetingCelebration', values);
 
-    const allCompleted = timeline.every((d) => d.status === 'taken' || d.status === 'skipped');
-    if (allCompleted) {
-      return t('assistant.greetingCelebration', { name: caregiverName, patient: patientName });
-    }
-
-    const nextDue = timeline.find((d) => d.status === 'not_recorded' || d.status === 'snoozed');
-    if (nextDue) {
-      const formattedTime = formatDoseTime(nextDue.dueAt, locale);
-      return t('assistant.greetingNextDose', {
-        name: caregiverName,
-        patient: patientName,
-        count: 1,
-        time: formattedTime,
+    const nowMs = now.getTime();
+    const notRecorded = timeline.filter((dose) => isNotRecorded(dose, nowMs)).length;
+    if (notRecorded > 0) {
+      return t(notRecorded === 1 ? 'assistant.greetingNotRecordedOne' : 'assistant.greetingNotRecordedMany', {
+        ...values,
+        count: notRecorded,
       });
     }
 
-    return t('assistant.greetingDefault', { name: caregiverName, patient: patientName });
-  }, [locale, patient?.displayName, session?.displayName, t, timeline]);
+    const [nextSlot] = groupByTimeSlot(timeline.filter((dose) => !isRecorded(dose)));
+    if (nextSlot) {
+      return t('assistant.greetingNextDose', { ...values, time: formatDoseTime(nextSlot.at, localeTag) });
+    }
+
+    return t('assistant.greetingDefault', values);
+  }, [localeTag, now, patient?.displayName, session?.displayName, t, timeline]);
 
   // Reset conversation greeting ONLY when opening sheet or switching patient
   useEffect(() => {
@@ -270,6 +256,8 @@ export function AskBantayBottomSheet({
         },
       ]);
     }
+    // A draft left over from a closed conversation must not capture the next opening question.
+    if (!visible && prevVisibleRef.current) setPendingDraftState(null);
     prevVisibleRef.current = visible;
     prevPatientIdRef.current = patient?.id ?? null;
   }, [greetingText, patient?.id, visible]);
@@ -308,7 +296,6 @@ export function AskBantayBottomSheet({
     },
     onSuccess: (_, variables) => {
       setRecordingDoseId(null);
-      triggerCelebration();
 
       // Invalidate relevant queries so Today and Home update in real time
       if (patient?.id) {
@@ -356,7 +343,6 @@ export function AskBantayBottomSheet({
     },
     onSuccess: (_, draft) => {
       setConfirmingDraftId(null);
-      triggerCelebration();
 
       if (patient?.id) {
         void queryClient.invalidateQueries({ queryKey: ['medications', patient.id] });
@@ -416,7 +402,6 @@ export function AskBantayBottomSheet({
       setEditorModalVisible(false);
       setEditorDraft(null);
       setPendingDraftState(null);
-      triggerCelebration();
 
       if (patient.id) {
         void queryClient.invalidateQueries({ queryKey: ['medications', patient.id] });
@@ -443,7 +428,7 @@ export function AskBantayBottomSheet({
         },
       ]);
     },
-    [patient?.displayName, patient?.id, queryClient, t, token, triggerCelebration],
+    [patient?.displayName, patient?.id, queryClient, t, token],
   );
 
   // Handle submitting query (Tier 1 Local Rules -> Tier 2 Gemini API)
@@ -467,10 +452,8 @@ export function AskBantayBottomSheet({
       ]);
 
       // 2. Evaluate Tier 1 Local Rules (instant 0ms response)
-      const assistantLocale: AssistantLocale = locale === 'fil' ? 'fil' : 'en';
       const localResult = evaluateLocalQuery({
         query,
-        locale: assistantLocale,
         patient: {
           id: patient.id,
           displayName: patient.displayName,
@@ -517,7 +500,6 @@ export function AskBantayBottomSheet({
           patient.id,
           {
             query,
-            locale: assistantLocale,
             currentLocalTime: 'Asia/Manila',
             todayDate: new Date().toISOString().slice(0, 10),
           },
@@ -562,7 +544,6 @@ export function AskBantayBottomSheet({
     },
     [
       inputQuery,
-      locale,
       medications,
       now,
       patient,
@@ -675,9 +656,7 @@ export function AskBantayBottomSheet({
                     {msg.actionableDose ? (
                       <View style={styles.doseCard}>
                         <View style={styles.doseCardHeader}>
-                          <View style={styles.dosePillIcon}>
-                            <AppIcon color={colors.primaryDark} name="pill" size={16} />
-                          </View>
+                          <AppIcon color={colors.primary} name="pill" size={16} />
                           <View style={styles.doseCardTextGroup}>
                             <Text style={styles.doseCardPatient}>
                               {patient?.displayName || 'Patient'}
@@ -689,7 +668,7 @@ export function AskBantayBottomSheet({
                                 : ''}
                             </Text>
                             <Text style={styles.doseCardTime}>
-                              {formatDoseTime(msg.actionableDose.scheduledFor, locale)}
+                              {formatDoseTime(msg.actionableDose.scheduledFor, localeTag)}
                             </Text>
                           </View>
                         </View>
@@ -757,9 +736,7 @@ export function AskBantayBottomSheet({
                         </View>
 
                         <View style={styles.draftCardHeader}>
-                          <View style={styles.draftPillIcon}>
-                            <AppIcon color={colors.primaryDark} name="pill" size={18} />
-                          </View>
+                          <AppIcon color={colors.primary} name="pill" size={18} />
                           <View style={styles.draftCardTextGroup}>
                             <Text style={styles.draftCardMedication}>
                               {msg.medicationDraft.displayName}
@@ -773,7 +750,7 @@ export function AskBantayBottomSheet({
                             <View style={styles.draftCardScheduleRow}>
                               <AppIcon color={colors.primaryDark} name="clock" size={13} />
                               <Text style={styles.draftCardScheduleText}>
-                                {formatDraftSchedule(msg.medicationDraft, locale)}
+                                {formatDraftSchedule(msg.medicationDraft)}
                               </Text>
                             </View>
                           </View>
@@ -782,7 +759,7 @@ export function AskBantayBottomSheet({
                         {/* Duplicate Warning */}
                         {msg.medicationDraft.isDuplicate ? (
                           <View style={styles.duplicateWarningBox}>
-                            <AppIcon color={colors.sun} name="alert-triangle" size={14} />
+                            <AppIcon color={colors.warning} name="alert-triangle" size={14} />
                             <Text style={styles.duplicateWarningText}>
                               {t('assistant.draftCardDuplicateNotice', {
                                 medicine: msg.medicationDraft.duplicateMedicationName || msg.medicationDraft.displayName,
@@ -795,7 +772,7 @@ export function AskBantayBottomSheet({
                         {msg.medicationDraft.confirmed ? (
                           <View style={styles.confirmedBadgeRow}>
                             <View style={styles.confirmedBadge}>
-                              <AppIcon color={colors.primaryDark} name="check" size={16} />
+                              <AppIcon color={colors.ink} name="check" size={16} />
                               <Text style={styles.confirmedBadgeText}>
                                 {t('assistant.draftCardAdded')}
                               </Text>
@@ -909,7 +886,7 @@ export function AskBantayBottomSheet({
                   <AssistantMascot expression="thinking" size={28} />
                 </View>
                 <View style={[styles.messageBubble, styles.assistantBubble, styles.thinkingBubble]}>
-                  <ActivityIndicator color={colors.sun} size="small" style={{ marginRight: 8 }} />
+                  <ActivityIndicator color={colors.primary} size="small" style={{ marginRight: 8 }} />
                   <Text style={[styles.messageText, styles.thinkingText]}>
                     {t('assistant.thinkingMessage')}
                   </Text>
@@ -994,13 +971,13 @@ export function AskBantayBottomSheet({
 const createStyles = (colors: AppColors) =>
   StyleSheet.create({
     screen: {
-      backgroundColor: colors.canvas,
+      backgroundColor: colors.surfaceElevated,
       flex: 1,
     },
     header: {
       alignItems: 'center',
       borderBottomColor: colors.line,
-      borderBottomWidth: 1,
+      borderBottomWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
       justifyContent: 'space-between',
       paddingHorizontal: spacing.md,
@@ -1013,8 +990,6 @@ const createStyles = (colors: AppColors) =>
     },
     mascotBadge: {
       alignItems: 'center',
-      backgroundColor: colors.successTint,
-      borderRadius: 26,
       height: 52,
       justifyContent: 'center',
       width: 52,
@@ -1023,31 +998,25 @@ const createStyles = (colors: AppColors) =>
       justifyContent: 'center',
     },
     sheetTitle: {
+      ...sectionTitle,
       color: colors.ink,
-      fontSize: 18,
-      fontWeight: '900',
-      letterSpacing: -0.4,
     },
     sheetSubtitle: {
+      ...typography.caption,
       color: colors.muted,
-      fontSize: 12,
-      fontWeight: '600',
     },
     closeButton: {
       alignItems: 'center',
-      backgroundColor: colors.white,
-      borderColor: colors.line,
-      borderRadius: 24,
-      borderWidth: 1,
+      borderRadius: radii.full,
       height: 48,
       justifyContent: 'center',
       width: 48,
     },
     chipsRow: {
-      backgroundColor: colors.canvas,
+      backgroundColor: colors.surfaceElevated,
       borderTopColor: colors.line,
-      borderTopWidth: 1,
-      paddingVertical: 8,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      paddingVertical: spacing.sm,
     },
     chipsContent: {
       flexDirection: 'row',
@@ -1055,23 +1024,26 @@ const createStyles = (colors: AppColors) =>
       paddingHorizontal: spacing.md,
     },
     chip: {
-      backgroundColor: colors.white,
-      borderColor: colors.line,
+      // In a horizontal ScrollView a chip must keep its own width; otherwise the last one is squeezed
+      // to the visible edge and its label wraps onto a hidden second line.
+      flexShrink: 0,
+      backgroundColor: colors.surfaceElevated,
+      borderColor: colors.controlBorder,
       borderRadius: radii.full,
       borderWidth: 1,
       minHeight: 48,
       justifyContent: 'center',
-      paddingHorizontal: 16,
+      paddingHorizontal: spacing.md,
       paddingVertical: 10,
     },
     chipPressed: {
-      backgroundColor: colors.successTint,
-      borderColor: colors.success,
+      backgroundColor: colors.canvasSubtle,
+      borderColor: colors.controlBorder,
     },
     chipText: {
+      ...typography.caption,
       color: colors.ink,
-      fontSize: 12.5,
-      fontWeight: '700',
+      fontWeight: '600',
     },
     messagesScroll: {
       flex: 1,
@@ -1107,22 +1079,20 @@ const createStyles = (colors: AppColors) =>
     },
     userBubble: {
       backgroundColor: colors.primaryTint,
-      borderColor: colors.primary + '28',
-      borderRadius: radii.xl,
-      borderBottomRightRadius: 4,
+      borderColor: colors.primaryBorder,
+      borderRadius: radii.lg,
+      borderBottomRightRadius: radii.xs,
       borderWidth: 1,
-      paddingHorizontal: 16,
+      paddingHorizontal: spacing.md,
       paddingVertical: 10,
     },
     assistantBubble: {
-      backgroundColor: colors.white,
-      borderBottomLeftRadius: 4,
+      backgroundColor: colors.canvas,
+      borderBottomLeftRadius: radii.xs,
       borderColor: colors.line,
-      borderLeftColor: colors.successDark,
-      borderLeftWidth: 3.5,
-      borderRadius: 16,
+      borderRadius: radii.lg,
       borderWidth: 1,
-      paddingHorizontal: 16,
+      paddingHorizontal: spacing.md,
       paddingVertical: 12,
     },
     thinkingBubble: {
@@ -1130,279 +1100,236 @@ const createStyles = (colors: AppColors) =>
       flexDirection: 'row',
     },
     messageText: {
-      fontSize: 14,
-      lineHeight: 20,
+      ...typography.body,
     },
     userMessageText: {
       color: colors.ink,
-      fontSize: 14.5,
-      fontWeight: '700',
-      lineHeight: 20,
+      fontWeight: '500',
     },
     assistantMessageText: {
       color: colors.ink,
-      fontSize: 14.5,
-      fontWeight: '400',
-      lineHeight: 21,
     },
     thinkingText: {
       color: colors.muted,
       fontStyle: 'italic',
     },
     doseCard: {
-      backgroundColor: colors.white,
-      borderColor: colors.primaryTint,
+      backgroundColor: colors.surface,
+      borderColor: colors.line,
       borderRadius: radii.md,
-      borderWidth: 1.5,
+      borderWidth: 1,
       marginTop: spacing.xs,
-      padding: spacing.sm,
+      padding: spacing.md,
     },
     doseCardHeader: {
       flexDirection: 'row',
-      gap: spacing.xs,
-      marginBottom: spacing.xs,
-    },
-    dosePillIcon: {
-      alignItems: 'center',
-      backgroundColor: colors.primaryTint,
-      borderRadius: radii.full,
-      height: 28,
-      justifyContent: 'center',
-      width: 28,
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
     },
     doseCardTextGroup: {
       flex: 1,
     },
     doseCardPatient: {
+      ...typography.caption,
       color: colors.muted,
-      fontSize: 11,
-      fontWeight: '700',
-      textTransform: 'uppercase',
     },
     doseCardMedication: {
+      ...sectionTitle,
       color: colors.ink,
-      fontSize: 14,
-      fontWeight: '800',
     },
     doseCardTime: {
+      ...typography.caption,
       color: colors.primaryDark,
-      fontSize: 12,
       fontWeight: '600',
-      marginTop: 1,
+      marginTop: 2,
     },
     doseCardActions: {
       flexDirection: 'row',
-      gap: spacing.xs,
+      flexWrap: 'wrap',
+      gap: spacing.sm,
       marginTop: spacing.xs,
     },
     recordTakenButton: {
       alignItems: 'center',
-      backgroundColor: colors.primaryDark,
-      borderRadius: radii.sm,
+      backgroundColor: colors.primary,
+      borderRadius: radii.md,
       flexDirection: 'row',
-      gap: 4,
+      gap: spacing.xs,
       justifyContent: 'center',
       minHeight: 48,
       paddingHorizontal: spacing.md,
       paddingVertical: 10,
     },
     recordTakenText: {
+      ...typography.bodyEmphasis,
       color: colors.white,
-      fontSize: 12,
       fontWeight: '700',
     },
     viewTodayButton: {
       alignItems: 'center',
-      backgroundColor: colors.canvas,
-      borderColor: colors.line,
-      borderRadius: radii.sm,
+      backgroundColor: 'transparent',
+      borderColor: colors.controlBorder,
+      borderRadius: radii.md,
       borderWidth: 1,
       flexDirection: 'row',
-      gap: 4,
+      gap: spacing.xs,
       justifyContent: 'center',
       minHeight: 48,
       paddingHorizontal: spacing.md,
       paddingVertical: 10,
     },
     viewTodayText: {
+      ...typography.bodyEmphasis,
       color: colors.ink,
-      fontSize: 12,
-      fontWeight: '600',
     },
     inputContainer: {
       alignItems: 'center',
-      backgroundColor: colors.white,
+      backgroundColor: colors.surfaceElevated,
       borderTopColor: colors.line,
-      borderTopWidth: 1,
+      borderTopWidth: StyleSheet.hairlineWidth,
       flexDirection: 'row',
       gap: 10,
       paddingHorizontal: spacing.md,
       paddingVertical: 10,
     },
     textInput: {
-      backgroundColor: colors.mist,
-      borderColor: colors.line,
-      borderRadius: radii.full,
+      ...typography.body,
+      backgroundColor: colors.canvas,
+      borderColor: colors.controlBorder,
+      borderRadius: radii.md,
       borderWidth: 1,
       color: colors.ink,
       flex: 1,
-      fontSize: 14.5,
       minHeight: 48,
-      paddingHorizontal: 18,
+      paddingHorizontal: spacing.md,
       paddingVertical: 10,
     },
     sendButton: {
       alignItems: 'center',
-      backgroundColor: colors.successDark,
-      borderRadius: 24,
+      backgroundColor: colors.primary,
+      borderRadius: radii.md,
       height: 48,
       justifyContent: 'center',
       width: 48,
     },
     sendButtonDisabled: {
-      backgroundColor: colors.line,
+      backgroundColor: colors.inkMuted,
     },
     buttonPressed: {
       opacity: 0.8,
     },
     draftCard: {
-      backgroundColor: colors.white,
-      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+      borderColor: colors.line,
       borderRadius: radii.md,
-      borderWidth: 1.5,
+      borderWidth: 1,
       marginTop: spacing.xs,
-      padding: spacing.sm,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.06,
-      shadowRadius: 3,
-      elevation: 2,
+      padding: spacing.md,
     },
     draftCardPatientRow: {
       borderBottomColor: colors.line,
-      borderBottomWidth: 1,
-      marginBottom: spacing.xs,
-      paddingBottom: 4,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      marginBottom: spacing.sm,
+      paddingBottom: spacing.xs,
     },
     draftCardPatientText: {
+      ...typography.caption,
       color: colors.muted,
-      fontSize: 10,
-      fontWeight: '800',
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
     },
     draftCardHeader: {
       flexDirection: 'row',
-      gap: spacing.xs,
+      gap: spacing.sm,
       marginBottom: spacing.xs,
-    },
-    draftPillIcon: {
-      alignItems: 'center',
-      backgroundColor: colors.primaryTint,
-      borderRadius: radii.full,
-      height: 32,
-      justifyContent: 'center',
-      width: 32,
-      marginTop: 2,
     },
     draftCardTextGroup: {
       flex: 1,
     },
     draftCardMedication: {
+      ...sectionTitle,
       color: colors.ink,
-      fontSize: 15,
-      fontWeight: '800',
     },
     draftCardDoseDetails: {
+      ...typography.caption,
       color: colors.ink,
-      fontSize: 13,
-      fontWeight: '500',
-      marginTop: 1,
+      marginTop: 2,
     },
     draftCardScheduleRow: {
       alignItems: 'center',
       flexDirection: 'row',
-      gap: 4,
-      marginTop: 4,
+      gap: spacing.xs,
+      marginTop: spacing.xs,
     },
     draftCardScheduleText: {
+      ...typography.caption,
       color: colors.primaryDark,
-      fontSize: 12,
       fontWeight: '600',
     },
     duplicateWarningBox: {
       alignItems: 'center',
-      backgroundColor: '#FFFBEB',
-      borderColor: '#FDE68A',
-      borderRadius: radii.sm,
-      borderWidth: 1,
+      backgroundColor: colors.canvasSubtle,
+      borderRadius: radii.xs,
       flexDirection: 'row',
       gap: 6,
       marginVertical: spacing.xs,
-      paddingHorizontal: spacing.xs,
-      paddingVertical: 4,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 6,
     },
     duplicateWarningText: {
-      color: '#92400E',
+      ...typography.caption,
+      color: colors.warning,
       flex: 1,
-      fontSize: 11,
       fontWeight: '600',
     },
     draftCardActions: {
       flexDirection: 'row',
-      gap: spacing.xs,
-      marginTop: spacing.xs,
+      gap: spacing.sm,
+      marginTop: spacing.sm,
     },
     confirmDraftButton: {
       alignItems: 'center',
-      backgroundColor: colors.primaryDark,
-      borderRadius: radii.sm,
+      backgroundColor: colors.primary,
+      borderRadius: radii.md,
       flex: 1,
       flexDirection: 'row',
-      gap: 4,
+      gap: spacing.xs,
       justifyContent: 'center',
       minHeight: 48,
       paddingHorizontal: spacing.sm,
     },
     confirmDraftText: {
+      ...typography.bodyEmphasis,
       color: colors.white,
-      fontSize: 13,
       fontWeight: '700',
     },
     editDraftButton: {
       alignItems: 'center',
-      backgroundColor: colors.canvas,
-      borderColor: colors.line,
-      borderRadius: radii.sm,
+      backgroundColor: 'transparent',
+      borderColor: colors.controlBorder,
+      borderRadius: radii.md,
       borderWidth: 1,
       flexDirection: 'row',
-      gap: 4,
+      gap: spacing.xs,
       justifyContent: 'center',
       minHeight: 48,
       paddingHorizontal: spacing.md,
     },
     editDraftText: {
+      ...typography.bodyEmphasis,
       color: colors.ink,
-      fontSize: 13,
-      fontWeight: '600',
     },
     confirmedBadgeRow: {
-      marginTop: spacing.xs,
+      marginTop: spacing.sm,
     },
     confirmedBadge: {
       alignItems: 'center',
-      backgroundColor: colors.primaryTint,
-      borderRadius: radii.sm,
       flexDirection: 'row',
       gap: 6,
-      justifyContent: 'center',
-      minHeight: 44,
-      paddingVertical: 8,
+      paddingVertical: spacing.xs,
     },
     confirmedBadgeText: {
-      color: colors.primaryDark,
-      fontSize: 12,
-      fontWeight: '700',
+      ...typography.caption,
+      color: colors.ink,
+      fontWeight: '600',
     },
     viewScheduleRow: {
       marginTop: spacing.xs,
@@ -1410,33 +1337,26 @@ const createStyles = (colors: AppColors) =>
     viewScheduleButton: {
       alignItems: 'center',
       alignSelf: 'flex-start',
-      backgroundColor: colors.primaryTint,
-      borderRadius: radii.full,
       flexDirection: 'row',
-      gap: 4,
+      gap: spacing.xs,
       justifyContent: 'center',
       minHeight: 48,
-      paddingHorizontal: spacing.md,
       paddingVertical: 10,
     },
     viewScheduleText: {
+      ...typography.bodyEmphasis,
       color: colors.primaryDark,
-      fontSize: 12,
-      fontWeight: '700',
     },
     buttonDisabled: {
       opacity: 0.6,
     },
     leafletCitationCard: {
-      backgroundColor: colors.white,
-      borderColor: colors.line,
-      borderRadius: radii.sm,
-      borderWidth: 1,
+      borderTopColor: colors.line,
+      borderTopWidth: StyleSheet.hairlineWidth,
       flexDirection: 'column',
       gap: 2,
-      marginTop: spacing.xs,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs + 2,
+      marginTop: spacing.sm,
+      paddingTop: spacing.sm,
     },
     leafletCitationHeader: {
       alignItems: 'center',
@@ -1444,19 +1364,17 @@ const createStyles = (colors: AppColors) =>
       gap: 6,
     },
     leafletCitationBadgeText: {
+      ...typography.caption,
       color: colors.primaryDark,
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
+      fontWeight: '600',
     },
     leafletCitationMedication: {
+      ...typography.caption,
       color: colors.ink,
-      fontSize: 12,
       fontWeight: '600',
     },
     leafletCitationSource: {
+      ...typography.caption,
       color: colors.muted,
-      fontSize: 11,
     },
   });

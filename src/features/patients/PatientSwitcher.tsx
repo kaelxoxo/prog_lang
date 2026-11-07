@@ -3,10 +3,9 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppIcon } from '../../components/AppIcon';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
-import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from './types';
 
 type PatientSwitcherProps = {
@@ -38,7 +37,6 @@ export function PatientSwitcher({
 }: PatientSwitcherProps) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
-  const { session } = useAuth();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1.3;
   const [search, setSearch] = useState('');
@@ -49,6 +47,12 @@ export function PatientSwitcher({
   const close = () => {
     setSearch('');
     onClose();
+  };
+  // The Self Profile is always yours to manage, so only other people get a care-manager line.
+  const managerLine = (patient: Patient) => {
+    if (patient.isSelf) return null;
+    if (patient.role === 'owner') return t('people.youManage');
+    return patient.primaryCareManagerName ? t('people.managedBy', { name: patient.primaryCareManagerName }) : null;
   };
   const addPerson = () => {
     setSearch('');
@@ -73,9 +77,7 @@ export function PatientSwitcher({
             <View style={styles.sheetHandle} />
             <View style={[styles.headingRow, largeText && styles.headingRowLarge]}>
               <View style={styles.headingCopy}>
-                <Text accessibilityRole="header" style={styles.title}>
-                  {session?.careSetup === 'professional' ? t('shell.peopleYouCareFor') : t('people.changeTitle')}
-                </Text>
+                <Text accessibilityRole="header" style={styles.title}>{t('people.changeTitle')}</Text>
                 <Text style={styles.subtitle}>{t('people.changeBody')}</Text>
               </View>
               <Pressable
@@ -122,10 +124,12 @@ export function PatientSwitcher({
             <ScrollView contentContainerStyle={styles.patientList} keyboardShouldPersistTaps="handled">
               {visiblePatients.map((patient) => {
                 const isSelected = patient.id === activePatientId;
+                const name = patient.isSelf ? t('shell.you') : patient.displayName;
+                const manager = managerLine(patient);
 
                 return (
                   <Pressable
-                    accessibilityLabel={`${patient.isSelf ? t('shell.you') : patient.displayName}, ${patient.relationshipLabel}`}
+                    accessibilityLabel={[name, patient.relationshipLabel, manager].filter(Boolean).join(', ')}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: isSelected }}
                     key={patient.id}
@@ -146,12 +150,11 @@ export function PatientSwitcher({
                       </Text>
                     </View>
                     <View style={styles.patientCopy}>
-                      <Text style={styles.patientName}>{patient.isSelf ? t('shell.you') : patient.displayName}</Text>
-                      <View style={styles.relationshipChip}>
-                        <Text style={styles.relationshipText}>{patient.relationshipLabel}</Text>
-                      </View>
+                      <Text style={styles.patientName}>{name}</Text>
+                      <Text style={styles.relationshipText}>{patient.relationshipLabel}</Text>
+                      {manager ? <Text style={styles.relationshipText}>{manager}</Text> : null}
                     </View>
-                    <View style={[styles.selectBadge, isSelected ? styles.selectBadgeActive : styles.selectBadgeInactive]}>
+                    <View style={styles.selectBadge}>
                       <Text style={[styles.selectedMark, isSelected && styles.selectedMarkVisible]}>
                         {t(isSelected ? 'people.selected' : 'people.choose')}
                       </Text>
@@ -183,7 +186,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     maxHeight: '82%',
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,
-    backgroundColor: colors.canvas,
+    backgroundColor: colors.surfaceElevated,
     paddingBottom: spacing.xxl,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
@@ -192,7 +195,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: radii.full,
-    backgroundColor: colors.mist,
+    backgroundColor: colors.line,
     alignSelf: 'center',
     marginBottom: spacing.md,
   },
@@ -216,32 +219,27 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     gap: spacing.xs,
   },
   title: {
+    ...sectionTitle,
     color: colors.ink,
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: -0.5,
   },
   subtitle: {
+    ...typography.body,
     color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22,
   },
   closeButton: {
     minHeight: 48,
     justifyContent: 'center',
-    borderRadius: radii.full,
-    backgroundColor: colors.white,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.controlBorder,
     paddingHorizontal: spacing.md,
   },
   closeButtonPressed: {
-    backgroundColor: colors.mist,
+    backgroundColor: colors.canvasSubtle,
   },
   closeLabel: {
+    ...typography.bodyEmphasis,
     color: colors.ink,
-    fontSize: 14,
-    fontWeight: '700',
   },
   searchContainer: {
     minHeight: 48,
@@ -249,9 +247,9 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radii.full,
-    backgroundColor: colors.white,
+    borderColor: colors.controlBorder,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
     marginTop: spacing.md,
     paddingHorizontal: spacing.md,
   },
@@ -264,18 +262,14 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   clearSearchButton: { padding: 4 },
   addPersonButton: {
     minHeight: 48,
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: radii.full,
-    backgroundColor: colors.primaryTint,
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
-  addPersonLabel: { color: colors.primaryDark, fontSize: 14, fontWeight: '800' },
+  addPersonLabel: { ...typography.bodyEmphasis, color: colors.primaryDark, fontWeight: '700' },
   patientList: {
     gap: spacing.sm,
     paddingTop: spacing.md,
@@ -287,8 +281,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     gap: spacing.md,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: radii.lg,
-    backgroundColor: colors.white,
+    borderRadius: radii.md,
     padding: spacing.md,
   },
   patientOptionLarge: {
@@ -296,7 +289,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   patientOptionSelected: {
     borderColor: colors.primary,
-    backgroundColor: colors.white,
+    backgroundColor: colors.canvasSubtle,
   },
   patientOptionPressed: {
     opacity: 0.78,
@@ -307,63 +300,45 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 24,
-    backgroundColor: colors.mist,
+    borderWidth: 1,
+    borderColor: colors.controlBorder,
+    backgroundColor: colors.canvasSubtle,
   },
   avatarSelected: {
-    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   avatarLabel: {
+    ...typography.headline,
     color: colors.ink,
-    fontSize: 16,
-    fontWeight: '800',
   },
   avatarLabelSelected: {
-    color: colors.white,
+    color: colors.primaryDark,
   },
   patientCopy: {
     minWidth: 0,
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
   patientName: {
+    ...typography.headline,
     color: colors.ink,
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  relationshipChip: {
-    alignSelf: 'flex-start',
-    borderRadius: radii.full,
-    backgroundColor: colors.canvas,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
   },
   relationshipText: {
+    ...typography.caption,
     color: colors.muted,
-    fontSize: 12,
-    fontWeight: '700',
   },
   selectBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderRadius: radii.full,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  selectBadgeActive: {
-    backgroundColor: colors.primaryTint,
-  },
-  selectBadgeInactive: {
-    backgroundColor: colors.canvas,
   },
   selectedMark: {
+    ...typography.caption,
     color: colors.muted,
-    fontSize: 12,
-    fontWeight: '700',
   },
   selectedMarkVisible: {
     color: colors.primaryDark,
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  noResults: { color: colors.muted, fontSize: 15, lineHeight: 22, paddingVertical: spacing.xl, textAlign: 'center' },
+  noResults: { ...typography.body, color: colors.muted, paddingVertical: spacing.xl, textAlign: 'center' },
 });

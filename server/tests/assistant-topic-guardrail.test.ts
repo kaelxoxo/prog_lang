@@ -50,7 +50,6 @@ const IN_SCOPE = [
 function params(overrides: Partial<AssistantQueryParams>): AssistantQueryParams {
   return {
     query: '',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     caregiver: { id: 'c1', displayName: 'Maya Santos' },
     medications: [],
@@ -70,7 +69,7 @@ function modelReplying(text: string, onCall: () => void = () => undefined): type
   };
 }
 
-test('topic guardrail flags code, essays, role-play, prompt injection and personal requests in EN and FIL', () => {
+test('topic guardrail flags code, essays, role-play, prompt injection and personal requests in English and Tagalog', () => {
   for (const query of OFF_TOPIC) {
     assert.notEqual(detectOffTopicRequest(query), null, `expected off-topic: ${query}`);
   }
@@ -82,18 +81,16 @@ test('topic guardrail leaves medicine, summary, schedule and app-help questions 
   }
 });
 
-test('server declines off-topic requests without ever calling the model', async () => {
+test('server declines off-topic requests in English without ever calling the model', async () => {
   let modelCalls = 0;
   for (const query of ['Write a Python script that sorts a list', 'Sumulat ka ng tula tungkol sa pag-ibig']) {
-    const locale = query.startsWith('Sumulat') ? 'fil' : 'en';
     const response = await queryGeminiAssistant(params({
       query,
-      locale,
       fetchFn: modelReplying('def sort(xs):\n  return sorted(xs)', () => { modelCalls += 1; }),
     }));
     assert.equal(response.model, 'topic_guardrail');
     assert.equal(response.medicationDraft, null);
-    assert.match(response.answer, locale === 'fil' ? /gamot at pangangalaga ni Lola Rosa/ : /only help with Lola Rosa's medicines/);
+    assert.match(response.answer, /only help with Lola Rosa's medicines/);
   }
   assert.equal(modelCalls, 0);
 });
@@ -134,7 +131,6 @@ test('local rules decline off-topic requests instantly and keep a pending medici
   };
   const result = evaluateLocalQuery({
     query: 'Write an essay about climate change',
-    locale: 'en',
     patient: { id: 'p1', displayName: 'Lola Rosa', canManageMedications: true },
     medications: [],
     timeline: [],

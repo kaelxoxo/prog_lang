@@ -1,3 +1,4 @@
+import { SourceSerif4_600SemiBold, SourceSerif4_700Bold, useFonts } from '@expo-google-fonts/source-serif-4';
 import { StatusBar } from 'expo-status-bar';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -13,9 +14,9 @@ import { SyntheticDataNotice } from './src/components/SyntheticDataNotice';
 import { MainTabs } from './src/features/navigation/MainTabs';
 import { PatientProvider, usePatient } from './src/features/patients/PatientProvider';
 import { configureNotifications } from './src/features/reminders/notifications';
-import { LocaleProvider, useLocale } from './src/features/settings/LocaleProvider';
+import { useLocale } from './src/features/settings/LocaleProvider';
 import { spacing, type AppColors } from './src/theme/tokens';
-import { useThemedStyles } from './src/theme/useTheme';
+import { useTheme, useThemedStyles } from './src/theme/useTheme';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -138,7 +139,10 @@ function AppContent() {
 }
 
 export default function App() {
-  const { colors, styles } = useThemedStyles(createStyles);
+  const { styles } = useThemedStyles(createStyles);
+  const { isDark } = useTheme();
+  // Titles use Source Serif 4. If loading fails, the platform font takes over rather than blocking the app.
+  const [fontsLoaded, fontError] = useFonts({ SourceSerif4_600SemiBold, SourceSerif4_700Bold });
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (status) => {
       focusManager.setFocused(status === 'active');
@@ -146,19 +150,21 @@ export default function App() {
     return () => subscription.remove();
   }, []);
 
+  if (!fontsLoaded && !fontError) {
+    return <View style={styles.app} />;
+  }
+
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <SafeAreaView style={styles.app}>
-        <StatusBar style={colors.canvas === '#17211F' ? 'light' : 'dark'} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <QueryClientProvider client={queryClient}>
-          <LocaleProvider>
-            <SyntheticDataNotice />
-            <View style={styles.content}>
-              <AuthProvider>
-                <AppContent />
-              </AuthProvider>
-            </View>
-          </LocaleProvider>
+          <SyntheticDataNotice />
+          <View style={styles.content}>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </View>
         </QueryClientProvider>
       </SafeAreaView>
     </SafeAreaProvider>

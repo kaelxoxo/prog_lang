@@ -1,10 +1,10 @@
 # Alaga mobile smoke-test checklist
 
-Use synthetic test accounts and patient profiles only. Android is the current side-project target. Run iOS checks later when a suitable macOS/iOS environment is available, and record them separately rather than implying that Windows or an Android export exercised iOS.
+Use synthetic test accounts and patient profiles only. Android is the current target. Run iOS checks later when a suitable macOS/iOS environment is available, and record them separately rather than implying that Windows or an Android export exercised iOS.
 
-## Side-project boundary
+## Synthetic-data boundary
 
-- [x] The persistent notice says this is a side-project build and permits synthetic information only. (Verified on emulator: banner displayed in English and Filipino "Side-project build. Gumamit lamang ng synthetic na impormasyon.")
+- [ ] The persistent notice permits synthetic information only ("Use synthetic information only.").
 - [x] No real person, account, medicine, prescription, timetable or label image is used. (Deterministic synthetic dataset: Maya Santos, Paolo Santos, Lola Rosa (Synthetic), synthetic-ocr-label.png).
 - [x] Resetting demo data requires the explicit destructive confirmation flag and refuses non-development database names. (Verified in server/src/resetSyntheticDatabase.ts).
 
@@ -148,7 +148,7 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 - [ ] A caregiver without medicine-manager permission can view medicines but cannot add, edit or archive them.
 - [ ] A caregiver with medicine-manager permission can perform the confirmed medicine workflow.
 - [ ] Owner-only care-circle data and actions are unavailable to caregivers and unrelated accounts.
-- [ ] An accepted caregiver sees the same overdue-without-final-record attention on Home; no remote escalation is implied.
+- [ ] An accepted caregiver sees the same Not Recorded doses under Due now on Home; no remote escalation is implied.
 
 ## Slice 8: seven-day history and archive browsing
 
@@ -177,17 +177,12 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 - [x] Review every field opens the normal Details, Schedule, and Review and confirm flow. (Verified in emulator UI hierarchy dump).
 - [x] Closing the editor before confirmation creates no active medicine or reminder.
 
-## Milestone 9: English and Filipino settings
+## Milestone 9: Settings (English only since 2026-11-07)
 
 - [x] Settings opens from Home while the bottom navigation remains limited to Home, Today and Medicines. (Verified in emulator).
-- [x] English and Filipino are announced as radio options with the current choice selected. (Verified via RadioButton checkable/checked states).
-- [x] Selecting Filipino immediately updates navigation, active-patient context, authentication, Home, Today/history and the medicine list shell. (Verified in emulator UI dump: Tahanan, Ngayon, Mga gamot, Inaalagaan si Lola Rosa, Buod ng araw na ito).
-- [x] Selecting English restores the same core interface surfaces to English.
-- [x] The selected language survives an Android app restart and a web reload. (Verified in emulator restart dump: app reboots directly into Filipino locale).
-- [x] Patient names, medicine wording, dose units, notes, correction reasons, OCR output and label text do not change when the interface language changes. (Verified: "Lola Rosa (Synthetic)", "Amlodipine (Synthetic)", "1 tablet · 5 mg" preserved).
-- [x] Filipino safety copy describes overdue care as not recorded or needing review and never as definitely missed. (Verified: "Hindi naitala", "kailangang tingnan").
-- [x] Settings accurately identifies the interface areas that remain English. (Verified: "Saklaw ng pagsasalin" note explicitly discloses unlocalized sections).
-- [x] Large system text does not clip the Settings heading, options, saved state or coverage note. (Verified at 1.5x font scale).
+- [ ] Settings has no language section; the interface and Bantay's replies are English, including when a question is typed in Tagalog.
+- [x] Patient names, medicine wording, dose units, notes, correction reasons, OCR output and label text are shown exactly as entered or extracted. (Verified: "Lola Rosa (Synthetic)", "Amlodipine (Synthetic)", "1 tablet · 5 mg" preserved).
+- [ ] Large system text does not clip the Settings heading or options.
 
 ## Milestone 10: task-first UI polish
 
@@ -197,8 +192,8 @@ Use synthetic test accounts and patient profiles only. Android is the current si
 - [x] The patient selector stays ahead of care content, wraps at large text sizes and keeps a full-width Change action; Add another person is available inside the picker. (Verified in emulator at 1.5x font scale).
 - [x] Home makes the next actionable dose, items needing review and recorded progress understandable in that order. (Verified in emulator Home layout).
 - [x] A snoozed dose uses its snoozed-until time on Home and does not appear as needing review before that time. (Verified in server regression tests).
-- [x] Today distinguishes taken, skipped, snoozed and not-recorded states with icon, text and color rather than color alone. (Verified in emulator UI dumps: Naibigay, Hindi naitala).
+- [ ] Today distinguishes taken, skipped, snoozed and not-recorded states with icon, text and color rather than color alone.
 - [x] Taken, Skip and Snooze actions remain at least 48dp, wrap without clipping and still open the existing safety confirmation. (Verified in emulator: buttons are 48dp+ and wrap at 1.5x scale).
 - [x] Medicine rows keep name, dose and schedule visually dominant while Confirmed, Review or edit and Archive remain recognizable.
 - [x] Auth, Settings, Home and Today remain readable in both light and dark system themes.
-- [x] English and Filipino labels do not collide with icons or truncate at large system text sizes. (Verified at 1.5x scale in emulator).
+- [x] Labels do not collide with icons or truncate at large system text sizes. (Verified at 1.5x scale in emulator).

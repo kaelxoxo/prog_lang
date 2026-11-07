@@ -6,7 +6,9 @@ product
 
 ## Users
 
-Alaga first serves family members caring for parents or other older adults. They may be coordinating several medicines while tired, interrupted, or uncertain about whether a dose was already handled. The architecture must also support professional caregivers managing several patients and people independently tracking their own medicines without making the initial family experience feel institutional.
+Alaga first serves family members caring for parents or other older adults. They may be coordinating several medicines while tired, interrupted, or uncertain about whether a dose was already handled. The architecture also supports people independently tracking their own medicines, who can share their care log with family, without making the family experience feel institutional.
+
+On 2026-11-07, the owner removed the "Caring professionally" Care Setup: Alaga is for families and for people tracking their own care. A family caring for several people still gets the person chips and the "All people" picker.
 
 ## Product Purpose
 
@@ -25,7 +27,7 @@ Alaga must not resemble cold hospital administration software, a generic corpora
 1. Name the person before showing their care information.
 2. Make consequential actions explicit, reviewable, and attributable.
 3. Describe unknown states honestly, using "not recorded" instead of assuming a dose was missed.
-4. Reveal complexity progressively so family caregivers can act confidently while professional workflows remain possible.
+4. Reveal complexity progressively so family caregivers can act confidently while larger families caring for several people stay supported.
 5. Preserve source wording and history rather than hiding uncertainty or overwriting earlier records.
 
 ## Accessibility & Inclusion

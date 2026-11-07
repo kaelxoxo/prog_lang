@@ -24,7 +24,7 @@ type AccountRow = {
   id: string;
   email: string;
   display_name: string;
-  care_setup: 'self' | 'family' | 'professional' | null;
+  care_setup: 'self' | 'family' | null;
 };
 
 type PatientRow = {
@@ -85,7 +85,7 @@ type ScheduleRow = {
 
 type CareCircleMemberRow = {
   account_id: string;
-  email: string;
+  email: string | null;
   display_name: string;
   role: 'owner' | 'caregiver';
   can_manage_medications: boolean;
@@ -788,7 +788,7 @@ export function createAppServer(
         const careSetup = body && typeof body === 'object' && 'careSetup' in body
           ? body.careSetup
           : undefined;
-        if (careSetup !== 'self' && careSetup !== 'family' && careSetup !== 'professional') {
+        if (careSetup !== 'self' && careSetup !== 'family') {
           throw new HttpError(400, 'Choose a valid Care Setup.');
         }
         const account = await inAuthenticatedTransaction(pool, request, async (client) => {
@@ -1284,8 +1284,6 @@ export function createAppServer(
         const body = await readJson(request);
         const input = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
         const queryText = textField(input.query, 'Assistant query', 500);
-        const rawLocale = input.locale;
-        const locale = rawLocale === 'fil' ? 'fil' : 'en';
         const currentLocalTime = typeof input.currentLocalTime === 'string' ? input.currentLocalTime : undefined;
         let todayDate = typeof input.todayDate === 'string' && input.todayDate ? validatedLocalDate(input.todayDate) : undefined;
 
@@ -1354,7 +1352,6 @@ export function createAppServer(
 
           return queryAssistant({
             query: queryText,
-            locale,
             currentLocalTime,
             todayDate,
             patient: {

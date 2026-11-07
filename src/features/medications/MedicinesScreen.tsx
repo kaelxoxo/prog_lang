@@ -1,108 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Animated,
-  type GestureResponderEvent,
-  Pressable,
-  type PressableProps,
-  ScrollView,
-  type StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppIcon } from '../../components/AppIcon';
-import { radii, spacing, type AppColors } from '../../theme/tokens';
+import { PressableScale } from '../../components/PressableScale';
+import { radii, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { SyncNotice } from '../../components/SyncNotice';
 import { useAuth } from '../auth/AuthProvider';
 import { InvitationInbox } from '../invitations/InvitationInbox';
 import { CareHeader } from '../patients/CareHeader';
 import { CreatePatientModal } from '../patients/CreatePatientModal';
-import { PatientSwitcher } from '../patients/PatientSwitcher';
+import { PatientChips } from '../patients/PatientChips';
 import { usePatient } from '../patients/PatientProvider';
-import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { useLocale } from '../settings/LocaleProvider';
 import { MedicationSection } from './MedicationSection';
-
-/** Emil Kowalski scale: 0.98 spring pressable with reduced-motion awareness */
-type PressableScaleProps = PressableProps & {
-  children: React.ReactNode;
-  targetScale?: number;
-  containerStyle?: StyleProp<ViewStyle>;
-};
-
-function PressableScale({
-  children,
-  targetScale = 0.98,
-  style,
-  onPressIn,
-  onPressOut,
-  disabled,
-  ...rest
-}: PressableScaleProps) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const reduceMotion = useRef(false);
-
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      reduceMotion.current = enabled;
-    });
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
-      reduceMotion.current = enabled;
-    });
-    return () => sub.remove();
-  }, []);
-
-  const handlePressIn = (event: GestureResponderEvent) => {
-    if (!disabled && !reduceMotion.current) {
-      Animated.spring(scale, {
-        toValue: targetScale,
-        friction: 7,
-        tension: 140,
-        useNativeDriver: true,
-      }).start();
-    }
-    onPressIn?.(event);
-  };
-
-  const handlePressOut = (event: GestureResponderEvent) => {
-    if (!disabled && !reduceMotion.current) {
-      Animated.spring(scale, {
-        toValue: 1,
-        friction: 7,
-        tension: 140,
-        useNativeDriver: true,
-      }).start();
-    }
-    onPressOut?.(event);
-  };
-
-  return (
-    <Pressable
-      disabled={disabled}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      style={style}
-      {...rest}
-    >
-      <Animated.View style={{ transform: [{ scale }] }}>
-        {children}
-      </Animated.View>
-    </Pressable>
-  );
-}
 
 export function MedicinesScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
-  const [isSwitcherVisible, setSwitcherVisible] = useState(false);
   const [isCreatorVisible, setCreatorVisible] = useState(false);
   const { session, signOut } = useAuth();
-  const { activePatient, createPatient, dataUpdatedAt, error, isCreating, isLoading, patients, retry, selectPatient } = usePatient();
-  const { showSelector } = usePatientDisplay(activePatient);
+  const { activePatient, createPatient, dataUpdatedAt, error, isCreating, isLoading, retry } = usePatient();
 
   if (isLoading) {
     return (
@@ -152,9 +70,7 @@ export function MedicinesScreen({ onOpenSettings }: { onOpenSettings: () => void
             </View>
             <InvitationInbox />
             <View style={styles.emptyCard}>
-              <View style={styles.emptyIcon}>
-                <AppIcon color={colors.ink} name="user-round-plus" size={25} />
-              </View>
+              <AppIcon color={colors.primary} name="user-round-plus" size={28} />
               <Text style={styles.emptyEyebrow}>{t('today.firstSpace')}</Text>
               <Text accessibilityRole="header" style={styles.emptyTitle}>{t('today.who')}</Text>
               <Text style={styles.emptyBody}>{t('today.emptyBody')}</Text>
@@ -173,51 +89,42 @@ export function MedicinesScreen({ onOpenSettings }: { onOpenSettings: () => void
   }
 
   return (
-    <>
-      <ScrollView
-        contentContainerStyle={styles.screen}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.contentColumn}>
-          <CareHeader
-            accountName={session?.displayName}
-            onChangePerson={() => setSwitcherVisible(true)}
-            onOpenSettings={onOpenSettings}
-            patient={activePatient}
-          />
-          <SyncNotice error={error} onRetry={retry} updatedAt={dataUpdatedAt} />
-          <MedicationSection patient={activePatient} />
+    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+      <View style={styles.contentColumn}>
+        <View style={styles.header}>
+          <CareHeader accountName={session?.displayName} onOpenSettings={onOpenSettings} />
+          <PatientChips />
         </View>
-      </ScrollView>
-      {showSelector ? <PatientSwitcher activePatientId={activePatient.id} onAddPerson={() => setCreatorVisible(true)} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} /> : null}
-      <CreatePatientModal isCreating={isCreating} onClose={() => setCreatorVisible(false)} onCreate={createPatient} visible={isCreatorVisible} />
-    </>
+        <SyncNotice error={error} onRetry={retry} updatedAt={dataUpdatedAt} />
+        <MedicationSection patient={activePatient} />
+      </View>
+    </ScrollView>
   );
 }
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   screen: { flexGrow: 1, paddingBottom: 110, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.canvas },
   contentColumn: { width: '100%', maxWidth: 760, alignSelf: 'center', gap: spacing.lg },
+  header: { gap: spacing.md },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brand: { color: colors.ink, fontSize: 26, fontWeight: '900', letterSpacing: -0.8 },
-  greeting: { marginTop: 2, color: colors.muted, fontSize: 14 },
+  brand: { ...typography.hero, color: colors.ink },
+  greeting: { ...typography.body, marginTop: 2, color: colors.muted },
   buttonContentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   exitButton: { minHeight: 48, justifyContent: 'center', borderRadius: radii.sm, paddingHorizontal: spacing.sm },
-  exitLabel: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+  exitLabel: { ...typography.bodyEmphasis, color: colors.muted },
   stateScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl, backgroundColor: colors.canvas },
-  stateTitle: { maxWidth: 420, color: colors.ink, fontSize: 24, fontWeight: '900', textAlign: 'center' },
-  stateBody: { maxWidth: 420, color: colors.muted, fontSize: 15, lineHeight: 22, textAlign: 'center' },
-  statePrimaryButton: { minHeight: 52, minWidth: 180, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.ink, paddingHorizontal: spacing.lg },
-  statePrimaryLabel: { color: colors.white, fontSize: 16, fontWeight: '800' },
+  stateTitle: { ...typography.title1, maxWidth: 420, color: colors.ink, textAlign: 'center' },
+  stateBody: { ...typography.body, maxWidth: 420, color: colors.muted, textAlign: 'center' },
+  statePrimaryButton: { minHeight: 52, minWidth: 180, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.primary, paddingHorizontal: spacing.lg },
+  statePrimaryLabel: { ...typography.headline, color: colors.white },
   stateSecondaryButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.lg },
-  stateSecondaryLabel: { color: colors.primaryDark, fontSize: 15, fontWeight: '700' },
+  stateSecondaryLabel: { ...typography.bodyEmphasis, color: colors.primaryDark, fontWeight: '700' },
   emptyScreen: { flexGrow: 1, padding: 20, backgroundColor: colors.canvas },
   emptyColumn: { width: '100%', maxWidth: 640, flex: 1, alignSelf: 'center', gap: spacing.xl },
-  emptyCard: { flex: 1, justifyContent: 'center', gap: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: radii.lg, backgroundColor: colors.white, padding: spacing.xl },
-  emptyIcon: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 26, backgroundColor: colors.sun },
-  emptyEyebrow: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
-  emptyTitle: { maxWidth: 420, color: colors.ink, fontSize: 30, fontWeight: '900', lineHeight: 37 },
-  emptyBody: { maxWidth: 440, color: colors.muted, fontSize: 16, lineHeight: 24 },
-  emptyButton: { minHeight: 54, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.ink, marginTop: spacing.sm, paddingHorizontal: spacing.lg },
-  emptyButtonLabel: { color: colors.white, fontSize: 17, fontWeight: '800' },
+  emptyCard: { flex: 1, justifyContent: 'center', gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingVertical: spacing.lg },
+  emptyEyebrow: { ...typography.caption, color: colors.muted },
+  emptyTitle: { ...typography.hero, maxWidth: 420, color: colors.ink },
+  emptyBody: { ...typography.body, maxWidth: 440, color: colors.muted, fontSize: 16, lineHeight: 24 },
+  emptyButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.primary, marginTop: spacing.sm, paddingHorizontal: spacing.lg },
+  emptyButtonLabel: { ...typography.headline, color: colors.white },
 });
