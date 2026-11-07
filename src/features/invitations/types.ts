@@ -10,7 +10,8 @@ export type IncomingInvitation = {
 
 export type CareCircleMember = {
   accountId: string;
-  email: string;
+  /** Only the Primary care manager sees emails; other members get null. */
+  email: string | null;
   displayName: string;
   role: 'owner' | 'caregiver';
   canManageMedications: boolean;

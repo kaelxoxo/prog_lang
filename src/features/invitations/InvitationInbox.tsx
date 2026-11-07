@@ -1,7 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { AppIcon } from '../../components/AppIcon';
+import { PressableScale } from '../../components/PressableScale';
 import { apiRequest, errorMessage } from '../../lib/api';
 import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
@@ -10,19 +10,25 @@ import { usePatient } from '../patients/PatientProvider';
 import { useLocale } from '../settings/LocaleProvider';
 import type { IncomingInvitation } from './types';
 
-type InvitationListResponse = { invitations: IncomingInvitation[] };
 type InvitationAction = { invitation: IncomingInvitation; action: 'accept' | 'decline' };
 
+/** Invitations waiting for the signed-in account; shared by the inbox and the Family tab's dot. */
+export function useIncomingInvitations() {
+  const { token } = useAuth();
+  return useQuery({
+    queryKey: ['invitations'],
+    queryFn: () => apiRequest<{ invitations: IncomingInvitation[] }>('/invitations', { token }),
+  });
+}
+
+/** "Invitations for you": renders nothing while there are none. */
 export function InvitationInbox() {
-  const { colors, styles } = useThemedStyles(createStyles);
+  const { styles } = useThemedStyles(createStyles);
   const { token } = useAuth();
   const { selectPatient } = usePatient();
   const { t } = useLocale();
   const queryClient = useQueryClient();
-  const query = useQuery({
-    queryKey: ['invitations'],
-    queryFn: () => apiRequest<InvitationListResponse>('/invitations', { token }),
-  });
+  const query = useIncomingInvitations();
   const mutation = useMutation({
     mutationFn: ({ invitation, action }: InvitationAction) =>
       apiRequest<{ patientId: string }>(`/invitations/${invitation.id}/${action}`, { method: 'POST', token }),
@@ -39,81 +45,60 @@ export function InvitationInbox() {
     return null;
   }
 
-  if (query.error) {
+  if (query.error && !query.data) {
     return (
-      <View accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.errorBox}>
-        <View style={styles.errorHeader}>
-          <AppIcon color={colors.error} name="alert-circle" size={18} />
-          <Text style={styles.errorText}>
-            Care-circle invitations could not load. {errorMessage(query.error)}
-          </Text>
-        </View>
-        <Pressable
-          accessibilityLabel={t('app.retry')}
-          accessibilityRole="button"
-          onPress={() => void query.refetch()}
-          style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
-        >
-          <Text style={styles.retryLabel}>{t('app.retry')}</Text>
-        </Pressable>
+      <View accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.section}>
+        <Text style={styles.error}>{t('family.invitationsError', { error: errorMessage(query.error) })}</Text>
+        <PressableScale accessibilityRole="button" onPress={() => void query.refetch()} style={styles.textAction}>
+          <Text style={styles.textActionLabel}>{t('app.retry')}</Text>
+        </PressableScale>
       </View>
     );
   }
 
   return (
     <View style={styles.section}>
-      <View style={styles.header}>
-        <AppIcon color={colors.primary} name="mail" size={18} />
-        <Text style={styles.eyebrow}>Care-circle invitation</Text>
-      </View>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>{t('family.invitationsTitle')}</Text>
       {query.data?.invitations.map((invitation) => {
         const busy = mutation.isPending && mutation.variables?.invitation.id === invitation.id;
         return (
-          <View key={invitation.id} style={styles.invitation}>
-            <View style={styles.copy}>
-              <Text accessibilityRole="header" style={styles.title}>{invitation.patientName}</Text>
-              <Text style={styles.body}>
-                {invitation.invitedByName} invited you to help keep this care log up to date.
-              </Text>
-              <View style={styles.permissionRow}>
-                <AppIcon color={colors.inkLine} name="shield-check" size={14} />
-                <Text style={styles.permission}>
-                  {invitation.canManageMedications
-                    ? 'You can record care and manage medicines.'
-                    : 'You can view medicines and record care.'}
-                </Text>
-              </View>
-            </View>
+          <View key={invitation.id} style={styles.row}>
+            <Text style={styles.name}>{t('family.title', { patient: invitation.patientName })}</Text>
+            <Text style={styles.body}>
+              {t('family.invitationBody', { name: invitation.invitedByName, patient: invitation.patientName })}
+            </Text>
+            <Text style={styles.detail}>
+              {t(invitation.canManageMedications ? 'family.invitationAsMedicineManager' : 'family.invitationAsCaregiver')}
+            </Text>
             <View style={styles.actions}>
-              <Pressable
-                accessibilityLabel={`Join ${invitation.patientName}'s care circle`}
+              <PressableScale
+                accessibilityLabel={t('family.joinA11y', { patient: invitation.patientName })}
                 accessibilityRole="button"
+                accessibilityState={{ busy, disabled: busy }}
                 disabled={busy}
                 onPress={() => mutation.mutate({ invitation, action: 'accept' })}
-                style={({ pressed }) => [styles.accept, pressed && styles.pressed, busy && styles.disabled]}
+                style={[styles.join, busy && styles.disabled]}
               >
-                <AppIcon color={colors.white} name="check" size={16} />
-                <Text style={styles.acceptLabel}>{busy ? 'Saving…' : 'Join care circle'}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel={`Decline invitation to ${invitation.patientName}'s care circle`}
+                <Text style={styles.joinLabel}>{busy ? t('family.saving') : t('family.join')}</Text>
+              </PressableScale>
+              <PressableScale
+                accessibilityLabel={t('family.declineA11y', { patient: invitation.patientName })}
                 accessibilityRole="button"
+                accessibilityState={{ disabled: busy }}
                 disabled={busy}
                 onPress={() => mutation.mutate({ invitation, action: 'decline' })}
-                style={({ pressed }) => [styles.decline, pressed && styles.pressed, busy && styles.disabled]}
+                style={[styles.textAction, busy && styles.disabled]}
               >
-                <AppIcon color={colors.ink} name="x" size={15} />
-                <Text style={styles.declineLabel}>Decline</Text>
-              </Pressable>
+                <Text style={styles.textActionLabel}>{t('family.decline')}</Text>
+              </PressableScale>
             </View>
           </View>
         );
       })}
       {mutation.error ? (
-        <View accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.mutationErrorRow}>
-          <AppIcon color={colors.error} name="alert-circle" size={16} />
-          <Text style={styles.mutationError}>{errorMessage(mutation.error)}</Text>
-        </View>
+        <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.error}>
+          {errorMessage(mutation.error)}
+        </Text>
       ) : null}
     </View>
   );
@@ -121,130 +106,66 @@ export function InvitationInbox() {
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   section: {
-    gap: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    paddingTop: spacing.lg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  eyebrow: {
-    ...typography.caption,
-    color: colors.muted,
-  },
-  invitation: {
-    gap: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.line,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
   },
-  copy: {
-    gap: spacing.xs,
-  },
-  title: {
+  sectionTitle: {
     ...sectionTitle,
+    color: colors.ink,
+    paddingVertical: spacing.xs,
+  },
+  row: {
+    gap: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
+    paddingVertical: spacing.sm,
+  },
+  name: {
+    ...typography.bodyEmphasis,
     color: colors.ink,
   },
   body: {
     ...typography.body,
-    maxWidth: 560,
     color: colors.ink,
   },
-  permissionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: spacing.xs,
-  },
-  permission: {
+  detail: {
     ...typography.caption,
-    flexShrink: 1,
     color: colors.muted,
   },
   actions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.xs,
+    paddingTop: spacing.xs,
   },
-  accept: {
-    minHeight: 52,
-    minWidth: 180,
-    flex: 1,
-    flexDirection: 'row',
+  join: {
+    minHeight: 48,
+    minWidth: 96,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    borderRadius: radii.md,
+    borderRadius: radii.full,
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
   },
-  acceptLabel: {
+  joinLabel: {
     ...typography.bodyEmphasis,
     color: colors.white,
-    fontWeight: '700',
   },
-  decline: {
-    minHeight: 52,
-    minWidth: 100,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.ink,
-    paddingHorizontal: spacing.md,
-  },
-  declineLabel: {
-    ...typography.bodyEmphasis,
-    color: colors.ink,
-    fontWeight: '700',
-  },
-  errorBox: {
-    gap: spacing.sm,
-    borderRadius: radii.md,
-    backgroundColor: colors.errorTint,
-    padding: spacing.md,
-  },
-  errorHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  errorText: {
-    ...typography.body,
-    flex: 1,
-    color: colors.error,
-  },
-  mutationErrorRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.xs,
-  },
-  mutationError: {
-    ...typography.caption,
-    flex: 1,
-    color: colors.error,
-  },
-  retry: {
+  textAction: {
     minHeight: 48,
-    minWidth: 48,
-    alignItems: 'center',
-    alignSelf: 'flex-start',
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
   },
-  retryLabel: {
+  textActionLabel: {
     ...typography.bodyEmphasis,
-    color: colors.error,
-    fontWeight: '700',
+    color: colors.primaryDark,
   },
-  pressed: {
-    opacity: 0.76,
+  error: {
+    ...typography.body,
+    color: colors.error,
+    paddingVertical: spacing.xs,
   },
   disabled: {
     opacity: 0.5,

@@ -24,7 +24,7 @@ type AccountRow = {
   id: string;
   email: string;
   display_name: string;
-  care_setup: 'self' | 'family' | 'professional' | null;
+  care_setup: 'self' | 'family' | null;
 };
 
 type PatientRow = {
@@ -85,7 +85,7 @@ type ScheduleRow = {
 
 type CareCircleMemberRow = {
   account_id: string;
-  email: string;
+  email: string | null;
   display_name: string;
   role: 'owner' | 'caregiver';
   can_manage_medications: boolean;
@@ -788,7 +788,7 @@ export function createAppServer(
         const careSetup = body && typeof body === 'object' && 'careSetup' in body
           ? body.careSetup
           : undefined;
-        if (careSetup !== 'self' && careSetup !== 'family' && careSetup !== 'professional') {
+        if (careSetup !== 'self' && careSetup !== 'family') {
           throw new HttpError(400, 'Choose a valid Care Setup.');
         }
         const account = await inAuthenticatedTransaction(pool, request, async (client) => {

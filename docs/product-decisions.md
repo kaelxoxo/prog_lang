@@ -18,13 +18,12 @@ Photo/OCR experimentation runs on the local Node API with Tesseract.js. Selected
 
 ## First-release audience
 
-Alaga is ultimately intended for three groups:
+Alaga is intended for two groups:
 
 1. A family member caring for a parent or another older adult.
-2. A professional caregiver managing several patients.
-3. A person living independently who wants to track their own medicines.
+2. A person living independently who wants to track their own medicines, optionally sharing the care log with family.
 
-Any future real release would prioritize a family member caring for their parents. The data model and product language should still support all three groups from the beginning, without forcing professional workflow complexity into the primary family experience.
+Any future real release would prioritize a family member caring for their parents. On 2026-11-07, the owner removed the third group, professional caregivers, and the "Caring professionally" Care Setup; a family caring for several people is still supported by the person chips and "All people" picker.
 
 ## Language
 
@@ -75,7 +74,7 @@ The local prototype does not send invitation email and account emails are not ye
 
 ## Care Setup onboarding
 
-Approved 2026-09-28. After sign-in, an account with no recorded Care Setup and no Care Circle membership sees a post-signup onboarding (separate from the pre-auth welcome slideshow). Pending invitations for the account's email are detected automatically and shown first; otherwise the account chooses Caring for myself, Caring for family, Caring professionally, or Waiting for an invite (which shows the exact email to share with the Owner). "I'll decide later" skips it until the next sign-in. The Care Setup is recorded when its path creates the first profile, or when an invited account picks Family or Professional after accepting. It shapes the shell but never permissions (`docs/adr/0002-care-setup-shapes-shell.md`); self-tracking uses a marked Self Profile (`docs/adr/0001-self-profile-marker.md`).
+Approved 2026-09-28; amended 2026-11-07. After sign-in, an account with no recorded Care Setup and no Care Circle membership sees a post-signup onboarding (separate from the pre-auth welcome slideshow). Pending invitations for the account's email are detected automatically and shown first; otherwise the account chooses Caring for myself, Caring for family, or Waiting for an invite (which shows the exact email to share with the Owner). "I'll decide later" skips it until the next sign-in. The Care Setup is recorded when its path creates the first profile, or as Caring for family when an invited account accepts an invitation (the flow then goes straight to Home). The "Caring professionally" option and the follow-up screen that asked invited accounts to pick Family or Professional were removed on 2026-11-07. It shapes the shell but never permissions (`docs/adr/0002-care-setup-shapes-shell.md`); self-tracking uses a marked Self Profile (`docs/adr/0001-self-profile-marker.md`).
 
 ## Task-first UI reference pass
 

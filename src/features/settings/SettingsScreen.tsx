@@ -5,8 +5,6 @@ import { AppIcon } from '../../components/AppIcon';
 import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth, type CareSetup } from '../auth/AuthProvider';
-import { CareCircleSection } from '../invitations/CareCircleSection';
-import { usePatient } from '../patients/PatientProvider';
 import { ReminderSettings } from '../reminders/ReminderSettings';
 import { useLocale } from './LocaleProvider';
 
@@ -21,11 +19,8 @@ export function SettingsScreen({ accountName, onBack, onOpenWelcomeStory, onSign
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
   const { session, setCareSetup } = useAuth();
-  const { patients } = usePatient();
-  const selfProfile = patients.find((patient) => patient.isSelf);
   const [setupSaving, setSetupSaving] = useState(false);
   const [setupError, setSetupError] = useState(false);
-  const [sharingVisible, setSharingVisible] = useState(false);
   const chooseSetup = async (setup: CareSetup) => {
     if (setupSaving || setup === session?.careSetup) return;
     setSetupSaving(true);
@@ -55,7 +50,7 @@ export function SettingsScreen({ accountName, onBack, onOpenWelcomeStory, onSign
             <Text style={styles.body}>{t('settings.careSetupCurrent', { setup: session?.careSetup ? t(`settings.careSetup.${session.careSetup}`) : t('settings.careSetupNotChosen') })}</Text>
           </View>
           <View accessibilityRole="radiogroup" style={styles.options}>
-            {(['self', 'family', 'professional'] as const).map((setup) => {
+            {(['self', 'family'] as const).map((setup) => {
               const selected = session?.careSetup === setup;
               return (
                 <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected, disabled: setupSaving }} disabled={setupSaving} key={setup} onPress={() => void chooseSetup(setup)} style={({ pressed }) => [styles.option, selected && styles.optionSelected, pressed && styles.pressed]}>
@@ -68,16 +63,6 @@ export function SettingsScreen({ accountName, onBack, onOpenWelcomeStory, onSign
           {setupSaving ? <Text accessibilityLiveRegion="polite" style={styles.saved}>{t('settings.careSetupSaving')}</Text> : null}
           {setupError ? <Text accessibilityLiveRegion="assertive" style={styles.error}>{t('settings.careSetupError')}</Text> : null}
         </View>
-
-        {session?.careSetup === 'self' && selfProfile ? (
-          <View style={styles.section}>
-            <Pressable accessibilityRole="button" accessibilityState={{ expanded: sharingVisible }} onPress={() => setSharingVisible((value) => !value)} style={({ pressed }) => [styles.option, pressed && styles.pressed]}>
-              <AppIcon color={colors.primaryDark} name="users" size={18} />
-              <Text style={styles.optionLabel}>{t('settings.shareWithFamily')}</Text>
-            </Pressable>
-            {sharingVisible ? <CareCircleSection patient={selfProfile} /> : null}
-          </View>
-        ) : null}
 
         <ReminderSettings />
 

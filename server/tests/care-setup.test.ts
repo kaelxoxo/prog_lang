@@ -16,7 +16,7 @@ type Account = {
   id: string;
   email: string;
   displayName: string;
-  careSetup: 'self' | 'family' | 'professional' | null;
+  careSetup: 'self' | 'family' | null;
 };
 type AuthResult = { token: string; account: Account };
 type Patient = { id: string; displayName: string; isSelf: boolean };
@@ -79,6 +79,16 @@ test('Care Setup persists independently of Self Profile and membership', async (
       method: 'PUT', token: owner.body.token, body: { careSetup: 'owner' },
     });
     assert.equal(invalid.status, 400);
+    const professional = await api<{ error: string }>('/account/care-setup', {
+      method: 'PUT', token: owner.body.token, body: { careSetup: 'professional' },
+    });
+    assert.equal(professional.status, 400);
+    await assert.rejects(
+      admin.query("UPDATE alaga_private.accounts SET care_setup = 'professional' WHERE id = $1", [
+        owner.body.account.id,
+      ]),
+      (error: unknown) => (error as { code?: string }).code === '23514',
+    );
     const unset = await api<{ account: Account }>('/auth/session', { token: owner.body.token });
     assert.equal(unset.body.account.careSetup, null);
 

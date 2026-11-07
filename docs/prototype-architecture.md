@@ -32,7 +32,7 @@ The compact patient identity selector is the primary context control. The select
 
 The PostgreSQL boundary currently contains:
 
-- private `accounts` and hashed `auth_sessions`; accounts record a nullable Care Setup (`self`, `family`, `professional`) that shapes presentation, never permissions
+- private `accounts` and hashed `auth_sessions`; accounts record a nullable Care Setup (`self`, `family`) that shapes presentation, never permissions
 - `patients`, with an optional `self_account_id` marker for the Owner's Self Profile (at most one active Self Profile per account)
 - `patient_members`
 - `medications`

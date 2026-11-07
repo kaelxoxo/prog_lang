@@ -12,7 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ApiError, apiRequest, errorMessage } from '../../lib/api';
 import { clearSessionToken, readSessionToken, saveSessionToken } from './sessionStorage';
 
-export type CareSetup = 'self' | 'family' | 'professional';
+export type CareSetup = 'self' | 'family';
 
 export type Account = {
   id: string;

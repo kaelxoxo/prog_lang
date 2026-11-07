@@ -9,7 +9,6 @@ export type SetupBantayPose =
   | 'letter'
   | 'self'
   | 'family'
-  | 'professional'
   | 'waiting'
   | 'writing'
   | 'sending'
@@ -30,14 +29,13 @@ const ochre = colors.sun;
 const ease = Easing.bezier(0.23, 1, 0.32, 1);
 
 const faces: Record<SetupBantayPose, BantayExpression> = {
-  letter: 'idle', self: 'idle', family: 'idle', professional: 'idle',
+  letter: 'idle', self: 'idle', family: 'idle',
   waiting: 'thinking', writing: 'idle', sending: 'idle', stamp: 'celebration',
 };
 
 /** Pose arms drawn in the canonical 120×120 Bantay space; paws sit over the separate prop layers. */
 const PoseArms = memo(function PoseArms({ pose }: { pose: SetupBantayPose }) {
   const family = pose === 'family';
-  const salute = pose === 'professional';
   const chest = pose === 'self';
   return (
     <G>
@@ -50,13 +48,13 @@ const PoseArms = memo(function PoseArms({ pose }: { pose: SetupBantayPose }) {
       />
       <Ellipse cx={family ? 41 : chest ? 56 : 49} cy={family ? 64 : chest ? 82 : 91} rx="5" ry="4" fill={muzzle} stroke={ink} strokeWidth="1.1" />
       <Path
-        d={salute ? 'M79 73 Q88 61 77 25 L71 30 Q80 60 69 76 Z' : family ? 'M80 74 Q87 67 81 62 L74 68 Q76 74 72 80 Z' : 'M80 74 Q85 86 75 94 L69 89 Q76 80 72 74 Z'}
+        d={family ? 'M80 74 Q87 67 81 62 L74 68 Q76 74 72 80 Z' : 'M80 74 Q85 86 75 94 L69 89 Q76 80 72 74 Z'}
         fill={coat}
         stroke={ink}
         strokeLinejoin="round"
         strokeWidth="1.3"
       />
-      <Ellipse cx={salute ? 76 : family ? 79 : 72} cy={salute ? 27 : family ? 64 : 91} rx="5" ry="4" fill={muzzle} stroke={ink} strokeWidth="1.1" />
+      <Ellipse cx={family ? 79 : 72} cy={family ? 64 : 91} rx="5" ry="4" fill={muzzle} stroke={ink} strokeWidth="1.1" />
     </G>
   );
 });
@@ -82,8 +80,6 @@ const Prop = memo(function Prop({ pose }: { pose: SetupBantayPose }) {
       return <Svg width="100%" height="100%" viewBox="0 0 40 23"><Rect x="1" y="2" width="38" height="19" rx="4" fill={mint} stroke={outline} strokeWidth="1.5" />{[0, 1, 2, 3, 4, 5, 6].map((i) => <G key={i}><Path d={`M${6 + i * 5} 3 V20`} stroke={colors.primaryBorder} strokeWidth="1" /><Circle cx={8 + i * 5} cy="11" r="1" fill={ochre} /></G>)}</Svg>;
     case 'family':
       return <Svg width="100%" height="100%" viewBox="0 0 37 39"><Path d="M3 16 L18 2 L34 16 V35 H3 Z" fill={mint} stroke={outline} strokeWidth="2" strokeLinejoin="round" /><Path d="M18 30 C12 25 8 22 10 18 C12 15 16 16 18 19 C21 15 26 15 28 19 C30 23 25 27 18 30 Z" fill={ochre} /></Svg>;
-    case 'professional':
-      return <Svg width="100%" height="100%" viewBox="0 0 30 42"><Rect x="3" y="3" width="24" height="37" rx="3" fill={mint} stroke={outline} strokeWidth="2" /><Rect x="10" y="1" width="10" height="4" rx="2" fill={colors.secondary} /><Path d="M8 13 H22 M8 19 H22 M8 25 H18" stroke={colors.secondary} strokeWidth="1.5" strokeLinecap="round" /></Svg>;
     case 'waiting':
       return <Svg width="100%" height="100%" viewBox="0 0 39 48"><Path d="M4 19 Q4 4 19 4 Q35 4 35 19 V32 H4 Z" fill={mint} stroke={outline} strokeWidth="2" /><Path d="M9 16 H30 M19 33 V46 M10 46 H28" stroke={outline} strokeWidth="2" strokeLinecap="round" /><Path d="M34 21 H38 V12" fill="none" stroke={ochre} strokeWidth="2.5" strokeLinecap="round" /></Svg>;
     case 'writing':
@@ -119,7 +115,6 @@ const placements: Record<SetupBantayPose, Placement> = {
   letter: { x: 47, y: 73, width: 32, height: 25 },
   self: { x: 71, y: 72, width: 38, height: 23 },
   family: { x: 43, y: 58, width: 35, height: 37 },
-  professional: { x: 25, y: 70, width: 28, height: 40 },
   waiting: { x: 106, y: 62, width: 37, height: 46 },
   writing: { x: 52, y: 74, width: 36, height: 29 },
   sending: { x: 74, y: 61, width: 26, height: 22 },

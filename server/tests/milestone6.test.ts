@@ -158,10 +158,36 @@ test('Milestone 6 invitation acceptance, care-circle authorization, and revocati
     assert.equal(careCircle.body.members[1]?.email, caregiverEmail);
     assert.deepEqual(careCircle.body.invitations, []);
 
-    const hiddenCircle = await api<{ error: string }>(`/patients/${patientId}/care-circle`, {
-      token: caregiver.body.token,
+    const pendingInvite = await api<{ invitation: { id: string } }>(`/patients/${patientId}/invitations`, {
+      method: 'POST',
+      token: owner.body.token,
+      body: { email: `pending-${suffix}@example.test`, canManageMedications: false },
     });
-    assert.equal(hiddenCircle.status, 403);
+    assert.equal(pendingInvite.status, 201);
+    const ownerWithPending = await api<{ invitations: Array<{ id: string }> }>(
+      `/patients/${patientId}/care-circle`,
+      { token: owner.body.token },
+    );
+    assert.deepEqual(ownerWithPending.body.invitations.map(({ id }) => id), [pendingInvite.body.invitation.id]);
+
+    const memberCircle = await api<{
+      members: Array<{ accountId: string; email: string | null; displayName: string; role: string }>;
+      invitations: unknown[];
+    }>(`/patients/${patientId}/care-circle`, { token: caregiver.body.token });
+    assert.equal(memberCircle.status, 200);
+    assert.deepEqual(
+      memberCircle.body.members.map(({ accountId, email, displayName, role }) => ({ accountId, email, displayName, role })),
+      [
+        { accountId: owner.body.account.id, email: null, displayName: 'Invitation Owner', role: 'owner' },
+        { accountId: caregiver.body.account.id, email: null, displayName: 'Invitation Caregiver', role: 'caregiver' },
+      ],
+    );
+    assert.deepEqual(memberCircle.body.invitations, []);
+
+    const outsiderCircle = await api<{ error: string }>(`/patients/${patientId}/care-circle`, {
+      token: outsider.body.token,
+    });
+    assert.equal(outsiderCircle.status, 403);
 
     const caregiverCannotInvite = await api<{ error: string }>(`/patients/${patientId}/invitations`, {
       method: 'POST',
@@ -179,6 +205,10 @@ test('Milestone 6 invitation acceptance, care-circle authorization, and revocati
       token: caregiver.body.token,
     });
     assert.deepEqual(caregiverAfterRevocation.body.patients, []);
+    const revokedCircle = await api<{ error: string }>(`/patients/${patientId}/care-circle`, {
+      token: caregiver.body.token,
+    });
+    assert.equal(revokedCircle.status, 403);
 
     const declinedInvite = await api<{ invitation: { id: string } }>(
       `/patients/${patientId}/invitations`,

@@ -11,7 +11,9 @@ import { radii, sectionTitle, spacing, typography, type AppColors } from '../../
 import { useThemedStyles } from '../../theme/useTheme';
 import { AskBantayBottomSheet } from '../assistant/AskBantayBottomSheet';
 import { useAuth } from '../auth/AuthProvider';
+import { FamilyScreen } from '../family/FamilyScreen';
 import { HomeScreen } from '../home/HomeScreen';
+import { useIncomingInvitations } from '../invitations/InvitationInbox';
 import { MedicationEditorModal } from '../medications/MedicationEditorModal';
 import { MedicationPhotoImport } from '../medications/MedicationPhotoImport';
 import type { Medication, MedicationInput, MedicationOcrDraft } from '../medications/types';
@@ -25,7 +27,7 @@ import { TodayScreen } from '../today/TodayScreen';
 import { manilaDate, type TimelineResponse } from '../today/types';
 import { QuickActionDrawer } from './QuickActionDrawer';
 
-type Tab = 'home' | 'today' | 'medicines';
+type Tab = 'home' | 'today' | 'medicines' | 'family';
 type Screen = Tab | 'settings';
 
 function routeFromUrl(value: string): ReminderRoute | null {
@@ -40,26 +42,31 @@ function routeFromUrl(value: string): ReminderRoute | null {
 }
 
 type TabItemProps = {
-  icon: 'house' | 'calendar-days' | 'pill';
+  icon: 'house' | 'calendar-days' | 'pill' | 'users';
   label: string;
+  /** Set while something waits for the account here: a narra dot on the icon, and the label screen readers hear. */
+  badgeLabel?: string;
   onPress: () => void;
   selected: boolean;
 };
 
-function TabItem({ icon, label, onPress, selected }: TabItemProps) {
+function TabItem({ badgeLabel, icon, label, onPress, selected }: TabItemProps) {
   const { colors, styles } = useThemedStyles(createStyles);
   const tint = selected ? colors.primary : colors.muted;
 
   return (
     <PressableScale
-      accessibilityLabel={label}
+      accessibilityLabel={badgeLabel ?? label}
       accessibilityRole="tab"
       accessibilityState={{ selected }}
       onPress={onPress}
       containerStyle={styles.tabSlot}
       style={styles.tab}
     >
-      <AppIcon color={tint} name={icon} size={22} />
+      <View>
+        <AppIcon color={tint} name={icon} size={22} />
+        {badgeLabel ? <View style={styles.tabBadge} /> : null}
+      </View>
       <Text numberOfLines={1} style={[styles.tabLabel, selected && styles.tabLabelSelected, { color: tint }]}>
         {label}
       </Text>
@@ -91,6 +98,7 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
   const settingsOrigin = useRef<Tab>('home');
   const insets = useSafeAreaInsets();
   const { activePatient, patients, selectPatient } = usePatient();
+  const hasInvitations = Boolean(useIncomingInvitations().data?.invitations.length);
   const now = useCurrentTime();
   const date = manilaDate(now);
 
@@ -153,7 +161,7 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
       setTab('today');
       setPendingRoute(null);
     } else if (!pendingRoute && previousPatientId.current && previousPatientId.current !== activePatient?.id) {
-      setTab('home');
+      // The chips switch person in place on every tab; only per-person transient state resets.
       setFocusedOccurrenceId(null);
       setAssistantVisible(false);
       setIsQuickDrawerVisible(false);
@@ -221,7 +229,9 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
             ? <TodayScreen focusedOccurrenceId={focusedOccurrenceId} onOpenMedicines={() => setTab('medicines')} onOpenSettings={openSettings} />
             : tab === 'medicines'
               ? <MedicinesScreen onOpenSettings={openSettings} />
-              : <SettingsScreen accountName={session?.displayName} onBack={() => setTab(settingsOrigin.current)} onOpenWelcomeStory={onOpenWelcomeStory} onSignOut={() => void signOut()} />}
+              : tab === 'family'
+                ? <FamilyScreen onOpenSettings={openSettings} />
+                : <SettingsScreen accountName={session?.displayName} onBack={() => setTab(settingsOrigin.current)} onOpenWelcomeStory={onOpenWelcomeStory} onSignOut={() => void signOut()} />}
       </View>
 
       {tab !== 'settings' ? (
@@ -230,6 +240,13 @@ export function MainTabs({ onOpenWelcomeStory, initialAction }: Props = {}) {
             <TabItem icon="house" label={t('nav.home')} onPress={() => setTab('home')} selected={tab === 'home'} />
             <TabItem icon="calendar-days" label={t('nav.today')} onPress={() => setTab('today')} selected={tab === 'today'} />
             <TabItem icon="pill" label={t('nav.medicines')} onPress={() => setTab('medicines')} selected={tab === 'medicines'} />
+            <TabItem
+              badgeLabel={hasInvitations ? t('nav.familyInvitations') : undefined}
+              icon="users"
+              label={t('nav.family')}
+              onPress={() => setTab('family')}
+              selected={tab === 'family'}
+            />
           </View>
           <PressableScale
             accessibilityHint={t('nav.quickActionsHint')}
@@ -380,7 +397,9 @@ const createStyles = (colors: AppColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
-      paddingHorizontal: spacing.md,
+      // Four tabs and the + button share the row; on a 360dp phone each tab keeps about 70dp.
+      paddingLeft: spacing.xs,
+      paddingRight: spacing.md,
       paddingTop: spacing.xs,
       backgroundColor: colors.canvas,
       borderTopWidth: StyleSheet.hairlineWidth,
@@ -415,6 +434,18 @@ const createStyles = (colors: AppColors) =>
       marginTop: 2,
     },
     tabMarkerSelected: {
+      backgroundColor: colors.primary,
+    },
+    // Invitations waiting for the account; the tab's accessibility label says so too.
+    tabBadge: {
+      position: 'absolute',
+      top: -2,
+      right: -4,
+      width: 9,
+      height: 9,
+      borderRadius: radii.full,
+      borderWidth: 1.5,
+      borderColor: colors.canvas,
       backgroundColor: colors.primary,
     },
     addButton: {

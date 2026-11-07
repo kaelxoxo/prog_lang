@@ -102,13 +102,14 @@ Rules:
 - Zero drop shadows.
 - Touch targets at least 48dp; primary buttons at least 52dp tall.
 
-## 5. Home, Today and Medicines
+## 5. Home, Today, Medicines and Family
 
 - **Patient chips** sit at the top of every tab (under the greeting on Home, under the header elsewhere): one chip per Patient in list order, the selected one filled with narra, "All people" when there are more than five, and "+ Add". They are the only way to change person; there is no combined "All" view.
 - **Home hero**: Bantay (full body) greets the caregiver in a speech bubble whose tail points at him: a serif greeting ("Good evening, Maya!") and one short line about the selected Patient's day ("Lola Rosa has **8** doses to record." / "…next dose is at **6:00 PM**." / "…is all set for today! That's 3 days in a row." / "No doses for Lola Rosa today."). Below it, a short "Ask Bantay…" chat box. Keep his words to one line; detail lives in the sections below. No suggested-question chips on Home; the chat keeps its own. When everything is recorded Bantay celebrates once.
 - Below the hero, Home answers "what do I do right now": **Due now** (Not Recorded doses grouped by Time Slot, plus anything within the next two hours), a collapsible **Recorded** line, a collapsible **Later today** row, and **Refill Horizon** rows only when stock runs out within seven days.
 - **Today** shows the whole day under Morning / Afternoon / Evening, Time Slots inside; sections that are entirely Later Today start collapsed.
 - Recording a Later Today dose asks for confirmation (early recording).
+- **Family** is the selected Patient's Care Circle, shown as "family" everywhere on screen. In order: **Invitations for you** (only when there are any; a narra dot on the tab icon is the only other cue), **Recent activity** (last 7 days by day: "Paolo recorded Amlodipine as taken · 8:10 AM", "You" for yourself, corrections included, no snoozes; 10 newest then "Show earlier"), **Members** (Primary care manager / Medicine manager / Caregiver; everyone sees names and roles, only the Primary care manager sees emails, Remove and **Invite someone**), and **Pending invitations** for the Primary care manager. Caring-for-myself accounts get "Share your care log with family" with the invite form.
 
 ## 6. Bantay
 

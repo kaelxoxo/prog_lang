@@ -53,6 +53,8 @@ Status values:
 | 30 | The mascot pose matches the current screen | Android | fixed | Before: "How will you use Alaga?" kept showing the invitation pose. The reduce-motion setting loading mid-crossfade cancelled the fade, so the new pose was never shown. After: a single crossfade effect, and the family pose shows correctly. |
 | 31 | Keyboard open or 1.5× system text | Android | pass | Bantay switches to the bust framing, and the choice list scrolls with no content clipped. |
 
+On 2026-11-07 the "Caring professionally" path (cases 21 and 23 entered through it) and the invited-role screen (case 29) were removed. Waiting for an invite is now reached only from "How will you use Alaga?", and accepting an invitation records Caring for family and goes straight to Home. These cases were not re-run.
+
 ## Add first medicine
 
 | # | Case | Platform | Status | Evidence |

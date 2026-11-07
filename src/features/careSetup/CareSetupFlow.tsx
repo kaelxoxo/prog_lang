@@ -19,16 +19,15 @@ import { useLocale } from '../settings/LocaleProvider';
 import type { CopyKey } from '../settings/translations';
 
 export type CareSetupFinishTarget = 'home' | 'addMedicine';
-type Step = 'check' | 'invitations' | 'invitedRole' | 'question' | 'self' | 'professionalQuestion' | 'person' | 'invite' | 'waiting' | 'done';
+type Step = 'check' | 'invitations' | 'question' | 'self' | 'person' | 'invite' | 'waiting' | 'done';
 type Choice = CareSetup | 'waiting';
 type InviteInput = { email: string; canManageMedications: boolean };
 
 type Props = { onFinish: (target: CareSetupFinishTarget) => void };
 
-const choiceDetails: Record<Choice, { title: CopyKey; description: CopyKey; icon: 'heart' | 'users' | 'briefcase-business' | 'mail'; pose: SetupBantayPose }> = {
+const choiceDetails: Record<Choice, { title: CopyKey; description: CopyKey; icon: 'heart' | 'users' | 'mail'; pose: SetupBantayPose }> = {
   self: { title: 'setup.self', description: 'setup.selfDesc', icon: 'heart', pose: 'self' },
   family: { title: 'setup.family', description: 'setup.familyDesc', icon: 'users', pose: 'family' },
-  professional: { title: 'setup.professional', description: 'setup.professionalDesc', icon: 'briefcase-business', pose: 'professional' },
   waiting: { title: 'setup.waiting', description: 'setup.waitingDesc', icon: 'mail', pose: 'waiting' },
 };
 
@@ -85,9 +84,7 @@ export function CareSetupFlow({ onFinish }: Props) {
   const { fontScale } = useWindowDimensions();
   const [step, setStep] = useState<Step>('check');
   const [choice, setChoice] = useState<Choice | null>(null);
-  const [roleChoice, setRoleChoice] = useState<'family' | 'professional' | null>(null);
   const [invites, setInvites] = useState<IncomingInvitation[]>([]);
-  const [acceptedName, setAcceptedName] = useState('');
   const [name, setName] = useState(session?.displayName ?? '');
   const [patientId, setPatientId] = useState<string | null>(null);
   const [patientName, setPatientName] = useState('');
@@ -99,7 +96,6 @@ export function CareSetupFlow({ onFinish }: Props) {
   const [reactionKey, setReactionKey] = useState(0);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [waitingFrom, setWaitingFrom] = useState<'question' | 'professionalQuestion'>('question');
   const stage = useRef(new Animated.Value(1)).current;
   const checkedInitialInvites = useRef(false);
 
@@ -149,8 +145,8 @@ export function CareSetupFlow({ onFinish }: Props) {
       if (variables.action === 'accept') {
         selectPatient(result.patientId);
         void queryClient.invalidateQueries({ queryKey: ['patients'] });
-        setAcceptedName(variables.invitation.patientName);
-        setStep('invitedRole');
+        // Joining someone's Care Circle means caring for family; an unsaved setup shows the same shell, so a failed save still finishes.
+        setupMutation.mutate('family', { onSettled: () => onFinish('home') });
       } else if (!remaining.length) setStep('question');
     },
     onError: async (failure, variables) => {
@@ -194,17 +190,14 @@ export function CareSetupFlow({ onFinish }: Props) {
   };
   const goBack = () => {
     if (busy) return;
-    if (step === 'invitations') go('question');
-    else if (step === 'self' || step === 'professionalQuestion') go('question');
-    else if (step === 'person') go(choice === 'professional' ? 'professionalQuestion' : 'question');
-    else if (step === 'waiting') go(waitingFrom);
+    if (step === 'invitations' || step === 'self' || step === 'person' || step === 'waiting') go('question');
   };
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (busy) return true;
       // First screens have nothing behind them: let Android leave the app as usual.
       if (step === 'check' || step === 'question') return false;
-      if (step === 'done' || step === 'invitedRole') onFinish('home');
+      if (step === 'done') onFinish('home');
       else if (step === 'invite') go('done');
       else goBack();
       return true;
@@ -214,15 +207,10 @@ export function CareSetupFlow({ onFinish }: Props) {
 
   const chooseSetup = () => {
     if (!choice || busy) return;
-    if (choice === 'waiting') { setWaitingFrom('question'); go('waiting'); return; }
+    if (choice === 'waiting') { go('waiting'); return; }
     // The Care Setup is saved once its first profile exists, so abandoning mid-path brings the flow back.
     setName(choice === 'self' ? session?.displayName ?? '' : '');
-    go(choice === 'self' ? 'self' : choice === 'professional' ? 'professionalQuestion' : 'person');
-  };
-  const chooseInvitedRole = async () => {
-    if (!roleChoice || busy) return;
-    try { await setupMutation.mutateAsync(roleChoice); onFinish('home'); }
-    catch { /* Mutation error is displayed inline. */ }
+    go(choice === 'self' ? 'self' : 'person');
   };
   const createProfile = async (isSelf: boolean) => {
     if (!choice || choice === 'waiting') return;
@@ -270,29 +258,26 @@ export function CareSetupFlow({ onFinish }: Props) {
   };
 
   const pose: SetupBantayPose = step === 'check' || step === 'invitations' ? 'letter'
-    : step === 'invitedRole' ? roleChoice ?? 'family'
     : step === 'question' ? choice ? choiceDetails[choice].pose : 'family'
     : step === 'self' || step === 'person' ? 'writing'
-    : step === 'professionalQuestion' ? 'professional'
     : step === 'invite' ? 'sending'
     : step === 'waiting' ? 'waiting' : 'stamp';
   const mascotLabels: Record<SetupBantayPose, CopyKey> = {
-    letter: 'setup.mascotLetter', self: 'setup.mascotSelf', family: 'setup.mascotFamily',
-    professional: 'setup.mascotProfessional', waiting: 'setup.mascotWaiting',
+    letter: 'setup.mascotLetter', self: 'setup.mascotSelf', family: 'setup.mascotFamily', waiting: 'setup.mascotWaiting',
     writing: 'setup.mascotWriting', sending: 'setup.mascotSending', stamp: 'setup.mascotStamp',
   };
-  const stepNumber = step === 'check' || step === 'invitations' ? 1 : step === 'question' || step === 'invitedRole' ? 2
-    : step === 'self' || step === 'person' || step === 'professionalQuestion' || step === 'waiting' ? 3 : step === 'invite' ? 4 : 5;
+  const stepNumber = step === 'check' || step === 'invitations' ? 1 : step === 'question' ? 2
+    : step === 'self' || step === 'person' || step === 'waiting' ? 3 : step === 'invite' ? 4 : 5;
   const titleKey: CopyKey = step === 'check' ? invitationsQuery.isError ? 'setup.loadErrorTitle' : 'setup.loadingTitle'
-    : step === 'invitations' ? 'setup.invitationTitle' : step === 'invitedRole' ? 'setup.invitedRoleTitle'
+    : step === 'invitations' ? 'setup.invitationTitle'
     : step === 'question' ? 'setup.questionTitle' : step === 'self' ? 'setup.selfTitle'
-    : step === 'professionalQuestion' ? 'setup.professionalTitle' : step === 'person' ? 'setup.personTitle'
+    : step === 'person' ? 'setup.personTitle'
     : step === 'invite' ? 'setup.inviteTitle' : step === 'waiting' ? 'setup.waitingTitle'
     : choice === 'self' ? 'setup.doneSelfTitle' : 'setup.doneTitle';
   const bodyKey: CopyKey = step === 'check' ? invitationsQuery.isError ? 'setup.loadErrorBody' : 'setup.loadingBody'
-    : step === 'invitations' ? 'setup.invitationBody' : step === 'invitedRole' ? 'setup.invitedRoleBody'
+    : step === 'invitations' ? 'setup.invitationBody'
     : step === 'question' ? 'setup.questionBody' : step === 'self' ? 'setup.selfBody'
-    : step === 'professionalQuestion' ? 'setup.professionalBody' : step === 'person' ? 'setup.personBody'
+    : step === 'person' ? 'setup.personBody'
     : step === 'invite' ? 'setup.inviteBody' : step === 'waiting' ? 'setup.waitingBody'
     : choice === 'self' ? 'setup.doneSelfBody' : 'setup.donePersonBody';
   const errorText = fieldError ? t(fieldError) : actionError ? t(actionError) : mutationError ? errorMessage(mutationError) : null;
@@ -304,7 +289,7 @@ export function CareSetupFlow({ onFinish }: Props) {
         {[1, 2, 3, 4, 5].map((number) => <View key={number} style={[styles.progressTrack, number <= stepNumber && styles.progressFill]} />)}
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        {step !== 'check' && step !== 'done' && step !== 'question' && step !== 'invitedRole' && step !== 'invite' ? (
+        {step !== 'check' && step !== 'done' && step !== 'question' && step !== 'invite' ? (
           <Pressable accessibilityRole="button" accessibilityLabel={t('setup.back')} disabled={busy}
             onPress={goBack} style={styles.back}>
             <AppIcon color={colors.muted} name="arrow-left" size={20} />
@@ -314,7 +299,7 @@ export function CareSetupFlow({ onFinish }: Props) {
         <Animated.View style={{ opacity: stage, transform: [{ translateX: reducedMotion ? 0 : stage.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
           <View style={[styles.mascot, (keyboardOpen || fontScale >= 1.3) && styles.compactMascot]}><SetupBantay pose={pose} size={160} compact={keyboardOpen || fontScale >= 1.3}
             reactionKey={reactionKey} accessibilityLabel={t(mascotLabels[pose])} /></View>
-          <Text accessibilityRole="header" style={styles.title}>{t(titleKey, { patient: acceptedName })}</Text>
+          <Text accessibilityRole="header" style={styles.title}>{t(titleKey)}</Text>
           <Text style={styles.body}>{t(bodyKey, { patient: patientName })}</Text>
 
           {step === 'invitations' ? invites.map((invitation) => (
@@ -334,11 +319,11 @@ export function CareSetupFlow({ onFinish }: Props) {
               </View>
             </View>
           )) : null}
-          {step === 'question' || step === 'invitedRole' ? (
+          {step === 'question' ? (
             <View accessibilityRole="radiogroup" style={styles.choices}>
-              {(step === 'question' ? ['self', 'family', 'professional', 'waiting'] as Choice[] : ['family', 'professional'] as Choice[])
-                .map((item) => <ChoiceRow key={item} value={item} disabled={busy} selected={(step === 'question' ? choice : roleChoice) === item}
-                  onPress={() => { if (step === 'question') setChoice(item); else setRoleChoice(item as 'family' | 'professional'); }} />)}
+              {(['self', 'family', 'waiting'] as const).map((item) => (
+                <ChoiceRow key={item} value={item} disabled={busy} selected={choice === item} onPress={() => setChoice(item)} />
+              ))}
             </View>
           ) : null}
           {step === 'self' || step === 'person' ? (
@@ -392,16 +377,11 @@ export function CareSetupFlow({ onFinish }: Props) {
           <><SetupButton label={t('setup.retry')} onPress={() => void invitationsQuery.refetch()} />
             <SetupButton secondary label={t('setup.continueUnchecked')} onPress={() => go('question')} /></>
         ) : checking ? <Text style={styles.loading}>{t('setup.loadingTitle')}</Text> : null
-        : step === 'invitedRole' ? <><SetupButton label={setupMutation.isPending ? t('setup.saving') : t('setup.continue')}
-            disabled={busy || !roleChoice} onPress={() => void chooseInvitedRole()} />
-            <SetupButton secondary label={t('setup.skip')} disabled={busy} onPress={() => onFinish('home')} /></>
         : step === 'question' ? <><SetupButton label={setupMutation.isPending ? t('setup.saving') : t('setup.continue')}
             disabled={busy || !choice} onPress={() => void chooseSetup()} />
             <SetupButton secondary label={t('setup.later')} disabled={busy} onPress={() => onFinish('home')} /></>
         : step === 'self' || step === 'person' ? <SetupButton label={createMutation.isPending ? t('setup.saving') : t(step === 'self' ? 'setup.createSelf' : 'setup.createPerson')}
             disabled={busy} onPress={() => void createProfile(step === 'self')} />
-        : step === 'professionalQuestion' ? <><SetupButton label={t('setup.yes')} disabled={busy} onPress={() => { setWaitingFrom('professionalQuestion'); go('waiting'); }} />
-            <SetupButton secondary label={t('setup.no')} disabled={busy} onPress={() => { setName(''); go('person'); }} /></>
         : step === 'invite' ? <SetupButton secondary={!addedInvites.length} label={t(addedInvites.length ? 'setup.continue' : 'setup.skip')} disabled={busy} onPress={() => go('done')} />
         : step === 'waiting' ? <><SetupButton label={invitationsQuery.isFetching ? t('setup.loadingTitle') : t('setup.checkAgain')}
             disabled={busy || invitationsQuery.isFetching} onPress={() => void checkAgain()} />

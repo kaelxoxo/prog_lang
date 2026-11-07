@@ -6,7 +6,6 @@ import { AppIcon } from '../../components/AppIcon';
 import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
-import { useAuth } from '../auth/AuthProvider';
 import type { Patient } from './types';
 
 type PatientSwitcherProps = {
@@ -38,7 +37,6 @@ export function PatientSwitcher({
 }: PatientSwitcherProps) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
-  const { session } = useAuth();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1.3;
   const [search, setSearch] = useState('');
@@ -79,9 +77,7 @@ export function PatientSwitcher({
             <View style={styles.sheetHandle} />
             <View style={[styles.headingRow, largeText && styles.headingRowLarge]}>
               <View style={styles.headingCopy}>
-                <Text accessibilityRole="header" style={styles.title}>
-                  {session?.careSetup === 'professional' ? t('shell.peopleYouCareFor') : t('people.changeTitle')}
-                </Text>
+                <Text accessibilityRole="header" style={styles.title}>{t('people.changeTitle')}</Text>
                 <Text style={styles.subtitle}>{t('people.changeBody')}</Text>
               </View>
               <Pressable

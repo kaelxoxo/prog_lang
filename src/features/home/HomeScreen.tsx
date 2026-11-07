@@ -13,8 +13,6 @@ import { useReducedMotion } from '../../lib/useReducedMotion';
 import { spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
-import { CareCircleSection } from '../invitations/CareCircleSection';
-import { InvitationInbox } from '../invitations/InvitationInbox';
 import type { Medication } from '../medications/types';
 import { CareHeader } from '../patients/CareHeader';
 import { PatientChips } from '../patients/PatientChips';
@@ -64,7 +62,7 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
   const queryClient = useQueryClient();
   const { session, token } = useAuth();
   const { activePatient, dataUpdatedAt, error: patientError, retry: retryPatients } = usePatient();
-  const { name: patientName, showCareCircle, isSelf } = usePatientDisplay(activePatient);
+  const { name: patientName, isSelf } = usePatientDisplay(activePatient);
   const now = useCurrentTime();
   const date = manilaDate(now);
   const timelineQuery = useQuery({
@@ -162,7 +160,7 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
   };
   // Whatever a hero shrink, fold or Disclosure toggle above pushes glides with it; reduced motion snaps.
   // Not on the first load of a person's day: that jump is "just there", and a layout transition started in the
-  // same commit as the doses arriving left the Care circle stuck over Due now (Reanimated, Fabric).
+  // same commit as the doses arriving left the sections below stuck over Due now (Reanimated, Fabric).
   const layout = reducedMotion || !reflowReady ? undefined : reflow;
 
   const greetingName = session?.displayName?.trim().split(/\s+/)[0] || t('home.caregiverFallback');
@@ -199,8 +197,6 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
           <CareHeader accountName={session?.displayName} onOpenSettings={onOpenSettings} />
 
           <SyncNotice error={patientError} onRetry={retryPatients} updatedAt={dataUpdatedAt} />
-
-          <InvitationInbox />
 
           <Text style={styles.dateCaption}>{dateCaption}</Text>
 
@@ -284,12 +280,6 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
           )}
 
           <RefillSection alerts={refillAlerts} onOpenMedicines={onOpenMedicines} />
-
-          {showCareCircle ? (
-            <Animated.View layout={layout}>
-              <CareCircleSection patient={activePatient} />
-            </Animated.View>
-          ) : null}
         </View>
       </ScrollView>
     </LayoutAnimationConfig>

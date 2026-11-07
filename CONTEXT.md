@@ -13,12 +13,16 @@ A family member or trusted individual who coordinates, records, or oversees medi
 _Avoid_: User, admin, operator, watcher, tracker
 
 **Owner**:
-The caregiver who created a patient's Care Circle and invites or revokes other caregivers; shown to others as the primary care manager.
-_Avoid_: Tracker, admin, inviter, head of family
+The caregiver who created a patient's Care Circle and invites or revokes other caregivers. Shown in the app as **Primary care manager**.
+_Avoid_: Tracker, admin, inviter, head of family, care manager (for anyone but the Owner)
+
+**Medicine Manager**:
+A caregiver in a Care Circle who may also add, change, and archive the patient's medicines, not only record doses. Granted by the Owner at invitation.
+_Avoid_: Care manager, editor, admin, co-owner
 
 **Care Setup**:
-An account's declared way of using Alaga: **Caring for myself**, **Caring for family**, or **Caring professionally**. It shapes onboarding and the app shell but never grants or restricts permissions.
-_Avoid_: User type, persona, care role, account type
+An account's declared way of using Alaga: **Caring for myself** or **Caring for family**. It shapes onboarding and the app shell but never grants or restricts permissions. (A third "Caring professionally" option was removed on 2026-11-07.)
+_Avoid_: User type, persona, care role, account type, professional mode
 
 **Self Profile**:
 A patient profile that represents the account holder themselves, so the account is both Owner and Patient of that Care Circle.
@@ -29,8 +33,8 @@ A loved one or individual receiving care whose medication schedules and daily he
 _Avoid_: Client, case, subject, dependent, boss, employer
 
 **Care Circle**:
-The private group of caregivers authorized to view, log doses, or manage medicines for a specific patient.
-_Avoid_: Family group, team, share circle, household
+The private group of caregivers authorized to view, log doses, or manage medicines for a specific patient. Shown in the app as **Family** ("Lola Rosa's family"); the code and this glossary keep Care Circle.
+_Avoid_: Family group, team, share circle, household (in code and docs)
 
 **Care Streak**:
 The consecutive count of days in which all scheduled medication doses for the active patient have been actively recorded.

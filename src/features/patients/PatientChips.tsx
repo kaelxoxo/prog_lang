@@ -11,7 +11,7 @@ import { PatientSwitcher } from './PatientSwitcher';
 import { usePatient } from './PatientProvider';
 import type { Patient } from './types';
 
-/** Chips shown before "All people" takes over; keeps the row scannable for professional caregivers. */
+/** Chips shown before "All people" takes over; keeps the row scannable for families caring for several people. */
 export const MAX_PATIENT_CHIPS = 5;
 const MAX_CHIP_NAME = 16;
 const SCREEN_GUTTER = 20;
