@@ -15,10 +15,10 @@ import { AppIcon } from '../../components/AppIcon';
 import {
   buttonPress,
   cardPress,
-  cardTitle,
   gentleSpring,
   instant,
   radii,
+  sectionTitle,
   spacing,
   type AppColors,
 } from '../../theme/tokens';
@@ -357,7 +357,7 @@ const createStyles = (colors: AppColors) =>
       backgroundColor: colors.warningTint,
     },
     cardTitle: {
-      ...cardTitle,
+      ...sectionTitle,
       color: colors.ink,
       flexShrink: 1,
     },

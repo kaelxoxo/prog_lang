@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppIcon } from '../../components/AppIcon';
-import { cardTitle, radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
 import { actionableAt, type DoseOccurrence } from '../today/types';
@@ -224,7 +224,7 @@ const createStyles = (colors: AppColors) =>
       gap: 4,
     },
     cardTitle: {
-      ...cardTitle,
+      ...sectionTitle,
       color: colors.ink,
       flexShrink: 1,
     },

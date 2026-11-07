@@ -3,7 +3,7 @@ import { AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, Text, View 
 import Svg, { Circle, G } from 'react-native-svg';
 
 import { AppIcon } from '../../components/AppIcon';
-import { cardTitle, radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
 
@@ -193,7 +193,7 @@ const createStyles = (colors: AppColors) =>
       justifyContent: 'space-between',
     },
     cardTitle: {
-      ...cardTitle,
+      ...sectionTitle,
       color: colors.ink,
       flexShrink: 1,
     },

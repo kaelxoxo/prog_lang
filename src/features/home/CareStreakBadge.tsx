@@ -14,10 +14,10 @@ import {
 import { AppIcon } from '../../components/AppIcon';
 import {
   cardPress,
-  cardTitle,
   gentleSpring,
   instant,
   radii,
+  sectionTitle,
   snappySpring,
   spacing,
   type AppColors,
@@ -408,7 +408,7 @@ const createStyles = (colors: AppColors) =>
       borderColor: colors.flameLight,
     },
     cardTitle: {
-      ...cardTitle,
+      ...sectionTitle,
       color: colors.ink,
       flexShrink: 1,
     },

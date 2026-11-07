@@ -16,7 +16,7 @@ import { AppIcon } from '../../components/AppIcon';
 import { apiRequest, errorMessage } from '../../lib/api';
 import { useCurrentTime } from '../../lib/useCurrentTime';
 import { SyncNotice } from '../../components/SyncNotice';
-import { cardTitle, radii, spacing, type AppColors } from '../../theme/tokens';
+import { radii, sectionTitle, spacing, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { AssistantMascot, type MascotExpression } from '../assistant/AssistantMascot';
 import { useAuth } from '../auth/AuthProvider';
@@ -994,7 +994,7 @@ const createStyles = (colors: AppColors) =>
       gap: 8,
     },
     scheduleTitle: {
-      ...cardTitle,
+      ...sectionTitle,
       color: colors.ink,
     },
     scheduleCountBadge: {
