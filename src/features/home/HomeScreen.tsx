@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { LayoutAnimation, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { LayoutAnimationConfig } from 'react-native-reanimated';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { PressableScale } from '../../components/PressableScale';
@@ -7,8 +8,9 @@ import { SyncNotice } from '../../components/SyncNotice';
 import { apiRequest, errorMessage } from '../../lib/api';
 import { confirmAction } from '../../lib/confirm';
 import { useCurrentTime } from '../../lib/useCurrentTime';
+import { recordedTakenHaptic, reflow } from '../../lib/motion';
 import { useReducedMotion } from '../../lib/useReducedMotion';
-import { durations, spacing, typography, type AppColors } from '../../theme/tokens';
+import { spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useAuth } from '../auth/AuthProvider';
 import { CareCircleSection } from '../invitations/CareCircleSection';
@@ -58,6 +60,7 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
   const [settling, setSettling] = useState<ReadonlyMap<string, DoseOccurrence>>(() => new Map());
   const settleTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
   const unmounted = useRef(false);
+  const [reflowReady, setReflowReady] = useState(false);
   const queryClient = useQueryClient();
   const { session, token } = useAuth();
   const { activePatient, dataUpdatedAt, error: patientError, retry: retryPatients } = usePatient();
@@ -94,6 +97,17 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
     };
   }, []);
 
+  const dayLoaded = Boolean(timelineQuery.data);
+  useEffect(() => {
+    if (!dayLoaded) {
+      setReflowReady(false);
+      return;
+    }
+    // One frame after the day's doses are on screen, later changes may glide.
+    const frame = requestAnimationFrame(() => setReflowReady(true));
+    return () => cancelAnimationFrame(frame);
+  }, [dayLoaded, activePatient?.id]);
+
   const takeDoseMutation = useMutation({
     mutationFn: (dose: DoseOccurrence) =>
       apiRequest(`/patients/${activePatient!.id}/doses/${dose.id}/events`, {
@@ -104,7 +118,10 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
     onSuccess: (_result, dose) => {
       // Keep the row where it was with its drawn check, then fold it into Recorded once both the
       // minimum hold has passed and the refetched timeline is in, so the row never flips back to "Take".
+      // The fold is the rows' own Reanimated exit fade and the sections' layout transition.
       setSettling((current) => new Map(current).set(dose.id, dose));
+      // Same render that mounts the drawn check.
+      recordedTakenHaptic();
       const minimumHold = new Promise<void>((resolve) => {
         const timer = setTimeout(() => {
           settleTimers.current.delete(timer);
@@ -117,16 +134,6 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
       void queryClient.invalidateQueries({ queryKey: ['history', activePatient?.id] });
       void Promise.all([minimumHold, refetched]).then(() => {
         if (unmounted.current) return;
-        LayoutAnimation.configureNext(
-          reducedMotion
-            ? LayoutAnimation.create(durations.stateChange, LayoutAnimation.Types.easeOut, LayoutAnimation.Properties.opacity)
-            : {
-                duration: durations.stateChange,
-                create: { type: LayoutAnimation.Types.easeOut, property: LayoutAnimation.Properties.opacity },
-                update: { type: LayoutAnimation.Types.easeOut },
-                delete: { type: LayoutAnimation.Types.easeOut, property: LayoutAnimation.Properties.opacity },
-              },
-        );
         setSettling((current) => {
           const next = new Map(current);
           next.delete(dose.id);
@@ -153,6 +160,10 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
     pendingId: takeDoseMutation.isPending ? (takeDoseMutation.variables?.id ?? null) : null,
     settling,
   };
+  // Whatever a hero shrink, fold or Disclosure toggle above pushes glides with it; reduced motion snaps.
+  // Not on the first load of a person's day: that jump is "just there", and a layout transition started in the
+  // same commit as the doses arriving left the Care circle stuck over Due now (Reanimated, Fabric).
+  const layout = reducedMotion || !reflowReady ? undefined : reflow;
 
   const greetingName = session?.displayName?.trim().split(/\s+/)[0] || t('home.caregiverFallback');
   const timeOfDay = partOfDay(now.toISOString());
@@ -181,7 +192,8 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
   };
 
   return (
-    <>
+    // What is on screen when Home mounts is just there; later arrivals fade and glide.
+    <LayoutAnimationConfig skipEntering>
       <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
         <View style={styles.contentColumn}>
           <CareHeader accountName={session?.displayName} onOpenSettings={onOpenSettings} />
@@ -242,38 +254,45 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
               </PressableScale>
             </View>
           ) : (
-            <>
-              <SyncNotice
-                error={timelineQuery.error}
-                onRetry={() => void timelineQuery.refetch()}
-                updatedAt={timelineQuery.dataUpdatedAt}
-              />
+            // Likewise the sections that arrive with the day's doses.
+            <LayoutAnimationConfig skipEntering>
+              <Animated.View layout={layout} style={styles.timeline}>
+                <SyncNotice
+                  error={timelineQuery.error}
+                  onRetry={() => void timelineQuery.refetch()}
+                  updatedAt={timelineQuery.dataUpdatedAt}
+                />
 
-              {takeDoseMutation.error ? (
-                <Text accessibilityLiveRegion="assertive" style={styles.errorText}>
-                  {errorMessage(takeDoseMutation.error)}
-                </Text>
-              ) : null}
+                {takeDoseMutation.error ? (
+                  <Text accessibilityLiveRegion="assertive" style={styles.errorText}>
+                    {errorMessage(takeDoseMutation.error)}
+                  </Text>
+                ) : null}
 
-              <DueNowSection
-                allRecorded={hero.kind === 'allRecorded'}
-                dueSoon={sections.dueSoon}
-                nextDose={nextDose}
-                onTake={(dose) => takeDoseMutation.mutate(dose)}
-                recording={recording}
-                slots={sections.notRecordedSlots}
-              />
-              <RecordedSection doses={sections.recorded} onCorrect={(dose) => onOpenToday(dose.id)} />
-              <LaterTodaySection doses={sections.laterToday} onRecordEarly={recordEarly} recording={recording} />
-            </>
+                <DueNowSection
+                  allRecorded={hero.kind === 'allRecorded'}
+                  dueSoon={sections.dueSoon}
+                  nextDose={nextDose}
+                  onTake={(dose) => takeDoseMutation.mutate(dose)}
+                  recording={recording}
+                  slots={sections.notRecordedSlots}
+                />
+                <RecordedSection doses={sections.recorded} onCorrect={(dose) => onOpenToday(dose.id)} />
+                <LaterTodaySection doses={sections.laterToday} onRecordEarly={recordEarly} recording={recording} />
+              </Animated.View>
+            </LayoutAnimationConfig>
           )}
 
           <RefillSection alerts={refillAlerts} onOpenMedicines={onOpenMedicines} />
 
-          {showCareCircle ? <CareCircleSection patient={activePatient} /> : null}
+          {showCareCircle ? (
+            <Animated.View layout={layout}>
+              <CareCircleSection patient={activePatient} />
+            </Animated.View>
+          ) : null}
         </View>
       </ScrollView>
-    </>
+    </LayoutAnimationConfig>
   );
 }
 
@@ -290,6 +309,9 @@ const createStyles = (colors: AppColors) =>
       width: '100%',
       maxWidth: 760,
       alignSelf: 'center',
+      gap: spacing.md,
+    },
+    timeline: {
       gap: spacing.md,
     },
     dateCaption: {

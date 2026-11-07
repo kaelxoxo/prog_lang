@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { AppIcon } from '../../components/AppIcon';
 import { Disclosure } from '../../components/Disclosure';
 import { DrawnCheck } from '../../components/DrawnCheck';
 import { PressableScale } from '../../components/PressableScale';
+import { fadeIn, fadeOut, reflow } from '../../lib/motion';
 import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useLocale } from '../settings/LocaleProvider';
@@ -37,10 +39,11 @@ type DoseRowProps = {
   trailing: ReactNode;
 };
 
+/** Rows fade in and out (a recorded dose folding from Due now into Recorded) while their neighbours glide. */
 function DoseRow({ detail, dose, time, trailing }: DoseRowProps) {
   const { styles } = useThemedStyles(createStyles);
   return (
-    <View style={styles.row}>
+    <Animated.View entering={fadeIn} exiting={fadeOut} layout={reflow} style={styles.row}>
       {time ? <Text style={styles.rowTime}>{time}</Text> : null}
       <View style={styles.rowCopy}>
         <Text numberOfLines={2} style={styles.rowTitle}>
@@ -51,7 +54,7 @@ function DoseRow({ detail, dose, time, trailing }: DoseRowProps) {
         </Text>
       </View>
       {trailing}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -114,26 +117,26 @@ export function DueNowSection({ allRecorded, dueSoon, nextDose, onTake, recordin
   const isEmpty = slots.length === 0 && dueSoon.length === 0;
 
   return (
-    <View style={styles.section}>
+    <Animated.View layout={reflow} style={styles.section}>
       <Text accessibilityRole="header" style={styles.sectionTitle}>
         {t('home.dueNowTitle')}
       </Text>
 
       {isEmpty ? (
-        <Text style={styles.calm}>
+        <Animated.Text entering={fadeIn} style={styles.calm}>
           {allRecorded
             ? t('home.allRecorded')
             : nextDose
               ? t('home.nothingDueNext', { time: formatTime(actionableAt(nextDose), localeTag) })
               : t('home.nothingDue')}
-        </Text>
+        </Animated.Text>
       ) : null}
 
       {slots.map((slot) => {
         const time = formatTime(slot.at, localeTag);
         const medicines = slot.doses.map((dose) => dose.medicationName).join(', ');
         return (
-          <View key={slot.at} style={styles.ruled}>
+          <Animated.View entering={fadeIn} exiting={fadeOut} key={slot.at} layout={reflow} style={styles.ruled}>
             <Disclosure
               accessibilityLabel={t('home.slotA11y', { time, count: slot.doses.length, medicines })}
               chevronColor={colors.inkLine}
@@ -162,7 +165,7 @@ export function DueNowSection({ allRecorded, dueSoon, nextDose, onTake, recordin
                 ))}
               </View>
             </Disclosure>
-          </View>
+          </Animated.View>
         );
       })}
 
@@ -175,7 +178,7 @@ export function DueNowSection({ allRecorded, dueSoon, nextDose, onTake, recordin
           trailing={<TakeAction dose={dose} onTake={onTake} recording={recording} />}
         />
       ))}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -185,7 +188,7 @@ export function RecordedSection({ doses, onCorrect }: { doses: DoseOccurrence[];
   if (doses.length === 0) return null;
 
   return (
-    <View style={styles.section}>
+    <Animated.View entering={fadeIn} exiting={fadeOut} layout={reflow} style={styles.section}>
       <Disclosure
         accessibilityLabel={t('home.recordedA11y', { count: doses.length })}
         chevronColor={colors.inkLine}
@@ -215,7 +218,7 @@ export function RecordedSection({ doses, onCorrect }: { doses: DoseOccurrence[];
           );
         })}
       </Disclosure>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -236,7 +239,7 @@ export function LaterTodaySection({ doses, onRecordEarly, recording }: LaterToda
   });
 
   return (
-    <View style={styles.section}>
+    <Animated.View entering={fadeIn} exiting={fadeOut} layout={reflow} style={styles.section}>
       <Disclosure
         accessibilityLabel={t('home.laterA11y', { summary })}
         chevronColor={colors.inkLine}
@@ -271,7 +274,7 @@ export function LaterTodaySection({ doses, onRecordEarly, recording }: LaterToda
           );
         })}
       </Disclosure>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -281,7 +284,7 @@ export function RefillSection({ alerts, onOpenMedicines }: { alerts: RefillAlert
   if (alerts.length === 0) return null;
 
   return (
-    <View style={styles.section}>
+    <Animated.View entering={fadeIn} exiting={fadeOut} layout={reflow} style={styles.section}>
       <Text accessibilityRole="header" style={styles.sectionTitle}>
         {t('home.refillTitle')}
       </Text>
@@ -305,7 +308,7 @@ export function RefillSection({ alerts, onOpenMedicines }: { alerts: RefillAlert
           </PressableScale>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 

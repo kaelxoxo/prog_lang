@@ -129,14 +129,16 @@ Bantay is the way into the chat, so wherever he appears large he comes with an e
 
 ## 7. Motion
 
-Quiet and crisp, following Emil Kowalski's rules:
+Quiet and crisp, following Emil Kowalski's rules (`review-animations`, `animate-expo`):
 
 - Press feedback: scale 0.97 over 140 ms, strong ease-out (`PressableScale`).
-- Expanding a section: height and opacity over 200 ms ease-out (`Disclosure`).
-- Recording a dose: the ink checkmark draws itself over 200 ms (`DrawnCheck`).
+- Expanding a section: content fades in over 200 ms and what follows reflows on the strong ease-out curve (Reanimated layout transition, `Disclosure`).
+- Recording a dose: the ink checkmark draws itself over 200 ms on the UI thread (`DrawnCheck`), with one success haptic on the same frame. Haptics are never the only feedback and never fire for skip or snooze.
 - Celebrate only when the whole day is recorded.
 - No bounce; springs in `tokens.ts` are critically damped. UI animations stay under 300 ms.
+- Motion that runs while the app is busy (fetching, recording) runs on the UI thread via Reanimated; no `LayoutAnimation`.
 - Reduced motion: fades only, sprites hold their first frame.
+- Judge feel in a release build on a slow Android phone; Expo Go and the emulator are not performance environments.
 
 ## 8. Accessibility
 

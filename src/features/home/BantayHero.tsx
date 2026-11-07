@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { LayoutAnimation, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { AppIcon } from '../../components/AppIcon';
 import { PressableScale } from '../../components/PressableScale';
+import { reflow } from '../../lib/motion';
 import { useReducedMotion } from '../../lib/useReducedMotion';
-import { durations, radii, spacing, typography, type AppColors } from '../../theme/tokens';
+import { radii, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import fullSheet from '../../../assets/bantay/full.json';
 import { AssistantMascot } from '../assistant/AssistantMascot';
@@ -36,7 +38,8 @@ type Props = {
 
 /**
  * Home's "notebook margin" hero: Bantay welcomes the caregiver, says the day's most urgent fact for the active
- * Patient, and offers the chat box. Shrinks once everything is recorded.
+ * Patient, and offers the chat box. Shrinks once everything is recorded: the box, its contents and Bantay glide to
+ * their compact frames over 200 ms (strong ease-out, UI thread); with reduced motion they snap.
  * Remount it per Patient (`key`) so Bantay celebrates once for each person whose day is done.
  */
 export function BantayHero({ hero, isSelf, onOpenAssistant, patientName, welcome }: Props) {
@@ -45,31 +48,18 @@ export function BantayHero({ hero, isSelf, onOpenAssistant, patientName, welcome
   const { fontScale } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const largeText = fontScale > 1.3;
-  const shouldCompact = hero.kind === 'allRecorded';
-  const [compact, setCompact] = useState(shouldCompact);
+  const compact = hero.kind === 'allRecorded';
   const [celebrated, setCelebrated] = useState(false);
+  const layout = reducedMotion ? undefined : reflow;
 
   useEffect(() => {
-    if (shouldCompact === compact) return;
-    if (!reducedMotion) {
-      LayoutAnimation.configureNext({
-        duration: durations.stateChange,
-        create: { type: LayoutAnimation.Types.easeOut, property: LayoutAnimation.Properties.opacity },
-        update: { type: LayoutAnimation.Types.easeOut },
-        delete: { type: LayoutAnimation.Types.easeOut, property: LayoutAnimation.Properties.opacity },
-      });
-    }
-    setCompact(shouldCompact);
-  }, [compact, reducedMotion, shouldCompact]);
-
-  useEffect(() => {
-    if (!shouldCompact) {
+    if (!compact) {
       setCelebrated(false);
       return;
     }
     const timer = setTimeout(() => setCelebrated(true), CELEBRATE_MS);
     return () => clearTimeout(timer);
-  }, [shouldCompact]);
+  }, [compact]);
 
   const copy = heroCopy(hero, {
     t,
@@ -85,28 +75,33 @@ export function BantayHero({ hero, isSelf, onOpenAssistant, patientName, welcome
   const besideBantay = largeText ? null : { marginLeft: bantaySize - BANTAY_OVERHANG + spacing.sm - CONTENT_X };
 
   const bantay = (
-    <AssistantMascot
-      accessible={false}
-      expression={celebrated ? 'idle' : hero.expression}
-      onPress={onOpenAssistant}
-      size={bantaySize}
-      style={largeText ? styles.bantayAbove : styles.bantayStanding}
-      variant="full"
-    />
+    <Animated.View layout={layout} style={largeText ? styles.bantayAbove : styles.bantayStanding}>
+      <AssistantMascot
+        accessible={false}
+        expression={celebrated ? 'idle' : hero.expression}
+        onPress={onOpenAssistant}
+        size={bantaySize}
+        variant="full"
+      />
+    </Animated.View>
   );
 
   return (
-    <View style={[styles.hero, !largeText && styles.heroWithOverhang]}>
+    <Animated.View layout={layout} style={[styles.hero, !largeText && styles.heroWithOverhang]}>
       {largeText ? bantay : null}
-      <View style={[styles.box, compact && styles.boxCompact, !largeText && { minHeight: bantaySize - BANTAY_OVERHANG }]}>
+      <Animated.View
+        layout={layout}
+        style={[styles.box, compact && styles.boxCompact, !largeText && { minHeight: bantaySize - BANTAY_OVERHANG }]}
+      >
         {/* The margin line ends where Bantay's head begins, so he stands at the foot of the margin. */}
-        <View style={[styles.marginLine, !largeText && { bottom: bantaySize - BANTAY_OVERHANG }]} />
-        <Text accessibilityRole="header" style={styles.welcome}>
+        <Animated.View layout={layout} style={[styles.marginLine, !largeText && { bottom: bantaySize - BANTAY_OVERHANG }]} />
+        <Animated.Text accessibilityRole="header" layout={layout} style={styles.welcome}>
           {welcome}
-        </Text>
-        <View
+        </Animated.Text>
+        <Animated.View
           accessibilityLabel={[copy.title, copy.detail].join('. ')}
           accessible
+          layout={layout}
           style={styles.summary}
         >
           <Text style={styles.status}>
@@ -115,10 +110,13 @@ export function BantayHero({ hero, isSelf, onOpenAssistant, patientName, welcome
             {after}
           </Text>
           <Text style={styles.detail}>{copy.detail}</Text>
-        </View>
+        </Animated.View>
         {/* Everything beside Bantay sits in one column at least as tall as the part of him inside the box,
             so he never stands in front of text. */}
-        <View style={[styles.besideColumn, besideBantay, !largeText && { minHeight: bantaySize - BANTAY_OVERHANG - spacing.md }]}>
+        <Animated.View
+          layout={layout}
+          style={[styles.besideColumn, besideBantay, !largeText && { minHeight: bantaySize - BANTAY_OVERHANG - spacing.md }]}
+        >
           {copy.progress ? <Text style={styles.progress}>{copy.progress}</Text> : null}
           <PressableScale
             accessibilityHint={t('home.heroAskHint')}
@@ -133,10 +131,10 @@ export function BantayHero({ hero, isSelf, onOpenAssistant, patientName, welcome
               {copy.ask}
             </Text>
           </PressableScale>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
       {largeText ? null : bantay}
-    </View>
+    </Animated.View>
   );
 }
 

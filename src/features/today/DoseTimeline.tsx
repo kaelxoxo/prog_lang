@@ -23,6 +23,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { SyncNotice } from '../../components/SyncNotice';
 import { apiRequest, errorMessage } from '../../lib/api';
 import { confirmAction } from '../../lib/confirm';
+import { recordedTakenHaptic } from '../../lib/motion';
 import { useCurrentTime } from '../../lib/useCurrentTime';
 import { radii, sectionTitle, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
@@ -144,7 +145,9 @@ export function DoseTimeline({ focusedOccurrenceId, onFocusLayout, onOpenMedicin
       if (action.kind === 'taken') setJustTaken((ids) => new Set(ids).add(action.occurrence.id));
       setCorrecting(null);
       setCorrectionReason('');
-      void queryClient.invalidateQueries({ queryKey });
+      const refetched = queryClient.invalidateQueries({ queryKey });
+      // The check draws once the refetched row says Taken; the haptic lands on that same frame.
+      if (action.kind === 'taken') void refetched.then(recordedTakenHaptic);
       void queryClient.invalidateQueries({ queryKey: ['history', patient.id] });
       void queryClient.invalidateQueries({ queryKey: ['reminders', patient.id] });
     },

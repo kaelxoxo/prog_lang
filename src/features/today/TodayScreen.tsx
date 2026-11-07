@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { PressableScale } from '../../components/PressableScale';
 import { radii, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
 import { useCurrentTime } from '../../lib/useCurrentTime';
+import { reflow } from '../../lib/motion';
 import { SyncNotice } from '../../components/SyncNotice';
 import { useAuth } from '../auth/AuthProvider';
 import { HistoryPanel } from '../history/HistoryPanel';
@@ -131,7 +133,10 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
                 patient={activePatient}
               />
             </View>
-            <ReminderControl patient={activePatient} />
+            {/* Glides with the Disclosures above it instead of jumping when one opens or closes. */}
+            <Animated.View layout={reflow}>
+              <ReminderControl patient={activePatient} />
+            </Animated.View>
           </>
         ) : <HistoryPanel patient={activePatient} />}
       </View>
