@@ -10,20 +10,17 @@ import { useAuth } from '../auth/AuthProvider';
 import { InvitationInbox } from '../invitations/InvitationInbox';
 import { CareHeader } from '../patients/CareHeader';
 import { CreatePatientModal } from '../patients/CreatePatientModal';
-import { PatientSwitcher } from '../patients/PatientSwitcher';
+import { PatientChips } from '../patients/PatientChips';
 import { usePatient } from '../patients/PatientProvider';
-import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { useLocale } from '../settings/LocaleProvider';
 import { MedicationSection } from './MedicationSection';
 
 export function MedicinesScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
   const { colors, styles } = useThemedStyles(createStyles);
   const { t } = useLocale();
-  const [isSwitcherVisible, setSwitcherVisible] = useState(false);
   const [isCreatorVisible, setCreatorVisible] = useState(false);
   const { session, signOut } = useAuth();
-  const { activePatient, createPatient, dataUpdatedAt, error, isCreating, isLoading, patients, retry, selectPatient } = usePatient();
-  const { showSelector } = usePatientDisplay(activePatient);
+  const { activePatient, createPatient, dataUpdatedAt, error, isCreating, isLoading, retry } = usePatient();
 
   if (isLoading) {
     return (
@@ -92,31 +89,23 @@ export function MedicinesScreen({ onOpenSettings }: { onOpenSettings: () => void
   }
 
   return (
-    <>
-      <ScrollView
-        contentContainerStyle={styles.screen}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.contentColumn}>
-          <CareHeader
-            accountName={session?.displayName}
-            onChangePerson={() => setSwitcherVisible(true)}
-            onOpenSettings={onOpenSettings}
-            patient={activePatient}
-          />
-          <SyncNotice error={error} onRetry={retry} updatedAt={dataUpdatedAt} />
-          <MedicationSection patient={activePatient} />
+    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+      <View style={styles.contentColumn}>
+        <View style={styles.header}>
+          <CareHeader accountName={session?.displayName} onOpenSettings={onOpenSettings} />
+          <PatientChips />
         </View>
-      </ScrollView>
-      {showSelector ? <PatientSwitcher activePatientId={activePatient.id} onAddPerson={() => setCreatorVisible(true)} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} /> : null}
-      <CreatePatientModal isCreating={isCreating} onClose={() => setCreatorVisible(false)} onCreate={createPatient} visible={isCreatorVisible} />
-    </>
+        <SyncNotice error={error} onRetry={retry} updatedAt={dataUpdatedAt} />
+        <MedicationSection patient={activePatient} />
+      </View>
+    </ScrollView>
   );
 }
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   screen: { flexGrow: 1, paddingBottom: 110, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.canvas },
   contentColumn: { width: '100%', maxWidth: 760, alignSelf: 'center', gap: spacing.lg },
+  header: { gap: spacing.md },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { ...typography.hero, color: colors.ink },
   greeting: { ...typography.body, marginTop: 2, color: colors.muted },

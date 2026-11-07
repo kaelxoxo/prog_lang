@@ -50,6 +50,12 @@ export function PatientSwitcher({
     setSearch('');
     onClose();
   };
+  // The Self Profile is always yours to manage, so only other people get a care-manager line.
+  const managerLine = (patient: Patient) => {
+    if (patient.isSelf) return null;
+    if (patient.role === 'owner') return t('people.youManage');
+    return patient.primaryCareManagerName ? t('people.managedBy', { name: patient.primaryCareManagerName }) : null;
+  };
   const addPerson = () => {
     setSearch('');
     onClose();
@@ -122,10 +128,12 @@ export function PatientSwitcher({
             <ScrollView contentContainerStyle={styles.patientList} keyboardShouldPersistTaps="handled">
               {visiblePatients.map((patient) => {
                 const isSelected = patient.id === activePatientId;
+                const name = patient.isSelf ? t('shell.you') : patient.displayName;
+                const manager = managerLine(patient);
 
                 return (
                   <Pressable
-                    accessibilityLabel={`${patient.isSelf ? t('shell.you') : patient.displayName}, ${patient.relationshipLabel}`}
+                    accessibilityLabel={[name, patient.relationshipLabel, manager].filter(Boolean).join(', ')}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: isSelected }}
                     key={patient.id}
@@ -146,8 +154,9 @@ export function PatientSwitcher({
                       </Text>
                     </View>
                     <View style={styles.patientCopy}>
-                      <Text style={styles.patientName}>{patient.isSelf ? t('shell.you') : patient.displayName}</Text>
+                      <Text style={styles.patientName}>{name}</Text>
                       <Text style={styles.relationshipText}>{patient.relationshipLabel}</Text>
+                      {manager ? <Text style={styles.relationshipText}>{manager}</Text> : null}
                     </View>
                     <View style={styles.selectBadge}>
                       <Text style={[styles.selectedMark, isSelected && styles.selectedMarkVisible]}>

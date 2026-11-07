@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { LayoutAnimation, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { AppIcon } from '../../components/AppIcon';
 import { PressableScale } from '../../components/PressableScale';
 import { SyncNotice } from '../../components/SyncNotice';
 import { apiRequest, errorMessage } from '../../lib/api';
@@ -11,20 +10,19 @@ import { useCurrentTime } from '../../lib/useCurrentTime';
 import { useReducedMotion } from '../../lib/useReducedMotion';
 import { durations, spacing, typography, type AppColors } from '../../theme/tokens';
 import { useThemedStyles } from '../../theme/useTheme';
-import { AssistantMascot, type MascotExpression } from '../assistant/AssistantMascot';
 import { useAuth } from '../auth/AuthProvider';
 import { CareCircleSection } from '../invitations/CareCircleSection';
 import { InvitationInbox } from '../invitations/InvitationInbox';
 import type { Medication } from '../medications/types';
 import { CareHeader } from '../patients/CareHeader';
-import { CreatePatientModal } from '../patients/CreatePatientModal';
-import { PatientSwitcher } from '../patients/PatientSwitcher';
+import { PatientChips } from '../patients/PatientChips';
 import { usePatient } from '../patients/PatientProvider';
 import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { useLocale } from '../settings/LocaleProvider';
-import { isNotRecorded, isRecorded, partOfDay } from '../today/doseWindows';
+import { partOfDay } from '../today/doseWindows';
 import { actionableAt, manilaDate, type DoseOccurrence, type TimelineResponse } from '../today/types';
-import { addLocalDays, computeCareStreak, findRefillAlerts, sortHomeDoses, type HistoryDay } from './careInsights';
+import { BantayHero } from './BantayHero';
+import { addLocalDays, computeCareStreak, findRefillAlerts, heroState, sortHomeDoses, type HistoryDay } from './careInsights';
 import {
   DueNowSection,
   formatTime,
@@ -54,27 +52,16 @@ function generateUuid() {
 }
 
 export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, onOpenToday }: Props) {
-  const { colors, styles } = useThemedStyles(createStyles);
+  const { styles } = useThemedStyles(createStyles);
   const { localeTag, t } = useLocale();
   const reducedMotion = useReducedMotion();
-  const [isSwitcherVisible, setSwitcherVisible] = useState(false);
-  const [isCreatorVisible, setCreatorVisible] = useState(false);
   const [settling, setSettling] = useState<ReadonlyMap<string, DoseOccurrence>>(() => new Map());
   const settleTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
   const unmounted = useRef(false);
   const queryClient = useQueryClient();
   const { session, token } = useAuth();
-  const {
-    activePatient,
-    createPatient,
-    dataUpdatedAt,
-    error: patientError,
-    isCreating,
-    patients,
-    retry: retryPatients,
-    selectPatient,
-  } = usePatient();
-  const { name: patientName, showSelector, showCareCircle, isSelf } = usePatientDisplay(activePatient);
+  const { activePatient, dataUpdatedAt, error: patientError, retry: retryPatients } = usePatient();
+  const { name: patientName, showCareCircle, isSelf } = usePatientDisplay(activePatient);
   const now = useCurrentTime();
   const date = manilaDate(now);
   const timelineQuery = useQuery({
@@ -153,10 +140,8 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
 
   const timeline = timelineQuery.data?.timeline ?? [];
   const currentTime = now.getTime();
-  const recordedCount = timeline.filter(isRecorded).length;
-  const notRecordedCount = timeline.filter((dose) => isNotRecorded(dose, currentTime)).length;
-  const allRecorded = timeline.length > 0 && recordedCount === timeline.length;
   const careStreak = computeCareStreak([...(historyQuery.data?.history ?? []), { date, timeline }], date);
+  const hero = heroState(timeline, currentTime, careStreak);
   // Sections read just-recorded doses as they were, so each keeps its place until its check has drawn.
   const sections = sortHomeDoses(
     timeline.map((dose) => settling.get(dose.id) ?? dose),
@@ -182,25 +167,6 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
     day: 'numeric',
   }).format(now);
 
-  const mascotExpression: MascotExpression = allRecorded ? 'celebration' : notRecordedCount > 0 ? 'attention' : 'idle';
-  const bantayStatus = allRecorded
-    ? t(isSelf ? 'shell.bannerAllDoneSelf' : 'home.bannerAllDone', { patient: patientName })
-    : notRecordedCount > 0
-      ? t(
-          isSelf
-            ? notRecordedCount === 1 ? 'shell.bannerReviewSelf' : 'shell.bannerManyReviewSelf'
-            : notRecordedCount === 1 ? 'home.bannerReview' : 'home.bannerManyReview',
-          { count: notRecordedCount, patient: patientName },
-        )
-      : nextDose
-        ? t(isSelf ? 'shell.bannerNextDoseSelf' : 'home.bannerNextDose', {
-            medicine: nextDose.medicationName,
-            dose: `${nextDose.doseQuantity} ${nextDose.doseUnit}`,
-            time: formatTime(actionableAt(nextDose), localeTag),
-            patient: patientName,
-          })
-        : t('home.bannerTip');
-
   const recordEarly = (dose: DoseOccurrence) => {
     confirmAction({
       title: t('home.recordEarlyTitle', {
@@ -218,50 +184,31 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
     <>
       <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
         <View style={styles.contentColumn}>
-          <CareHeader
-            accountName={session?.displayName}
-            onChangePerson={() => setSwitcherVisible(true)}
-            onOpenSettings={onOpenSettings}
-            patient={activePatient}
-            showPatientBar={false}
-          />
+          <CareHeader accountName={session?.displayName} onOpenSettings={onOpenSettings} />
 
           <SyncNotice error={patientError} onRetry={retryPatients} updatedAt={dataUpdatedAt} />
 
           <InvitationInbox />
 
-          <View style={styles.greeting}>
-            <Text style={styles.dateCaption}>{dateCaption}</Text>
+          <Text style={styles.dateCaption}>{dateCaption}</Text>
+
+          <PatientChips />
+
+          {/* Bantay says the welcome; until today's doses load there is no hero, so the plain greeting stands in. */}
+          {timelineQuery.data ? (
+            <BantayHero
+              hero={hero}
+              isSelf={isSelf}
+              key={activePatient.id}
+              onOpenAssistant={onOpenAssistant}
+              patientName={patientName}
+              welcome={greeting}
+            />
+          ) : (
             <Text accessibilityRole="header" style={styles.greetingTitle}>
               {greeting}
             </Text>
-            {showSelector ? (
-              <PressableScale
-                accessibilityHint={t('care.patientHint')}
-                accessibilityLabel={isSelf ? t('shell.caringForSelfPillA11y') : t('home.caringForPillA11y', { patient: patientName })}
-                accessibilityRole="button"
-                onPress={() => setSwitcherVisible(true)}
-                style={styles.caringFor}
-              >
-                <Text numberOfLines={1} style={styles.caringForLabel}>
-                  {isSelf ? t('shell.caringForSelfPill') : t('home.caringForPill', { patient: patientName })}
-                </Text>
-                <AppIcon color={colors.primaryDark} name="chevron-down" size={16} />
-              </PressableScale>
-            ) : null}
-          </View>
-
-          <PressableScale
-            accessibilityHint={t('home.bannerHint')}
-            accessibilityLabel={t('home.bannerA11y', { status: bantayStatus })}
-            accessibilityRole="button"
-            onPress={onOpenAssistant}
-            style={styles.bantayLine}
-            targetScale={0.98}
-          >
-            <AssistantMascot accessible={false} expression={mascotExpression} size={46} variant="bust" />
-            <Text style={styles.bantayText}>{bantayStatus}</Text>
-          </PressableScale>
+          )}
 
           {timelineQuery.isLoading && !timelineQuery.data ? (
             <Text accessibilityLiveRegion="polite" style={styles.calm}>
@@ -287,12 +234,7 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
                 onRetry={() => void timelineQuery.refetch()}
                 updatedAt={timelineQuery.dataUpdatedAt}
               />
-              <Text accessibilityRole="header" style={styles.noticeTitle}>
-                {isSelf ? t('shell.noConfirmedSelf') : t('home.noConfirmedFor', { patient: patientName })}
-              </Text>
-              <Text style={styles.calm}>
-                {t(activePatient.canManageMedications ? 'home.emptyManagerBody' : 'home.emptyViewerBody')}
-              </Text>
+              {activePatient.canManageMedications ? null : <Text style={styles.calm}>{t('home.emptyViewerBody')}</Text>}
               <PressableScale accessibilityRole="button" onPress={onOpenMedicines} style={styles.textAction}>
                 <Text style={styles.textActionLabel}>
                   {t(activePatient.canManageMedications ? 'home.manageMedicines' : 'home.viewMedicines')}
@@ -307,26 +249,6 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
                 updatedAt={timelineQuery.dataUpdatedAt}
               />
 
-              <View
-                accessibilityLabel={[
-                  t('home.progressA11y', { handled: recordedCount, total: timeline.length }),
-                  careStreak > 0 ? t('home.streakA11y', { count: careStreak }) : '',
-                ].join(' ')}
-                accessible
-                style={styles.progressLine}
-              >
-                <Text style={styles.progressText}>
-                  {t('home.recordedCount', { handled: recordedCount, total: timeline.length })}
-                </Text>
-                {careStreak > 0 ? (
-                  <>
-                    <Text style={styles.progressText}> · </Text>
-                    <AppIcon color={colors.flame} name="flame" size={16} />
-                    <Text style={styles.progressText}>{t('home.streak', { count: careStreak })}</Text>
-                  </>
-                ) : null}
-              </View>
-
               {takeDoseMutation.error ? (
                 <Text accessibilityLiveRegion="assertive" style={styles.errorText}>
                   {errorMessage(takeDoseMutation.error)}
@@ -334,7 +256,7 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
               ) : null}
 
               <DueNowSection
-                allRecorded={allRecorded}
+                allRecorded={hero.kind === 'allRecorded'}
                 dueSoon={sections.dueSoon}
                 nextDose={nextDose}
                 onTake={(dose) => takeDoseMutation.mutate(dose)}
@@ -351,23 +273,6 @@ export function HomeScreen({ onOpenAssistant, onOpenMedicines, onOpenSettings, o
           {showCareCircle ? <CareCircleSection patient={activePatient} /> : null}
         </View>
       </ScrollView>
-
-      {showSelector ? (
-        <PatientSwitcher
-          activePatientId={activePatient.id}
-          onAddPerson={() => setCreatorVisible(true)}
-          onClose={() => setSwitcherVisible(false)}
-          onSelect={selectPatient}
-          patients={patients}
-          visible={isSwitcherVisible}
-        />
-      ) : null}
-      <CreatePatientModal
-        isCreating={isCreating}
-        onClose={() => setCreatorVisible(false)}
-        onCreate={createPatient}
-        visible={isCreatorVisible}
-      />
     </>
   );
 }
@@ -387,49 +292,13 @@ const createStyles = (colors: AppColors) =>
       alignSelf: 'center',
       gap: spacing.md,
     },
-    greeting: {
-      gap: 2,
-      paddingTop: spacing.sm,
-    },
     dateCaption: {
       ...typography.caption,
       color: colors.muted,
+      paddingTop: spacing.sm,
     },
     greetingTitle: {
       ...typography.hero,
-      color: colors.ink,
-    },
-    caringFor: {
-      minHeight: 48,
-      alignSelf: 'flex-start',
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    caringForLabel: {
-      ...typography.bodyEmphasis,
-      color: colors.primaryDark,
-      flexShrink: 1,
-    },
-    bantayLine: {
-      minHeight: 56,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    bantayText: {
-      ...typography.body,
-      color: colors.ink,
-      flex: 1,
-    },
-    progressLine: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      gap: 2,
-    },
-    progressText: {
-      ...typography.bodyEmphasis,
       color: colors.ink,
     },
     calm: {
@@ -441,10 +310,6 @@ const createStyles = (colors: AppColors) =>
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.line,
       paddingTop: spacing.sm,
-    },
-    noticeTitle: {
-      ...typography.headline,
-      color: colors.ink,
     },
     errorText: {
       ...typography.body,

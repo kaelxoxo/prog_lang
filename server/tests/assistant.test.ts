@@ -222,7 +222,7 @@ test('Tier 1 Local Rules: "Today\'s summary" calculates counts correctly for Eng
     now,
   });
   assert.equal(enRes.handled, true);
-  assert.match(enRes.answer || '', /1 of 3 doses recorded as taken, 1 skipped, and 1 pending review/);
+  assert.match(enRes.answer || '', /1 of 3 doses recorded as taken, 1 skipped, 0 not recorded, and 1 still to come\./);
 
   const tagalogRes = evaluateLocalQuery({
     query: 'Buod ng araw na ito',
@@ -232,7 +232,16 @@ test('Tier 1 Local Rules: "Today\'s summary" calculates counts correctly for Eng
     now,
   });
   assert.equal(tagalogRes.handled, true);
-  assert.match(tagalogRes.answer || '', /1 of 3 doses recorded as taken, 1 skipped, and 1 pending review/);
+  assert.match(tagalogRes.answer || '', /1 of 3 doses recorded as taken, 1 skipped, 0 not recorded, and 1 still to come\./);
+
+  const evening = evaluateLocalQuery({
+    query: "Today's summary",
+    patient: { displayName: 'Lola Rosa' },
+    medications: [],
+    timeline,
+    now: new Date('2026-09-12T21:00:00+08:00'),
+  });
+  assert.match(evening.answer || '', /1 of 3 doses recorded as taken, 1 skipped, and 1 not recorded\./);
 });
 
 test('Tier 1 Local Rules: Caregiver attribution check returns who recorded the dose and when', () => {

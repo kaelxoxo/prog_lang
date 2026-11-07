@@ -738,13 +738,13 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
     // Prefer upcoming dose within or after current time
     const upcomingDose = uncompletedDoses.find((d) => getDoseEffectiveTime(d) >= currentTime - 60_000);
     const targetDose = upcomingDose || uncompletedDoses[0];
-    const isOverdue = getDoseEffectiveTime(targetDose) < currentTime - 60_000;
+    const isNotRecorded = getDoseEffectiveTime(targetDose) < currentTime - 60_000;
     const timeFormatted = formatFriendlyTime(targetDose.scheduledFor);
     const doseDescription = formatDoseLine(targetDose);
 
     let answer = '';
-    if (isOverdue) {
-      answer = `${patientName} has an unrecorded dose of ${targetDose.medicationName} (${doseDescription}) scheduled for ${timeFormatted} that needs review.`;
+    if (isNotRecorded) {
+      answer = `${patientName}'s ${targetDose.medicationName} (${doseDescription}) scheduled for ${timeFormatted} is not recorded yet.`;
     } else {
       answer = `${patientName}'s next scheduled dose is ${targetDose.medicationName} (${doseDescription}) at ${timeFormatted}.`;
     }
@@ -776,7 +776,10 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
 
     const taken = timeline.filter((d) => d.status === 'taken').length;
     const skipped = timeline.filter((d) => d.status === 'skipped').length;
-    const pending = timeline.filter((d) => d.status === 'not_recorded' || d.status === 'snoozed').length;
+    // Not Recorded is only a past dose; open doses whose time hasn't come are still to come.
+    const openDoses = timeline.filter((d) => d.status === 'not_recorded' || d.status === 'snoozed');
+    const notRecordedDoses = openDoses.filter((d) => getDoseEffectiveTime(d) < now.getTime() - 60_000);
+    const stillToCome = openDoses.length - notRecordedDoses.length;
 
     if (taken === total) {
       const answer = `Today's summary for ${patientName}: all ${total} scheduled doses have been taken! Excellent care today.`;
@@ -790,14 +793,17 @@ export function evaluateLocalQuery(context: LocalEvaluationContext): LocalEvalua
       };
     }
 
-    const answer = `Today's summary for ${patientName}: ${taken} of ${total} doses recorded as taken, ${skipped} skipped, and ${pending} pending review.`;
+    const counts = stillToCome > 0
+      ? `${skipped} skipped, ${notRecordedDoses.length} not recorded, and ${stillToCome} still to come`
+      : `${skipped} skipped, and ${notRecordedDoses.length} not recorded`;
+    const answer = `Today's summary for ${patientName}: ${taken} of ${total} doses recorded as taken, ${counts}.`;
 
-    const pendingDose = timeline.find((d) => d.status === 'not_recorded' || d.status === 'snoozed');
+    const firstOpenDose = notRecordedDoses[0] ?? openDoses[0];
 
     return {
       handled: true,
       answer,
-      actionableDose: pendingDose ? toActionableDose(pendingDose) : null,
+      actionableDose: firstOpenDose ? toActionableDose(firstOpenDose) : null,
       expression: 'idle',
       suggestedQuickReplies: defaultQuickReplies(),
       source: 'local_rules',

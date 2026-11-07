@@ -25,6 +25,7 @@ import { MedicationEditorModal } from '../medications/MedicationEditorModal';
 import type { Medication, MedicationInput, MedicationOcrDraft } from '../medications/types';
 import type { Patient } from '../patients/types';
 import { useLocale } from '../settings/LocaleProvider';
+import { groupByTimeSlot, isNotRecorded, isRecorded } from '../today/doseWindows';
 import type { DoseOccurrence } from '../today/types';
 import { AssistantMascot } from './AssistantMascot';
 import { evaluateLocalQuery } from './rulesEngine';
@@ -212,33 +213,31 @@ export function AskBantayBottomSheet({
   const { expression, setExpression, startThinking, stopThinking } =
     useAssistantMascotState(timeline, isQuerying);
 
-  // Dynamic greeting based on current state
+  // Opening greeting; says the same thing as the Home hero (Not Recorded count first, then the next dose).
   const greetingText = useMemo(() => {
-    const caregiverName = session?.displayName || 'Caregiver';
-    const patientName = patient?.displayName || 'Lola Rosa';
+    const caregiverName = session?.displayName?.trim().split(/\s+/)[0] || t('home.caregiverFallback');
+    const patientName = patient?.displayName ?? '';
+    const values = { name: caregiverName, patient: patientName };
 
-    if (!timeline || timeline.length === 0) {
-      return t('assistant.greetingDefault', { name: caregiverName, patient: patientName });
-    }
+    if (!timeline || timeline.length === 0) return t('assistant.greetingDefault', values);
+    if (timeline.every(isRecorded)) return t('assistant.greetingCelebration', values);
 
-    const allCompleted = timeline.every((d) => d.status === 'taken' || d.status === 'skipped');
-    if (allCompleted) {
-      return t('assistant.greetingCelebration', { name: caregiverName, patient: patientName });
-    }
-
-    const nextDue = timeline.find((d) => d.status === 'not_recorded' || d.status === 'snoozed');
-    if (nextDue) {
-      const formattedTime = formatDoseTime(nextDue.dueAt, localeTag);
-      return t('assistant.greetingNextDose', {
-        name: caregiverName,
-        patient: patientName,
-        count: 1,
-        time: formattedTime,
+    const nowMs = now.getTime();
+    const notRecorded = timeline.filter((dose) => isNotRecorded(dose, nowMs)).length;
+    if (notRecorded > 0) {
+      return t(notRecorded === 1 ? 'assistant.greetingNotRecordedOne' : 'assistant.greetingNotRecordedMany', {
+        ...values,
+        count: notRecorded,
       });
     }
 
-    return t('assistant.greetingDefault', { name: caregiverName, patient: patientName });
-  }, [localeTag, patient?.displayName, session?.displayName, t, timeline]);
+    const [nextSlot] = groupByTimeSlot(timeline.filter((dose) => !isRecorded(dose)));
+    if (nextSlot) {
+      return t('assistant.greetingNextDose', { ...values, time: formatDoseTime(nextSlot.at, localeTag) });
+    }
+
+    return t('assistant.greetingDefault', values);
+  }, [localeTag, now, patient?.displayName, session?.displayName, t, timeline]);
 
   // Reset conversation greeting ONLY when opening sheet or switching patient
   useEffect(() => {
@@ -257,6 +256,8 @@ export function AskBantayBottomSheet({
         },
       ]);
     }
+    // A draft left over from a closed conversation must not capture the next opening question.
+    if (!visible && prevVisibleRef.current) setPendingDraftState(null);
     prevVisibleRef.current = visible;
     prevPatientIdRef.current = patient?.id ?? null;
   }, [greetingText, patient?.id, visible]);
@@ -1023,6 +1024,9 @@ const createStyles = (colors: AppColors) =>
       paddingHorizontal: spacing.md,
     },
     chip: {
+      // In a horizontal ScrollView a chip must keep its own width; otherwise the last one is squeezed
+      // to the visible edge and its label wraps onto a hidden second line.
+      flexShrink: 0,
       backgroundColor: colors.surfaceElevated,
       borderColor: colors.controlBorder,
       borderRadius: radii.full,

@@ -102,9 +102,11 @@ Rules:
 - Zero drop shadows.
 - Touch targets at least 48dp; primary buttons at least 52dp tall.
 
-## 5. Home and Today
+## 5. Home, Today and Medicines
 
-- **Home** answers "what do I do right now": greeting, Bantay's one-line status, a one-line progress and Care Streak, **Due now** (Not Recorded doses grouped by Time Slot, plus anything within the next two hours), a collapsible **Recorded** line, a collapsible **Later today** row, and **Refill Horizon** rows only when stock runs out within seven days.
+- **Patient chips** sit at the top of every tab (under the greeting on Home, under the header elsewhere): one chip per Patient in list order, the selected one filled with narra, "All people" when there are more than five, and "+ Add". They are the only way to change person; there is no combined "All" view.
+- **Home hero** ("notebook margin"): one raised-paper box with a vertical narra margin line, Bantay standing full-body at its bottom-left. Bantay opens with a serif welcome to the caregiver ("Good afternoon, Maya!"), then the day's most urgent fact for the selected Patient (**8** not recorded / **6:00 PM** next / **All 14** recorded / **No doses** today), progress and the Care Streak, and a chat box ("Ask Bantay about Lola Rosa's medicines…"). No suggested-question chips on Home; the chat keeps its own. When everything is recorded the hero shrinks and Bantay celebrates once.
+- Below the hero, Home answers "what do I do right now": **Due now** (Not Recorded doses grouped by Time Slot, plus anything within the next two hours), a collapsible **Recorded** line, a collapsible **Later today** row, and **Refill Horizon** rows only when stock runs out within seven days.
 - **Today** shows the whole day under Morning / Afternoon / Evening, Time Slots inside; sections that are entirely Later Today start collapsed.
 - Recording a Later Today dose asks for confirmation (early recording).
 
@@ -122,6 +124,8 @@ Animations are character motion, never pop-in emoji or sparkles:
 | celebrate | small hop, fast tail wag, happy closed eyes (whole day recorded) |
 
 The sprite sheets are stand-ins; final hand-drawn sheets replace the PNG and JSON in `assets/bantay/` without code changes.
+
+Bantay is the way into the chat, so wherever he appears large he comes with an explicit chat affordance (a chat box); a mascot alone never has to signal "you can talk to me". He appears large only in the Home hero, where he also welcomes the caregiver; elsewhere the chat is reached from the + menu. The chat's opening line says the same thing as the hero.
 
 ## 7. Motion
 

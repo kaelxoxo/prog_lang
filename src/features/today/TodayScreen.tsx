@@ -11,9 +11,8 @@ import { HistoryPanel } from '../history/HistoryPanel';
 import { InvitationInbox } from '../invitations/InvitationInbox';
 import { CareHeader } from '../patients/CareHeader';
 import { CreatePatientModal } from '../patients/CreatePatientModal';
-import { PatientSwitcher } from '../patients/PatientSwitcher';
+import { PatientChips } from '../patients/PatientChips';
 import { usePatient } from '../patients/PatientProvider';
-import { usePatientDisplay } from '../patients/usePatientDisplay';
 import { ReminderControl } from '../reminders/ReminderControl';
 import { useLocale } from '../settings/LocaleProvider';
 import { DoseTimeline } from './DoseTimeline';
@@ -23,12 +22,10 @@ type Props = { focusedOccurrenceId?: string | null; onOpenMedicines: () => void;
 export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettings }: Props) {
   const { styles } = useThemedStyles(createStyles);
   const { localeTag, t } = useLocale();
-  const [isSwitcherVisible, setSwitcherVisible] = useState(false);
   const [isCreatorVisible, setCreatorVisible] = useState(false);
   const [view, setView] = useState<'today' | 'history'>('today');
   const { session, signOut } = useAuth();
-  const { activePatient, createPatient, dataUpdatedAt, error, isCreating, isLoading, patients, retry, selectPatient } = usePatient();
-  const { showSelector } = usePatientDisplay(activePatient);
+  const { activePatient, createPatient, dataUpdatedAt, error, isCreating, isLoading, retry } = usePatient();
   const now = useCurrentTime();
   const scrollRef = useRef<ScrollView>(null);
   const timelineOffset = useRef(0);
@@ -92,61 +89,60 @@ export function TodayScreen({ focusedOccurrenceId, onOpenMedicines, onOpenSettin
   }
 
   return (
-    <>
-      <ScrollView
-        contentContainerStyle={styles.screen}
-        keyboardShouldPersistTaps="handled"
-        ref={scrollRef}
-      >
-        <View style={styles.contentColumn}>
-          <CareHeader accountName={session?.displayName} onChangePerson={() => setSwitcherVisible(true)} onOpenSettings={onOpenSettings} patient={activePatient} />
-          <SyncNotice error={error} onRetry={retry} updatedAt={dataUpdatedAt} />
-
-          <View accessibilityRole="tablist" style={styles.viewSwitch}>
-            {(['today', 'history'] as const).map((option) => {
-              const isSelected = view === option;
-              const label = t(option === 'today' ? 'today.title' : 'today.history');
-              return (
-                <PressableScale
-                  accessibilityLabel={label}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: isSelected }}
-                  key={option}
-                  onPress={() => setView(option)}
-                  style={[styles.viewOption, isSelected && styles.viewOptionSelected]}
-                >
-                  <Text style={[styles.viewOptionLabel, isSelected && styles.viewOptionLabelSelected]}>{label}</Text>
-                </PressableScale>
-              );
-            })}
-          </View>
-
-          {view === 'today' ? (
-            <>
-              <Text accessibilityRole="header" style={styles.date}>{formattedDate}</Text>
-              <View onLayout={(event) => { timelineOffset.current = event.nativeEvent.layout.y; }}>
-                <DoseTimeline
-                  focusedOccurrenceId={focusedOccurrenceId}
-                  onFocusLayout={(offset) => scrollRef.current?.scrollTo({ animated: true, y: Math.max(0, timelineOffset.current + offset - spacing.md) })}
-                  onOpenMedicines={onOpenMedicines}
-                  patient={activePatient}
-                />
-              </View>
-              <ReminderControl patient={activePatient} />
-            </>
-          ) : <HistoryPanel patient={activePatient} />}
+    <ScrollView
+      contentContainerStyle={styles.screen}
+      keyboardShouldPersistTaps="handled"
+      ref={scrollRef}
+    >
+      <View style={styles.contentColumn}>
+        <View style={styles.header}>
+          <CareHeader accountName={session?.displayName} onOpenSettings={onOpenSettings} />
+          <PatientChips />
         </View>
-      </ScrollView>
+        <SyncNotice error={error} onRetry={retry} updatedAt={dataUpdatedAt} />
 
-      {showSelector ? <PatientSwitcher activePatientId={activePatient.id} onAddPerson={() => setCreatorVisible(true)} onClose={() => setSwitcherVisible(false)} onSelect={selectPatient} patients={patients} visible={isSwitcherVisible} /> : null}
-      <CreatePatientModal isCreating={isCreating} onClose={() => setCreatorVisible(false)} onCreate={createPatient} visible={isCreatorVisible} />
-    </>
+        <View accessibilityRole="tablist" style={styles.viewSwitch}>
+          {(['today', 'history'] as const).map((option) => {
+            const isSelected = view === option;
+            const label = t(option === 'today' ? 'today.title' : 'today.history');
+            return (
+              <PressableScale
+                accessibilityLabel={label}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isSelected }}
+                key={option}
+                onPress={() => setView(option)}
+                style={[styles.viewOption, isSelected && styles.viewOptionSelected]}
+              >
+                <Text style={[styles.viewOptionLabel, isSelected && styles.viewOptionLabelSelected]}>{label}</Text>
+              </PressableScale>
+            );
+          })}
+        </View>
+
+        {view === 'today' ? (
+          <>
+            <Text accessibilityRole="header" style={styles.date}>{formattedDate}</Text>
+            <View onLayout={(event) => { timelineOffset.current = event.nativeEvent.layout.y; }}>
+              <DoseTimeline
+                focusedOccurrenceId={focusedOccurrenceId}
+                onFocusLayout={(offset) => scrollRef.current?.scrollTo({ animated: true, y: Math.max(0, timelineOffset.current + offset - spacing.md) })}
+                onOpenMedicines={onOpenMedicines}
+                patient={activePatient}
+              />
+            </View>
+            <ReminderControl patient={activePatient} />
+          </>
+        ) : <HistoryPanel patient={activePatient} />}
+      </View>
+    </ScrollView>
   );
 }
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   screen: { flexGrow: 1, paddingBottom: 110, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.canvas },
   contentColumn: { width: '100%', maxWidth: 760, alignSelf: 'center', gap: spacing.lg },
+  header: { gap: spacing.md },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { ...typography.title1, color: colors.ink },
   greeting: { ...typography.body, color: colors.muted },

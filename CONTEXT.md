@@ -42,7 +42,7 @@ _Avoid_: Pill drop, medicine event, reminder item
 
 **Not Recorded**:
 The factual, non-judgmental status of a past scheduled dose that has not yet been logged by any caregiver.
-_Avoid_: Missed, failed, unrecorded, non-compliant, overdue
+_Avoid_: Missed, failed, unrecorded, non-compliant, overdue, pending review
 
 **Due Now**:
 A Dose Occurrence whose scheduled time is within the next two hours, or has passed while it is still Not Recorded. Home shows only Due Now doses.
