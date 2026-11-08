@@ -23,6 +23,6 @@ export function planReminderSync(existing: ExistingReminder[], desired: DesiredR
 
   return {
     cancel,
-    schedule: desired.filter((item) => !kept.has(item.occurrenceId)),
+    schedule: [...desiredByOccurrence.values()].filter((item) => !kept.has(item.occurrenceId)),
   };
 }
