@@ -18,3 +18,32 @@ test('Milestone 5 reminder planning keeps one exact reminder and replaces duplic
   assert.deepEqual(plan.cancel.sort(), ['duplicate-a', 'removed', 'stale-b']);
   assert.deepEqual(plan.schedule, [desired[1]]);
 });
+
+test('repeated desired occurrences schedule only one notification', () => {
+  const dose = { occurrenceId: 'dose-a', patientId: 'patient-a', dueAt: '2026-08-25T00:00:00.000Z' };
+
+  assert.deepEqual(planReminderSync([], [dose, { ...dose }]), {
+    cancel: [],
+    schedule: [dose],
+  });
+});
+
+test('the last desired time is used consistently when replacing a stale reminder', () => {
+  const original = { occurrenceId: 'dose-a', patientId: 'patient-a', dueAt: '2026-08-25T00:00:00.000Z' };
+  const revised = { ...original, dueAt: '2026-08-25T01:00:00.000Z' };
+  const existing = { ...original, identifier: 'stale-a' };
+
+  assert.deepEqual(planReminderSync([existing], [original, revised]), {
+    cancel: ['stale-a'],
+    schedule: [revised],
+  });
+});
+
+test('an existing exact reminder remains stable with repeated desired entries', () => {
+  const dose = { occurrenceId: 'dose-a', patientId: 'patient-a', dueAt: '2026-08-25T00:00:00.000Z' };
+
+  assert.deepEqual(planReminderSync([{ ...dose, identifier: 'keep-a' }], [dose, { ...dose }]), {
+    cancel: [],
+    schedule: [],
+  });
+});
